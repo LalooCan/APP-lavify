@@ -1,0 +1,1342 @@
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import '../models/wash_models.dart';
+import '../services/location_service.dart';
+import '../theme/theme.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/secondary_button.dart';
+import '../widgets/section_text.dart';
+import '../widgets/section_container.dart';
+import 'order_confirmation_page.dart';
+
+class RequestWashFlowPage extends StatefulWidget {
+  const RequestWashFlowPage({super.key, this.initialPackage});
+
+  final WashPackage? initialPackage;
+
+  @override
+  State<RequestWashFlowPage> createState() => _RequestWashFlowPageState();
+}
+
+class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
+  static final _locationService = LocationService();
+
+  late TextEditingController _addressController;
+  late TextEditingController _notesController;
+  late final ValueNotifier<WashPackage> _selectedPackageNotifier;
+  late final ValueNotifier<ScheduleSlot> _selectedScheduleNotifier;
+  late final ValueNotifier<VehicleType> _selectedVehicleNotifier;
+  late final ValueNotifier<ServiceLocation> _selectedLocationNotifier;
+  late final ValueNotifier<String> _addressNotifier;
+  late final ValueNotifier<String> _notesNotifier;
+  late final ValueNotifier<bool> _isLocationConfirmedNotifier;
+  late final ValueNotifier<bool> _isResolvingLocationNotifier;
+  late final ValueNotifier<String?> _locationMessageNotifier;
+  late final ValueNotifier<LocationResolution?> _locationResolutionNotifier;
+  final bool _isSubmitting = false;
+
+  WashRequestDraft get draft => WashRequestDraft(
+    selectedPackage: _selectedPackageNotifier.value,
+    address: _addressNotifier.value,
+    selectedSchedule: _selectedScheduleNotifier.value,
+    selectedVehicle: _selectedVehicleNotifier.value,
+    estimatedMinutes: 45,
+    travelFee: 20,
+    notes: _notesNotifier.value,
+    selectedLocation: _selectedLocationNotifier.value,
+    isLocationConfirmed: _isLocationConfirmedNotifier.value,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    const initialLocation = ServiceLocation(
+      latitude: 19.432608,
+      longitude: -99.133209,
+    );
+    _selectedPackageNotifier = ValueNotifier<WashPackage>(
+      widget.initialPackage ?? washPackages.last,
+    );
+    _selectedScheduleNotifier = ValueNotifier<ScheduleSlot>(scheduleSlots[1]);
+    _selectedVehicleNotifier = ValueNotifier<VehicleType>(vehicleTypes[1]);
+    _selectedLocationNotifier = ValueNotifier<ServiceLocation>(initialLocation);
+    _addressNotifier = ValueNotifier<String>('Av. Reforma 245, CDMX');
+    _notesNotifier = ValueNotifier<String>('');
+    _isLocationConfirmedNotifier = ValueNotifier<bool>(false);
+    _isResolvingLocationNotifier = ValueNotifier<bool>(false);
+    _locationMessageNotifier = ValueNotifier<String?>(null);
+    _locationResolutionNotifier = ValueNotifier<LocationResolution?>(null);
+    _addressController = TextEditingController(text: _addressNotifier.value);
+    _notesController = TextEditingController(text: _notesNotifier.value);
+    _resolveLocation(initialLocation, updateAddressField: true);
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    _notesController.dispose();
+    _selectedPackageNotifier.dispose();
+    _selectedScheduleNotifier.dispose();
+    _selectedVehicleNotifier.dispose();
+    _selectedLocationNotifier.dispose();
+    _addressNotifier.dispose();
+    _notesNotifier.dispose();
+    _isLocationConfirmedNotifier.dispose();
+    _isResolvingLocationNotifier.dispose();
+    _locationMessageNotifier.dispose();
+    _locationResolutionNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 1100;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Pedir lavado')),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0A1423),
+              Color(0xFF0E1B30),
+              LavifyColors.background,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 56 : 20,
+              vertical: 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionText(
+                  title: 'Reserva tu lavado',
+                  highlight: 'en minutos',
+                  subtitle:
+                      'La seleccion del usuario ya se guarda en un draft local para luego enviarla a backend como una orden real.',
+                ),
+                const SizedBox(height: 28),
+                if (isDesktop)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 8,
+                        child: _BookingDetails(
+                          addressController: _addressController,
+                          notesController: _notesController,
+                          selectedPackageListenable: _selectedPackageNotifier,
+                          selectedScheduleListenable: _selectedScheduleNotifier,
+                          selectedVehicleListenable: _selectedVehicleNotifier,
+                          selectedLocationListenable: _selectedLocationNotifier,
+                          addressListenable: _addressNotifier,
+                          isLocationConfirmedListenable:
+                              _isLocationConfirmedNotifier,
+                          isResolvingLocationListenable:
+                              _isResolvingLocationNotifier,
+                          locationMessageListenable: _locationMessageNotifier,
+                          locationResolutionListenable:
+                              _locationResolutionNotifier,
+                          onPackageSelected: _handlePackageSelected,
+                          onScheduleSelected: _handleScheduleSelected,
+                          onVehicleSelected: _handleVehicleSelected,
+                          onAddressChanged: _handleAddressChanged,
+                          onNotesChanged: _handleNotesChanged,
+                          onLocationChanged: _handleLocationChanged,
+                          onConfirmLocation: _handleLocationConfirmation,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 5,
+                        child: AnimatedBuilder(
+                          animation: Listenable.merge([
+                            _selectedPackageNotifier,
+                            _selectedScheduleNotifier,
+                            _selectedVehicleNotifier,
+                            _selectedLocationNotifier,
+                            _addressNotifier,
+                            _notesNotifier,
+                            _isLocationConfirmedNotifier,
+                          ]),
+                          builder: (context, _) {
+                            return _BookingSummary(
+                              draft: draft,
+                              onConfirm: _handleConfirm,
+                              isSubmitting: _isSubmitting,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Column(
+                    children: [
+                      _BookingDetails(
+                        addressController: _addressController,
+                        notesController: _notesController,
+                        selectedPackageListenable: _selectedPackageNotifier,
+                        selectedScheduleListenable: _selectedScheduleNotifier,
+                        selectedVehicleListenable: _selectedVehicleNotifier,
+                        selectedLocationListenable: _selectedLocationNotifier,
+                        addressListenable: _addressNotifier,
+                        isLocationConfirmedListenable:
+                            _isLocationConfirmedNotifier,
+                        isResolvingLocationListenable:
+                            _isResolvingLocationNotifier,
+                        locationMessageListenable: _locationMessageNotifier,
+                        locationResolutionListenable:
+                            _locationResolutionNotifier,
+                        onPackageSelected: _handlePackageSelected,
+                        onScheduleSelected: _handleScheduleSelected,
+                        onVehicleSelected: _handleVehicleSelected,
+                        onAddressChanged: _handleAddressChanged,
+                        onNotesChanged: _handleNotesChanged,
+                        onLocationChanged: _handleLocationChanged,
+                        onConfirmLocation: _handleLocationConfirmation,
+                      ),
+                      const SizedBox(height: 20),
+                      AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _selectedPackageNotifier,
+                          _selectedScheduleNotifier,
+                          _selectedVehicleNotifier,
+                          _selectedLocationNotifier,
+                          _addressNotifier,
+                          _notesNotifier,
+                          _isLocationConfirmedNotifier,
+                        ]),
+                        builder: (context, _) {
+                          return _BookingSummary(
+                            draft: draft,
+                            onConfirm: _handleConfirm,
+                            isSubmitting: _isSubmitting,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handlePackageSelected(WashPackage package) {
+    _selectedPackageNotifier.value = package;
+  }
+
+  void _handleScheduleSelected(ScheduleSlot slot) {
+    _selectedScheduleNotifier.value = slot;
+  }
+
+  void _handleVehicleSelected(VehicleType vehicle) {
+    _selectedVehicleNotifier.value = vehicle;
+  }
+
+  void _handleAddressChanged(String value) {
+    _addressNotifier.value = value;
+    _isLocationConfirmedNotifier.value = false;
+    _locationResolutionNotifier.value = LocationResolution(
+      location: _selectedLocationNotifier.value,
+      address: value.trim().isEmpty
+          ? _selectedLocationNotifier.value.coordinatesLabel
+          : value,
+      source: LocationAddressSource.manual,
+      isPrecise: false,
+    );
+    _locationMessageNotifier.value = null;
+  }
+
+  void _handleNotesChanged(String value) {
+    _notesNotifier.value = value;
+  }
+
+  void _handleLocationChanged(ServiceLocation location) {
+    _selectedLocationNotifier.value = location;
+    _isLocationConfirmedNotifier.value = false;
+    _locationResolutionNotifier.value = LocationResolution(
+      location: location,
+      address: location.coordinatesLabel,
+      source: LocationAddressSource.fallback,
+      isPrecise: false,
+    );
+    _locationMessageNotifier.value = null;
+    _resolveLocation(location, updateAddressField: true);
+  }
+
+  void _handleLocationConfirmation() {
+    final resolvedAddress = _addressController.text.trim();
+    if (resolvedAddress.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Selecciona o escribe una direccion antes de confirmarla.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    _addressNotifier.value = resolvedAddress;
+    _isLocationConfirmedNotifier.value = true;
+    _locationResolutionNotifier.value = LocationResolution(
+      location: _selectedLocationNotifier.value,
+      address: resolvedAddress,
+      source: LocationAddressSource.manual,
+      isPrecise: _locationResolutionNotifier.value?.isPrecise ?? false,
+    );
+    _locationMessageNotifier.value =
+        'Ubicacion confirmada y lista para enviarse al backend.';
+  }
+
+  void _handleConfirm() {
+    if (_isSubmitting) {
+      return;
+    }
+
+    final trimmedAddress = draft.address.trim();
+    if (trimmedAddress.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Agrega una direccion antes de confirmar el lavado.'),
+        ),
+      );
+      return;
+    }
+
+    if (!draft.isLocationConfirmed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Confirma la ubicacion en el mapa antes de continuar.'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OrderConfirmationPage(draft: draft),
+      ),
+    );
+  }
+
+  Future<void> _resolveLocation(
+    ServiceLocation location, {
+    required bool updateAddressField,
+  }) async {
+    _isResolvingLocationNotifier.value = true;
+
+    final resolution = await _locationService.reverseGeocode(location);
+
+    if (!mounted || _selectedLocationNotifier.value != location) {
+      return;
+    }
+
+    _isResolvingLocationNotifier.value = false;
+    _locationResolutionNotifier.value = resolution;
+    final resolvedAddress = resolution.address.trim();
+    if (updateAddressField && resolvedAddress.isNotEmpty) {
+      _addressController.value = _addressController.value.copyWith(
+        text: resolvedAddress,
+        selection: TextSelection.collapsed(offset: resolvedAddress.length),
+        composing: TextRange.empty,
+      );
+      _addressNotifier.value = resolvedAddress;
+    }
+    _locationMessageNotifier.value = resolution.hasError
+        ? resolution.errorMessage
+        : null;
+  }
+}
+
+class _BookingDetails extends StatelessWidget {
+  const _BookingDetails({
+    required this.addressController,
+    required this.notesController,
+    required this.selectedPackageListenable,
+    required this.selectedScheduleListenable,
+    required this.selectedVehicleListenable,
+    required this.selectedLocationListenable,
+    required this.addressListenable,
+    required this.isLocationConfirmedListenable,
+    required this.isResolvingLocationListenable,
+    required this.locationMessageListenable,
+    required this.locationResolutionListenable,
+    required this.onPackageSelected,
+    required this.onScheduleSelected,
+    required this.onVehicleSelected,
+    required this.onAddressChanged,
+    required this.onNotesChanged,
+    required this.onLocationChanged,
+    required this.onConfirmLocation,
+  });
+
+  final TextEditingController addressController;
+  final TextEditingController notesController;
+  final ValueNotifier<WashPackage> selectedPackageListenable;
+  final ValueNotifier<ScheduleSlot> selectedScheduleListenable;
+  final ValueNotifier<VehicleType> selectedVehicleListenable;
+  final ValueNotifier<ServiceLocation> selectedLocationListenable;
+  final ValueNotifier<String> addressListenable;
+  final ValueNotifier<bool> isLocationConfirmedListenable;
+  final ValueNotifier<bool> isResolvingLocationListenable;
+  final ValueNotifier<String?> locationMessageListenable;
+  final ValueNotifier<LocationResolution?> locationResolutionListenable;
+  final ValueChanged<WashPackage> onPackageSelected;
+  final ValueChanged<ScheduleSlot> onScheduleSelected;
+  final ValueChanged<VehicleType> onVehicleSelected;
+  final ValueChanged<String> onAddressChanged;
+  final ValueChanged<String> onNotesChanged;
+  final ValueChanged<ServiceLocation> onLocationChanged;
+  final VoidCallback onConfirmLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _StepCard(
+          step: '01',
+          title: 'Elige tu paquete',
+          child: ValueListenableBuilder<WashPackage>(
+            valueListenable: selectedPackageListenable,
+            builder: (context, selectedPackage, _) {
+              return _PackageSelector(
+                selectedPackage: selectedPackage,
+                onPackageSelected: onPackageSelected,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 18),
+        _StepCard(
+          step: '02',
+          title: 'Confirma la ubicacion y tu vehiculo',
+          child: Column(
+            children: [
+              AnimatedBuilder(
+                animation: Listenable.merge([
+                  selectedLocationListenable,
+                  addressListenable,
+                  isLocationConfirmedListenable,
+                  isResolvingLocationListenable,
+                  locationMessageListenable,
+                  locationResolutionListenable,
+                ]),
+                builder: (context, _) {
+                  return _LocationSelectionPanel(
+                    addressController: addressController,
+                    onAddressChanged: onAddressChanged,
+                    selectedLocation: selectedLocationListenable.value,
+                    onLocationChanged: onLocationChanged,
+                    onConfirmLocation: onConfirmLocation,
+                    isResolvingLocation: isResolvingLocationListenable.value,
+                    locationMessage: locationMessageListenable.value,
+                    locationResolution: locationResolutionListenable.value,
+                    isLocationConfirmed: isLocationConfirmedListenable.value,
+                  );
+                },
+              ),
+              const SizedBox(height: 18),
+              ValueListenableBuilder<VehicleType>(
+                valueListenable: selectedVehicleListenable,
+                builder: (context, selectedVehicle, _) {
+                  return _VehicleSelectionSection(
+                    selectedVehicle: selectedVehicle,
+                    onVehicleSelected: onVehicleSelected,
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: notesController,
+                onChanged: onNotesChanged,
+                maxLines: 3,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: LavifyColors.textPrimary,
+                ),
+                decoration: _inputDecoration(
+                  label: 'Notas para el lavador',
+                  hint:
+                      'Ej. Tocar timbre, entrar por porton azul, agua disponible.',
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        _StepCard(
+          step: '03',
+          title: 'Selecciona horario',
+          child: ValueListenableBuilder<ScheduleSlot>(
+            valueListenable: selectedScheduleListenable,
+            builder: (context, selectedSchedule, _) {
+              return _ScheduleSection(
+                selectedSchedule: selectedSchedule,
+                onScheduleSelected: onScheduleSelected,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BookingSummary extends StatelessWidget {
+  const _BookingSummary({
+    required this.draft,
+    required this.onConfirm,
+    required this.isSubmitting,
+  });
+
+  final WashRequestDraft draft;
+  final VoidCallback onConfirm;
+  final bool isSubmitting;
+
+  @override
+  Widget build(BuildContext context) {
+    final package = draft.selectedPackage;
+    final total = package.price + draft.travelFee;
+    final canContinueToConfirmation = draft.isReadyForConfirmation;
+
+    return RepaintBoundary(
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: LavifyColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: LavifyColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 22,
+                  offset: Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: const LinearGradient(
+                          colors: [
+                            LavifyColors.primaryStrong,
+                            LavifyColors.primary,
+                          ],
+                        ),
+                      ),
+                      child: const Icon(Icons.local_car_wash_rounded),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        'Resumen del pedido',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _SummaryRow(label: 'Paquete', value: package.summary),
+                const SizedBox(height: 10),
+                _SummaryRow(label: 'Direccion', value: draft.address),
+                const SizedBox(height: 10),
+                _SummaryRow(
+                  label: 'Coordenadas',
+                  value:
+                      '${draft.selectedLocation.latitude.toStringAsFixed(6)}, ${draft.selectedLocation.longitude.toStringAsFixed(6)}',
+                ),
+                const SizedBox(height: 10),
+                _SummaryRow(
+                  label: 'Vehiculo',
+                  value: draft.selectedVehicle.name,
+                ),
+                const SizedBox(height: 10),
+                _SummaryRow(
+                  label: 'Horario',
+                  value: draft.selectedSchedule.label,
+                ),
+                if (draft.notes.trim().isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _SummaryRow(label: 'Notas', value: draft.notes.trim()),
+                ],
+                const SizedBox(height: 10),
+                _SummaryRow(
+                  label: 'Tiempo estimado',
+                  value: '${draft.estimatedMinutes} min',
+                ),
+                const SizedBox(height: 18),
+                const Divider(color: LavifyColors.border),
+                const SizedBox(height: 16),
+                _PriceLine(
+                  label: package.priceLabel,
+                  value: package.formattedPrice,
+                  highlight: false,
+                ),
+                const SizedBox(height: 10),
+                _PriceLine(
+                  label: 'Tarifa por desplazamiento',
+                  value: '\$${draft.travelFee}',
+                  highlight: false,
+                ),
+                const SizedBox(height: 10),
+                _PriceLine(
+                  label: 'Total estimado',
+                  value: '\$$total',
+                  highlight: true,
+                ),
+                const SizedBox(height: 22),
+                PrimaryButton(
+                  label: isSubmitting
+                      ? 'Preparando resumen...'
+                      : 'Continuar a confirmacion - \$$total',
+                  onPressed: canContinueToConfirmation ? onConfirm : null,
+                  isExpanded: true,
+                ),
+                if (!canContinueToConfirmation) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    draft.hasValidAddress
+                        ? 'Confirma la ubicacion del servicio para continuar.'
+                        : 'Selecciona una direccion y confirma la ubicacion para continuar.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFFFFC857),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                SecondaryButton(
+                  label: 'Volver al inicio',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icons.arrow_back_rounded,
+                  isExpanded: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepCard extends StatelessWidget {
+  const _StepCard({
+    required this.step,
+    required this.title,
+    required this.child,
+  });
+
+  final String step;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.white.withAlpha(10),
+                  border: Border.all(color: LavifyColors.border),
+                ),
+                child: Text(
+                  step,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: LavifyColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _PackageSelector extends StatelessWidget {
+  const _PackageSelector({
+    required this.selectedPackage,
+    required this.onPackageSelected,
+  });
+
+  final WashPackage selectedPackage;
+  final ValueChanged<WashPackage> onPackageSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 14,
+      runSpacing: 14,
+      children: washPackages
+          .map(
+            (package) => _PackageCard(
+              package: package,
+              selected: package.id == selectedPackage.id,
+              onTap: () => onPackageSelected(package),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _PackageCard extends StatelessWidget {
+  const _PackageCard({
+    required this.package,
+    required this.onTap,
+    required this.selected,
+  });
+
+  final WashPackage package;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
+        child: Ink(
+          width: 220,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            color: selected ? const Color(0x331D5FFF) : LavifyColors.surfaceAlt,
+            border: Border.all(
+              color: selected ? LavifyColors.primary : LavifyColors.border,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: selected
+                          ? LavifyColors.primaryStrong
+                          : Colors.white.withAlpha(10),
+                    ),
+                    child: Icon(
+                      package.icon,
+                      color: selected
+                          ? LavifyColors.textPrimary
+                          : LavifyColors.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (selected)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x1F28D17C),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'Seleccionado',
+                        style: TextStyle(
+                          color: LavifyColors.success,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                package.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                package.formattedPrice,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: LavifyColors.primary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                package.description,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationSelectionPanel extends StatelessWidget {
+  const _LocationSelectionPanel({
+    required this.addressController,
+    required this.onAddressChanged,
+    required this.selectedLocation,
+    required this.onLocationChanged,
+    required this.onConfirmLocation,
+    required this.isResolvingLocation,
+    required this.locationMessage,
+    required this.locationResolution,
+    required this.isLocationConfirmed,
+  });
+
+  final TextEditingController addressController;
+  final ValueChanged<String> onAddressChanged;
+  final ServiceLocation selectedLocation;
+  final ValueChanged<ServiceLocation> onLocationChanged;
+  final VoidCallback onConfirmLocation;
+  final bool isResolvingLocation;
+  final String? locationMessage;
+  final LocationResolution? locationResolution;
+  final bool isLocationConfirmed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: LavifyColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0x3322C1FF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: LavifyColors.primary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ubicacion del servicio',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: LavifyColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Edita la direccion real del servicio para dejar el pedido listo para backend.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: addressController,
+          onChanged: onAddressChanged,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
+          decoration: _inputDecoration(
+            label: 'Direccion del servicio',
+            hint: 'Ej. Av. Paseo de la Reforma 245, Juarez, CDMX',
+          ),
+        ),
+        const SizedBox(height: 14),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: SizedBox(
+            height: 280,
+            width: double.infinity,
+            child: _ServiceLocationMap(
+              selectedLocation: selectedLocation,
+              onLocationChanged: onLocationChanged,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(6),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: LavifyColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Ubicacion seleccionada',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: LavifyColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (isResolvingLocation)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else if (isLocationConfirmed)
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: LavifyColors.success,
+                      size: 18,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                (locationResolution?.address ?? addressController.text)
+                        .trim()
+                        .isEmpty
+                    ? 'Aun no hay direccion seleccionada'
+                    : (locationResolution?.address ?? addressController.text),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: LavifyColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Coordenadas: ${selectedLocation.coordinatesLabel}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                locationMessage ??
+                    'Toca o arrastra el pin para fijar la ubicacion exacta del servicio.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: locationMessage == null
+                      ? LavifyColors.textSecondary
+                      : isLocationConfirmed
+                      ? LavifyColors.success
+                      : const Color(0xFFFFC857),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        PrimaryButton(
+          label: isResolvingLocation
+              ? 'Resolviendo direccion...'
+              : isLocationConfirmed
+              ? 'Ubicacion confirmada'
+              : 'Confirmar ubicacion',
+          onPressed: isResolvingLocation ? null : onConfirmLocation,
+          isExpanded: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _VehicleSelectionSection extends StatelessWidget {
+  const _VehicleSelectionSection({
+    required this.selectedVehicle,
+    required this.onVehicleSelected,
+  });
+
+  final VehicleType selectedVehicle;
+  final ValueChanged<VehicleType> onVehicleSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Tipo de vehiculo',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: LavifyColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: vehicleTypes
+              .map(
+                (vehicle) => _VehicleChip(
+                  vehicle: vehicle,
+                  selected: vehicle.id == selectedVehicle.id,
+                  onTap: () => onVehicleSelected(vehicle),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScheduleSection extends StatelessWidget {
+  const _ScheduleSection({
+    required this.selectedSchedule,
+    required this.onScheduleSelected,
+  });
+
+  final ScheduleSlot selectedSchedule;
+  final ValueChanged<ScheduleSlot> onScheduleSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: scheduleSlots
+          .map(
+            (slot) => _SelectableSlot(
+              title: slot.time,
+              subtitle: slot.period,
+              selected: slot.id == selectedSchedule.id,
+              onTap: () => onScheduleSelected(slot),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _SelectableSlot extends StatelessWidget {
+  const _SelectableSlot({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
+        child: Ink(
+          width: 150,
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: selected ? const Color(0x331D5FFF) : LavifyColors.surfaceAlt,
+            border: Border.all(
+              color: selected ? LavifyColors.primary : LavifyColors.border,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: LavifyColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: selected
+                      ? LavifyColors.primary
+                      : LavifyColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VehicleChip extends StatelessWidget {
+  const _VehicleChip({
+    required this.vehicle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final VehicleType vehicle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0x331D5FFF)
+                : Colors.white.withAlpha(8),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected ? LavifyColors.primary : LavifyColors.border,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(vehicle.icon, color: LavifyColors.primary, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                vehicle.name,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: LavifyColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ServiceLocationMap extends StatefulWidget {
+  const _ServiceLocationMap({
+    required this.selectedLocation,
+    required this.onLocationChanged,
+  });
+
+  final ServiceLocation selectedLocation;
+  final ValueChanged<ServiceLocation> onLocationChanged;
+
+  @override
+  State<_ServiceLocationMap> createState() => _ServiceLocationMapState();
+}
+
+class _ServiceLocationMapState extends State<_ServiceLocationMap> {
+  GoogleMapController? _mapController;
+
+  @override
+  Widget build(BuildContext context) {
+    final latLng = widget.selectedLocation.toLatLng();
+
+    return RepaintBoundary(
+      child: GoogleMap(
+        initialCameraPosition: CameraPosition(target: latLng, zoom: 14),
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: false,
+        mapToolbarEnabled: false,
+        onMapCreated: (controller) {
+          _mapController = controller;
+        },
+        onTap: (position) {
+          widget.onLocationChanged(
+            ServiceLocation(
+              latitude: position.latitude,
+              longitude: position.longitude,
+            ),
+          );
+        },
+        markers: {
+          Marker(
+            markerId: const MarkerId('service_location'),
+            position: latLng,
+            draggable: true,
+            onDragEnd: (position) {
+              widget.onLocationChanged(
+                ServiceLocation(
+                  latitude: position.latitude,
+                  longitude: position.longitude,
+                ),
+              );
+            },
+          ),
+        },
+      ),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _ServiceLocationMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedLocation != widget.selectedLocation) {
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLng(widget.selectedLocation.toLatLng()),
+      );
+    }
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: LavifyColors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PriceLine extends StatelessWidget {
+  const _PriceLine({
+    required this.label,
+    required this.value,
+    required this.highlight,
+  });
+
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = highlight
+        ? LavifyColors.textPrimary
+        : LavifyColors.textSecondary;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: color,
+              fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: highlight ? LavifyColors.primary : LavifyColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+InputDecoration _inputDecoration({
+  required String label,
+  required String hint,
+}) {
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: const TextStyle(color: LavifyColors.textSecondary),
+    hintStyle: const TextStyle(color: LavifyColors.textSecondary),
+    filled: true,
+    fillColor: LavifyColors.surfaceAlt,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: const BorderSide(color: LavifyColors.border),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: const BorderSide(color: LavifyColors.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: const BorderSide(color: LavifyColors.primary),
+    ),
+  );
+}
