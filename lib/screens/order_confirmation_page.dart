@@ -9,10 +9,7 @@ import '../widgets/section_container.dart';
 import 'order_tracking_page.dart';
 
 class OrderConfirmationPage extends StatefulWidget {
-  const OrderConfirmationPage({
-    super.key,
-    required this.draft,
-  });
+  const OrderConfirmationPage({super.key, required this.draft});
 
   final WashRequestDraft draft;
 
@@ -111,11 +108,11 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         ),
                         child: SelectableText(
                           request.toJson(),
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: LavifyColors.textPrimary,
-                                    fontFamily: 'monospace',
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: LavifyColors.textPrimary,
+                                fontFamily: 'monospace',
+                              ),
                         ),
                       ),
                     ],
@@ -176,10 +173,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 }
 
 class _ConfirmationRow extends StatelessWidget {
-  const _ConfirmationRow({
-    required this.label,
-    required this.value,
-  });
+  const _ConfirmationRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -196,9 +190,9 @@ class _ConfirmationRow extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: LavifyColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

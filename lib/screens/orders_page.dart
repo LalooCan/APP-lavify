@@ -17,11 +17,7 @@ class OrdersPage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF07101D),
-              Color(0xFF102446),
-              Color(0xFF09111F),
-            ],
+            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
           ),
         ),
         child: SafeArea(
@@ -65,9 +61,7 @@ class OrdersPage extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({
-    required this.order,
-  });
+  const _OrderCard({required this.order});
 
   final WashOrder order;
 
@@ -102,9 +96,9 @@ class _OrderCard extends StatelessWidget {
                 child: Text(
                   order.status.label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: LavifyColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: LavifyColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -123,9 +117,9 @@ class _OrderCard extends StatelessWidget {
           Text(
             '\$${order.request.totalPrice} ${order.request.currency}',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: LavifyColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

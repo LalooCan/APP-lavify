@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
@@ -13,6 +14,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  static final _profileService = ProfileService();
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -37,11 +40,7 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF06101D),
-              Color(0xFF0D203D),
-              Color(0xFF09111F),
-            ],
+            colors: [Color(0xFF06101D), Color(0xFF0D203D), Color(0xFF09111F)],
           ),
         ),
         child: Stack(
@@ -49,18 +48,12 @@ class _LoginPageState extends State<LoginPage> {
             const Positioned(
               top: -120,
               right: -60,
-              child: _GlowBubble(
-                size: 280,
-                color: Color(0x1F22C1FF),
-              ),
+              child: _GlowBubble(size: 280, color: Color(0x1F22C1FF)),
             ),
             const Positioned(
               bottom: -90,
               left: -40,
-              child: _GlowBubble(
-                size: 240,
-                color: Color(0x1628D17C),
-              ),
+              child: _GlowBubble(size: 240, color: Color(0x1628D17C)),
             ),
             SafeArea(
               child: Center(
@@ -74,10 +67,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: isDesktop
                         ? Row(
                             children: [
-                              const Expanded(
-                                flex: 11,
-                                child: _LoginShowcase(),
-                              ),
+                              const Expanded(flex: 11, child: _LoginShowcase()),
                               const SizedBox(width: 28),
                               Expanded(
                                 flex: 9,
@@ -140,13 +130,14 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    _profileService.syncLoginEmail(_emailController.text);
     _openApp();
   }
 
   void _openApp() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => const AppShell(),
+        builder: (_) => const AppShell(mode: AppMode.client),
       ),
     );
   }
@@ -167,10 +158,7 @@ class _LoginShowcase extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0A1528),
-            Color(0xCC102446),
-          ],
+          colors: [Color(0xFF0A1528), Color(0xCC102446)],
         ),
       ),
       child: Column(
@@ -206,9 +194,9 @@ class _LoginShowcase extends StatelessWidget {
           Text(
             'Tu auto limpio sin romper tu rutina.',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: compact ? 38 : 56,
-                  height: 0.95,
-                ),
+              fontSize: compact ? 38 : 56,
+              height: 0.95,
+            ),
           ),
           const SizedBox(height: 16),
           ConstrainedBox(
@@ -216,8 +204,8 @@ class _LoginShowcase extends StatelessWidget {
             child: Text(
               'Inicia sesion para pedir lavados, seguir tus pedidos y guardar direcciones frecuentes desde una sola cuenta.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textSecondary,
-                  ),
+                color: LavifyColors.textSecondary,
+              ),
             ),
           ),
           SizedBox(height: compact ? 24 : 34),
@@ -262,7 +250,8 @@ class _LoginShowcase extends StatelessWidget {
                 _BenefitRow(
                   icon: Icons.route_rounded,
                   title: 'Seguimiento en vivo',
-                  subtitle: 'Ubica a tu lavador y recibe confirmaciones claras.',
+                  subtitle:
+                      'Ubica a tu lavador y recibe confirmaciones claras.',
                 ),
                 SizedBox(height: 18),
                 _BenefitRow(
@@ -365,17 +354,17 @@ class _LoginCard extends StatelessWidget {
             Text(
               'Correo',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: LavifyColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: LavifyColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 10),
             TextFormField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textPrimary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
               decoration: _inputDecoration(
                 hint: 'cliente@lavify.app',
                 prefixIcon: Icons.mail_outline_rounded,
@@ -398,9 +387,9 @@ class _LoginCard extends StatelessWidget {
                   child: Text(
                     'Contrasena',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: LavifyColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: LavifyColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 TextButton(
@@ -413,9 +402,9 @@ class _LoginCard extends StatelessWidget {
             TextFormField(
               controller: passwordController,
               obscureText: obscurePassword,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textPrimary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
               decoration: _inputDecoration(
                 hint: 'Escribe tu contrasena',
                 prefixIcon: Icons.lock_outline_rounded,
@@ -510,14 +499,14 @@ class _LoginCard extends StatelessWidget {
                 Expanded(
                   child: _ProviderButton(
                     label: 'Google',
-                    icon: Icons.g_mobiledata_rounded,
+                    logo: _GoogleLogo(),
                   ),
                 ),
                 SizedBox(width: 12),
                 Expanded(
                   child: _ProviderButton(
                     label: 'Apple',
-                    icon: Icons.apple_rounded,
+                    logo: Icon(Icons.apple_rounded, size: 24),
                   ),
                 ),
               ],
@@ -574,9 +563,9 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 24,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontSize: 24),
           ),
           const SizedBox(height: 6),
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
@@ -619,15 +608,12 @@ class _BenefitRow extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: LavifyColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: LavifyColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -637,19 +623,16 @@ class _BenefitRow extends StatelessWidget {
 }
 
 class _ProviderButton extends StatelessWidget {
-  const _ProviderButton({
-    required this.label,
-    required this.icon,
-  });
+  const _ProviderButton({required this.label, required this.logo});
 
   final String label;
-  final IconData icon;
+  final Widget logo;
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
       onPressed: () {},
-      icon: Icon(icon, size: 24),
+      icon: logo,
       label: Text(label),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -659,11 +642,25 @@ class _ProviderButton extends StatelessWidget {
   }
 }
 
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'G',
+      style: TextStyle(
+        color: LavifyColors.textPrimary,
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+        height: 1,
+      ),
+    );
+  }
+}
+
 class _GlowBubble extends StatelessWidget {
-  const _GlowBubble({
-    required this.size,
-    required this.color,
-  });
+  const _GlowBubble({required this.size, required this.color});
 
   final double size;
   final Color color;
@@ -676,12 +673,7 @@ class _GlowBubble extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [
-              color,
-              Colors.transparent,
-            ],
-          ),
+          gradient: RadialGradient(colors: [color, Colors.transparent]),
         ),
       ),
     );

@@ -11,7 +11,7 @@ class ProfileService {
 
   final ValueNotifier<UserProfile> profile = ValueNotifier<UserProfile>(
     const UserProfile(
-      name: 'Usuario Lavify',
+      name: 'Elige tu nombre',
       email: 'cliente@lavify.app',
       vehicleLabel: 'Sedan mediano - Color gris',
       favoriteAddress: 'Av. Reforma 245, CDMX',
@@ -21,5 +21,14 @@ class ProfileService {
 
   void updateProfile(UserProfile next) {
     profile.value = next;
+  }
+
+  void syncLoginEmail(String email) {
+    final normalizedEmail = email.trim();
+    if (normalizedEmail.isEmpty) {
+      return;
+    }
+
+    profile.value = profile.value.copyWith(email: normalizedEmail);
   }
 }

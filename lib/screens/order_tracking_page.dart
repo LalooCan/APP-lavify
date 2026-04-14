@@ -6,10 +6,7 @@ import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 
 class OrderTrackingPage extends StatelessWidget {
-  const OrderTrackingPage({
-    super.key,
-    required this.order,
-  });
+  const OrderTrackingPage({super.key, required this.order});
 
   final WashOrder order;
 
@@ -19,19 +16,13 @@ class OrderTrackingPage extends StatelessWidget {
     final activeIndex = stages.indexOf(order.status);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Pedido ${order.id}'),
-      ),
+      appBar: AppBar(title: Text('Pedido ${order.id}')),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF07101D),
-              Color(0xFF102446),
-              Color(0xFF09111F),
-            ],
+            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
           ),
         ),
         child: SafeArea(
@@ -139,13 +130,26 @@ class OrderTrackingPage extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 14),
-                      _DetailRow(label: 'Paquete', value: order.request.packageName),
-                      _DetailRow(label: 'Vehiculo', value: order.request.vehicleTypeName),
-                      _DetailRow(label: 'Direccion', value: order.request.address),
-                      _DetailRow(label: 'Horario', value: order.request.scheduleLabel),
+                      _DetailRow(
+                        label: 'Paquete',
+                        value: order.request.packageName,
+                      ),
+                      _DetailRow(
+                        label: 'Vehiculo',
+                        value: order.request.vehicleTypeName,
+                      ),
+                      _DetailRow(
+                        label: 'Direccion',
+                        value: order.request.address,
+                      ),
+                      _DetailRow(
+                        label: 'Horario',
+                        value: order.request.scheduleLabel,
+                      ),
                       _DetailRow(
                         label: 'Total',
-                        value: '\$${order.request.totalPrice} ${order.request.currency}',
+                        value:
+                            '\$${order.request.totalPrice} ${order.request.currency}',
                       ),
                     ],
                   ),
@@ -153,7 +157,8 @@ class OrderTrackingPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 PrimaryButton(
                   label: 'Volver al inicio',
-                  onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                  onPressed: () =>
+                      Navigator.of(context).popUntil((route) => route.isFirst),
                   isExpanded: true,
                 ),
               ],
@@ -209,11 +214,11 @@ class _TrackingStep extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: completed
-                      ? LavifyColors.textPrimary
-                      : LavifyColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: completed
+                  ? LavifyColors.textPrimary
+                  : LavifyColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -222,10 +227,7 @@ class _TrackingStep extends StatelessWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -239,18 +241,15 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 92,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: LavifyColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

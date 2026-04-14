@@ -45,16 +45,13 @@ class PackageCard extends StatelessWidget {
               child: Icon(package.icon, color: LavifyColors.primary),
             ),
             const SizedBox(height: 16),
-            Text(
-              package.name,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(package.name, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 6),
             Text(
               package.formattedPrice,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: LavifyColors.primary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(color: LavifyColors.primary),
             ),
             const SizedBox(height: 10),
             Text(

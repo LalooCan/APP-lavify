@@ -60,44 +60,50 @@ class LavifyTheme {
         backgroundColor: Colors.transparent,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          foregroundColor: LavifyColors.textPrimary,
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ).copyWith(
-          animationDuration: const Duration(milliseconds: 90),
-          splashFactory: NoSplash.splashFactory,
-          overlayColor: const WidgetStatePropertyAll(Color(0x1422C1FF)),
-          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        ),
+        style:
+            ElevatedButton.styleFrom(
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              foregroundColor: LavifyColors.textPrimary,
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ).copyWith(
+              animationDuration: const Duration(milliseconds: 90),
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: const WidgetStatePropertyAll(Color(0x1422C1FF)),
+              shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+              surfaceTintColor: const WidgetStatePropertyAll(
+                Colors.transparent,
+              ),
+            ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-          side: const BorderSide(color: LavifyColors.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          foregroundColor: LavifyColors.textPrimary,
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ).copyWith(
-          animationDuration: const Duration(milliseconds: 90),
-          splashFactory: NoSplash.splashFactory,
-          overlayColor: const WidgetStatePropertyAll(Color(0x1022C1FF)),
-          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        ),
+        style:
+            OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+              side: const BorderSide(color: LavifyColors.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              foregroundColor: LavifyColors.textPrimary,
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ).copyWith(
+              animationDuration: const Duration(milliseconds: 90),
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: const WidgetStatePropertyAll(Color(0x1022C1FF)),
+              shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+              surfaceTintColor: const WidgetStatePropertyAll(
+                Colors.transparent,
+              ),
+            ),
       ),
     );
   }

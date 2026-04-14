@@ -19,7 +19,11 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconWidget = Icon(icon ?? Icons.water_drop_rounded, size: 18);
-    final labelWidget = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
+    final labelWidget = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
     final isEnabled = onPressed != null;
 
     final button = DecoratedBox(

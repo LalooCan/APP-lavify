@@ -86,9 +86,9 @@ class _HowItWorksCard extends StatelessWidget {
                   child: Text(
                     item.step,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: LavifyColors.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: LavifyColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -104,10 +104,7 @@ class _HowItWorksCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              item.title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(item.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               item.description,

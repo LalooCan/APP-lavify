@@ -20,11 +20,7 @@ class SecondaryButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon ?? Icons.arrow_forward_rounded, size: 18),
-        label: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
 

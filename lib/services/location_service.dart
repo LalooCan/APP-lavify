@@ -9,10 +9,7 @@ class LocationService {
   final GeocodingService _geocodingService;
 
   ServiceLocation getDefaultLocation() {
-    return const ServiceLocation(
-      latitude: 19.432608,
-      longitude: -99.133209,
-    );
+    return const ServiceLocation(latitude: 19.432608, longitude: -99.133209);
   }
 
   bool hasResolvedAddress(String address) => address.trim().isNotEmpty;

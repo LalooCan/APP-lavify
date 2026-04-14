@@ -42,7 +42,8 @@ class GeocodingService {
       final response = await http.get(uri);
       if (response.statusCode != 200) {
         return fallback.copyWith(
-          errorMessage: 'No fue posible consultar la direccion en este momento.',
+          errorMessage:
+              'No fue posible consultar la direccion en este momento.',
         );
       }
 

@@ -13,11 +13,7 @@ class ProfilePage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF07101D),
-              Color(0xFF102446),
-              Color(0xFF09111F),
-            ],
+            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
           ),
         ),
         child: SafeArea(
@@ -96,10 +92,7 @@ class ProfilePage extends StatelessWidget {
 }
 
 class _ProfileItem extends StatelessWidget {
-  const _ProfileItem({
-    required this.label,
-    required this.value,
-  });
+  const _ProfileItem({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -116,9 +109,9 @@ class _ProfileItem extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: LavifyColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

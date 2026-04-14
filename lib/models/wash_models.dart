@@ -51,11 +51,7 @@ class ScheduleSlot {
 }
 
 class VehicleType {
-  const VehicleType({
-    required this.id,
-    required this.name,
-    required this.icon,
-  });
+  const VehicleType({required this.id, required this.name, required this.icon});
 
   final String id;
   final String name;
@@ -63,10 +59,7 @@ class VehicleType {
 }
 
 class ServiceLocation {
-  const ServiceLocation({
-    required this.latitude,
-    required this.longitude,
-  });
+  const ServiceLocation({required this.latitude, required this.longitude});
 
   final double latitude;
   final double longitude;
@@ -76,10 +69,7 @@ class ServiceLocation {
   String get coordinatesLabel =>
       '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
 
-  ServiceLocation copyWith({
-    double? latitude,
-    double? longitude,
-  }) {
+  ServiceLocation copyWith({double? latitude, double? longitude}) {
     return ServiceLocation(
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
@@ -87,10 +77,7 @@ class ServiceLocation {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'latitude': latitude,
-      'longitude': longitude,
-    };
+    return {'latitude': latitude, 'longitude': longitude};
   }
 
   @override
@@ -107,11 +94,7 @@ class ServiceLocation {
   int get hashCode => Object.hash(latitude, longitude);
 }
 
-enum LocationAddressSource {
-  reverseGeocoding,
-  manual,
-  fallback,
-}
+enum LocationAddressSource { reverseGeocoding, manual, fallback }
 
 class LocationResolution {
   const LocationResolution({
@@ -159,11 +142,7 @@ class ServiceLocationPayload {
   final String address;
 
   Map<String, dynamic> toMap() {
-    return {
-      'lat': lat,
-      'lng': lng,
-      'address': address,
-    };
+    return {'lat': lat, 'lng': lng, 'address': address};
   }
 }
 
@@ -388,10 +367,7 @@ class WashOrder {
   final DateTime createdAt;
   final int etaMinutes;
 
-  WashOrder copyWith({
-    OrderStatus? status,
-    int? etaMinutes,
-  }) {
+  WashOrder copyWith({OrderStatus? status, int? etaMinutes}) {
     return WashOrder(
       id: id,
       request: request,
@@ -486,9 +462,5 @@ const List<VehicleType> vehicleTypes = [
     name: 'Sedan mediano',
     icon: Icons.drive_eta_rounded,
   ),
-  VehicleType(
-    id: 'suv',
-    name: 'SUV',
-    icon: Icons.airport_shuttle_rounded,
-  ),
+  VehicleType(id: 'suv', name: 'SUV', icon: Icons.airport_shuttle_rounded),
 ];

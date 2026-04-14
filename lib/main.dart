@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/login_page.dart';
-import 'screens/app_shell.dart';
+import 'screens/role_login_page.dart';
 import 'theme/theme.dart';
 
 void main() {
@@ -17,7 +16,7 @@ class LavifyApp extends StatelessWidget {
       title: 'Lavify',
       debugShowCheckedModeBanner: false,
       theme: LavifyTheme.theme,
-      home: const LoginPage(),
+      home: const RoleLoginPage(),
     );
   }
 }
@@ -28,7 +27,7 @@ class LegacyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0B1C2C),
+      backgroundColor: const Color(0xFF0B1C2C),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
@@ -37,7 +36,7 @@ class LegacyHomePage extends StatelessWidget {
           children: [
             Text(
               "Lava tu auto",
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
@@ -45,32 +44,32 @@ class LegacyHomePage extends StatelessWidget {
             ),
             Text(
               "sin salir de casa",
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF4FC3F7),
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               "Solicita un lavado desde tu celular y un profesional llega a donde estás en minutos.",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
                 onPressed: () {},
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF2196F3),
+                  backgroundColor: const Color(0xFF2196F3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: Text(
                   "Pedir lavado ahora",
-                  style: TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
             ),

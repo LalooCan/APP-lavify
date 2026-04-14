@@ -30,11 +30,7 @@ class HomePage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF07101D),
-              Color(0xFF102446),
-              Color(0xFF09111F),
-            ],
+            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
           ),
         ),
         child: SafeArea(
@@ -93,9 +89,9 @@ class _TopBar extends StatelessWidget {
         const SizedBox(width: 14),
         Text(
           'Lavify',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const Spacer(),
         if (isDesktop) ...[
@@ -126,10 +122,7 @@ class _DesktopHero extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 11,
-          child: _HeroContent(session: session),
-        ),
+        Expanded(flex: 11, child: _HeroContent(session: session)),
         const SizedBox(width: 40),
         Expanded(
           flex: 9,
@@ -259,147 +252,145 @@ class _PreviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.water_drop_rounded,
-                color: LavifyColors.primary,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Seguimiento en vivo',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 18,
-                    ),
-              ),
-              const Spacer(),
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Color(0x3322C1FF),
-                child: Icon(Icons.person, color: LavifyColors.primary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Container(
-            height: 210,
-            decoration: BoxDecoration(
-              color: LavifyColors.surfaceAlt,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Stack(
+            Row(
               children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _MapGridPainter(),
-                  ),
+                const Icon(
+                  Icons.water_drop_rounded,
+                  color: LavifyColors.primary,
                 ),
-                const Positioned(
-                  top: 30,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Icon(
-                      Icons.linear_scale_rounded,
-                      color: LavifyColors.primary,
-                      size: 76,
-                    ),
-                  ),
+                const SizedBox(width: 10),
+                Text(
+                  'Seguimiento en vivo',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 18),
                 ),
-                const Positioned(
-                  top: 74,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Icon(
-                      Icons.location_on_rounded,
-                      color: Colors.pinkAccent,
-                      size: 34,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 18,
-                  right: 18,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: LavifyColors.background,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      'Llegando en 18 min',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: LavifyColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
+                const Spacer(),
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Color(0x3322C1FF),
+                  child: Icon(Icons.person, color: LavifyColors.primary),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A2940),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: LavifyColors.border),
+            const SizedBox(height: 22),
+            Container(
+              height: 210,
+              decoration: BoxDecoration(
+                color: LavifyColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(painter: _MapGridPainter()),
+                  ),
+                  const Positioned(
+                    top: 30,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Icon(
+                        Icons.linear_scale_rounded,
+                        color: LavifyColors.primary,
+                        size: 76,
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    top: 74,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        color: Colors.pinkAccent,
+                        size: 34,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 18,
+                    right: 18,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: LavifyColors.background,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        'Llegando en 18 min',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: LavifyColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Tipo de lavado',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: LavifyColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const Spacer(),
-                    const _MiniBadge(label: 'En camino'),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Row(
-                  children: [
-                    Expanded(
-                      child: _OptionTile(
-                        icon: Icons.local_car_wash_rounded,
-                        label: 'Exterior',
-                        selected: true,
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A2940),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: LavifyColors.border),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Tipo de lavado',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: LavifyColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: _OptionTile(
-                        icon: Icons.cleaning_services_rounded,
-                        label: 'Interior',
+                      const Spacer(),
+                      const _MiniBadge(label: 'En camino'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _OptionTile(
+                          icon: Icons.local_car_wash_rounded,
+                          label: 'Exterior',
+                          selected: true,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: _OptionTile(
-                        icon: Icons.auto_awesome_rounded,
-                        label: 'Premium',
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _OptionTile(
+                          icon: Icons.cleaning_services_rounded,
+                          label: 'Interior',
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                PrimaryButton(
-                  label: 'Confirmar lavado · \$199',
-                  onPressed: () {},
-                  isExpanded: true,
-                ),
-              ],
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _OptionTile(
+                          icon: Icons.auto_awesome_rounded,
+                          label: 'Premium',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  PrimaryButton(
+                    label: 'Confirmar lavado · \$199',
+                    onPressed: () {},
+                    isExpanded: true,
+                  ),
+                ],
+              ),
             ),
-          ),
           ],
         ),
       ),
@@ -533,9 +524,9 @@ class _SessionOverview extends StatelessWidget {
               Text(
                 'Tiempo estimado: ${session.etaLabel}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: LavifyColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: LavifyColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -582,15 +573,12 @@ class _TrustCard extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 18,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontSize: 18),
             ),
             const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),
@@ -608,9 +596,9 @@ class _NavLabel extends StatelessWidget {
     return Text(
       label,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: LavifyColors.textPrimary.withAlpha(219),
-            fontWeight: FontWeight.w600,
-          ),
+        color: LavifyColors.textPrimary.withAlpha(219),
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
@@ -642,9 +630,9 @@ class _StatusChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: LavifyColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: LavifyColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -667,9 +655,9 @@ class _MetricItem extends StatelessWidget {
         children: [
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 22,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 6),
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
@@ -695,9 +683,9 @@ class _MiniBadge extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: LavifyColors.success,
-              fontWeight: FontWeight.w700,
-            ),
+          color: LavifyColors.success,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -719,7 +707,9 @@ class _OptionTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
-        color: selected ? LavifyColors.primaryStrong : Colors.white.withAlpha(10),
+        color: selected
+            ? LavifyColors.primaryStrong
+            : Colors.white.withAlpha(10),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: selected ? Colors.transparent : LavifyColors.border,
@@ -735,9 +725,9 @@ class _OptionTile extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: LavifyColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: LavifyColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
