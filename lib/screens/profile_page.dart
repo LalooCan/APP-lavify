@@ -9,13 +9,7 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -31,9 +25,9 @@ class ProfilePage extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: LavifyColors.surface,
+                    color: LavifyTheme.surfaceColor(context),
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: LavifyColors.border),
+                    border: Border.all(color: LavifyTheme.borderColor(context)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

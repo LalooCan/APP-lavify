@@ -1,4 +1,5 @@
 import '../models/wash_models.dart';
+import 'profile_service.dart';
 
 class HomeSessionData {
   const HomeSessionData({
@@ -18,13 +19,24 @@ class HomeService {
   const HomeService();
 
   HomeSessionData getSessionData() {
-    return const HomeSessionData(
-      firstName: 'Luis',
-      savedAddress: 'Tu ubicacion: Av. Paseo de la Reforma 245, Juarez, CDMX',
+    final profile = ProfileService().profile.value;
+
+    return HomeSessionData(
+      firstName: ProfileService().resolveGreetingName(),
+      savedAddress: _buildSavedAddress(profile.favoriteAddress),
       availabilityLabel: 'Disponible en tu zona',
       etaLabel: '20-30 min',
     );
   }
 
   List<WashPackage> getFeaturedPackages() => washPackages;
+
+  String _buildSavedAddress(String favoriteAddress) {
+    final trimmedAddress = favoriteAddress.trim();
+    if (trimmedAddress.isEmpty) {
+      return 'Tu ubicacion: Agrega una direccion favorita';
+    }
+
+    return 'Tu ubicacion: $trimmedAddress';
+  }
 }

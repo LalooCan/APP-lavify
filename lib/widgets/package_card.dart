@@ -16,14 +16,17 @@ class PackageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 600;
+
     return RepaintBoundary(
       child: Container(
-        width: 260,
-        padding: const EdgeInsets.all(20),
+        width: isCompact ? double.infinity : 260,
+        padding: EdgeInsets.all(isCompact ? 16 : 20),
         decoration: BoxDecoration(
-          color: LavifyColors.surface,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: LavifyColors.border),
+          color: LavifyTheme.surfaceColor(context),
+          borderRadius: BorderRadius.circular(isCompact ? 22 : 26),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x18000000),
@@ -34,35 +37,80 @@ class PackageCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                color: Colors.white.withAlpha(10),
-              ),
-              child: Icon(package.icon, color: LavifyColors.primary),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: isCompact ? 40 : 44,
+                  height: isCompact ? 40 : 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
+                    color: LavifyTheme.softFillColor(context),
+                  ),
+                  child: Icon(
+                    package.icon,
+                    color: LavifyColors.primary,
+                    size: isCompact ? 20 : 24,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 10 : 12,
+                    vertical: isCompact ? 6 : 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0x1422C1FF),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: LavifyColors.primary.withAlpha(70),
+                    ),
+                  ),
+                  child: Text(
+                    package.priceLabel,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: LavifyColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(package.name, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 6),
+            SizedBox(height: isCompact ? 14 : 16),
             Text(
-              package.formattedPrice,
+              package.name,
               style: Theme.of(
                 context,
-              ).textTheme.headlineMedium?.copyWith(color: LavifyColors.primary),
+              ).textTheme.titleLarge?.copyWith(fontSize: isCompact ? 18 : null),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: isCompact ? 4 : 6),
+            Text(
+              package.formattedPrice,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: LavifyColors.primary,
+                fontSize: isCompact ? 22 : null,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            SizedBox(height: isCompact ? 8 : 10),
             Text(
               package.description,
-              style: Theme.of(context).textTheme.bodyMedium,
+              maxLines: isCompact ? 3 : null,
+              overflow: isCompact ? TextOverflow.ellipsis : null,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontSize: isCompact ? 14 : null),
             ),
-            const SizedBox(height: 18),
-            PrimaryButton(
-              label: 'Pedir este',
-              onPressed: onPressed,
-              isExpanded: true,
+            SizedBox(height: isCompact ? 14 : 18),
+            SizedBox(
+              height: isCompact ? 44 : null,
+              child: PrimaryButton(
+                label: isCompact ? 'Pedir' : 'Pedir este',
+                onPressed: onPressed,
+                isExpanded: true,
+              ),
             ),
           ],
         ),

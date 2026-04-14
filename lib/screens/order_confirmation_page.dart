@@ -29,17 +29,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Confirmar pedido')),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0A1423),
-              Color(0xFF0E1B30),
-              LavifyColors.background,
-            ],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),

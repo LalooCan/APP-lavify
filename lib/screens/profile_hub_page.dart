@@ -33,145 +33,157 @@ class ProfileHubPage extends StatelessWidget {
               valueListenable: _profileService.profile,
               builder: (context, profile, _) {
                 return SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1080),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Configuracion',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isWorker
-                              ? 'Administra tu cuenta operativa, tus datos frecuentes y la seguridad de tu sesion.'
-                              : 'Administra tu cuenta, tus datos frecuentes y la seguridad de tu sesion.',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 24),
-                        if (isDesktop)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 5,
-                                child: _AccountSummaryCard(
-                                  profile: profile,
-                                  mode: mode,
-                                  onEditProfile: () =>
-                                      _showEditProfileDialog(context, profile),
-                                  onLogout: () => _handleLogout(context),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: isDesktop ? 1160 : 720,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 760),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Configuracion',
+                                  style: Theme.of(context).textTheme.headlineMedium,
                                 ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                flex: 7,
-                                child: _SettingsPanel(
-                                  profile: profile,
-                                  isLightMode: _themeService.isLightMode,
-                                  onEditProfile: () =>
-                                      _showEditProfileDialog(context, profile),
-                                  onEditVehicle: () =>
-                                      _showSingleFieldDialog(
-                                        context,
-                                        title: 'Vehiculo principal',
-                                        label: 'Vehiculo principal',
-                                        initialValue: profile.vehicleLabel,
-                                        onSave: (value) {
-                                          _profileService.updateProfile(
-                                            profile.copyWith(
-                                              vehicleLabel: value,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                  onEditAddress: () =>
-                                      _showSingleFieldDialog(
-                                        context,
-                                        title: 'Direccion favorita',
-                                        label: 'Direccion favorita',
-                                        initialValue: profile.favoriteAddress,
-                                        onSave: (value) {
-                                          _profileService.updateProfile(
-                                            profile.copyWith(
-                                              favoriteAddress: value,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                  onEditPayment: () =>
-                                      _showSingleFieldDialog(
-                                        context,
-                                        title: 'Metodo de pago',
-                                        label: 'Metodo de pago',
-                                        initialValue: profile.paymentMethod,
-                                        onSave: (value) {
-                                          _profileService.updateProfile(
-                                            profile.copyWith(
-                                              paymentMethod: value,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                  onLogout: () => _handleLogout(context),
-                                  onToggleTheme: _themeService.toggleBrightness,
+                                const SizedBox(height: 8),
+                                Text(
+                                  isWorker
+                                      ? 'Administra tu cuenta operativa, tus datos frecuentes y la seguridad de tu sesion.'
+                                      : 'Administra tu cuenta, tus datos frecuentes y la seguridad de tu sesion.',
+                                  style: Theme.of(context).textTheme.bodyLarge,
                                 ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: isDesktop ? 28 : 24),
+                          if (isDesktop)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 5,
+                                  child: _AccountSummaryCard(
+                                    profile: profile,
+                                    mode: mode,
+                                    onEditProfile: () =>
+                                        _showEditProfileDialog(context, profile),
+                                    onLogout: () => _handleLogout(context),
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                Expanded(
+                                  flex: 7,
+                                  child: _SettingsPanel(
+                                    profile: profile,
+                                    isLightMode: _themeService.isLightMode,
+                                    onEditProfile: () =>
+                                        _showEditProfileDialog(context, profile),
+                                    onEditVehicle: () =>
+                                        _showSingleFieldDialog(
+                                          context,
+                                          title: 'Vehiculo principal',
+                                          label: 'Vehiculo principal',
+                                          initialValue: profile.vehicleLabel,
+                                          onSave: (value) {
+                                            _profileService.updateProfile(
+                                              profile.copyWith(
+                                                vehicleLabel: value,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                    onEditAddress: () =>
+                                        _showSingleFieldDialog(
+                                          context,
+                                          title: 'Direccion favorita',
+                                          label: 'Direccion favorita',
+                                          initialValue: profile.favoriteAddress,
+                                          onSave: (value) {
+                                            _profileService.updateProfile(
+                                              profile.copyWith(
+                                                favoriteAddress: value,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                    onEditPayment: () =>
+                                        _showSingleFieldDialog(
+                                          context,
+                                          title: 'Metodo de pago',
+                                          label: 'Metodo de pago',
+                                          initialValue: profile.paymentMethod,
+                                          onSave: (value) {
+                                            _profileService.updateProfile(
+                                              profile.copyWith(
+                                                paymentMethod: value,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                    onLogout: () => _handleLogout(context),
+                                    onToggleTheme: _themeService.toggleBrightness,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else ...[
+                            _AccountSummaryCard(
+                              profile: profile,
+                              mode: mode,
+                              onEditProfile: () =>
+                                  _showEditProfileDialog(context, profile),
+                              onLogout: () => _handleLogout(context),
+                            ),
+                            const SizedBox(height: 20),
+                            _SettingsPanel(
+                              profile: profile,
+                              isLightMode: _themeService.isLightMode,
+                              onEditProfile: () =>
+                                  _showEditProfileDialog(context, profile),
+                              onEditVehicle: () => _showSingleFieldDialog(
+                                context,
+                                title: 'Vehiculo principal',
+                                label: 'Vehiculo principal',
+                                initialValue: profile.vehicleLabel,
+                                onSave: (value) {
+                                  _profileService.updateProfile(
+                                    profile.copyWith(vehicleLabel: value),
+                                  );
+                                },
                               ),
-                            ],
-                          )
-                        else ...[
-                          _AccountSummaryCard(
-                            profile: profile,
-                            mode: mode,
-                            onEditProfile: () =>
-                                _showEditProfileDialog(context, profile),
-                            onLogout: () => _handleLogout(context),
-                          ),
-                          const SizedBox(height: 20),
-                          _SettingsPanel(
-                            profile: profile,
-                            isLightMode: _themeService.isLightMode,
-                            onEditProfile: () =>
-                                _showEditProfileDialog(context, profile),
-                            onEditVehicle: () => _showSingleFieldDialog(
-                              context,
-                              title: 'Vehiculo principal',
-                              label: 'Vehiculo principal',
-                              initialValue: profile.vehicleLabel,
-                              onSave: (value) {
-                                _profileService.updateProfile(
-                                  profile.copyWith(vehicleLabel: value),
-                                );
-                              },
+                              onEditAddress: () => _showSingleFieldDialog(
+                                context,
+                                title: 'Direccion favorita',
+                                label: 'Direccion favorita',
+                                initialValue: profile.favoriteAddress,
+                                onSave: (value) {
+                                  _profileService.updateProfile(
+                                    profile.copyWith(favoriteAddress: value),
+                                  );
+                                },
+                              ),
+                              onEditPayment: () => _showSingleFieldDialog(
+                                context,
+                                title: 'Metodo de pago',
+                                label: 'Metodo de pago',
+                                initialValue: profile.paymentMethod,
+                                onSave: (value) {
+                                  _profileService.updateProfile(
+                                    profile.copyWith(paymentMethod: value),
+                                  );
+                                },
+                              ),
+                              onLogout: () => _handleLogout(context),
+                              onToggleTheme: _themeService.toggleBrightness,
                             ),
-                            onEditAddress: () => _showSingleFieldDialog(
-                              context,
-                              title: 'Direccion favorita',
-                              label: 'Direccion favorita',
-                              initialValue: profile.favoriteAddress,
-                              onSave: (value) {
-                                _profileService.updateProfile(
-                                  profile.copyWith(favoriteAddress: value),
-                                );
-                              },
-                            ),
-                            onEditPayment: () => _showSingleFieldDialog(
-                              context,
-                              title: 'Metodo de pago',
-                              label: 'Metodo de pago',
-                              initialValue: profile.paymentMethod,
-                              onSave: (value) {
-                                _profileService.updateProfile(
-                                  profile.copyWith(paymentMethod: value),
-                                );
-                              },
-                            ),
-                            onLogout: () => _handleLogout(context),
-                            onToggleTheme: _themeService.toggleBrightness,
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 );
@@ -308,7 +320,9 @@ class ProfileHubPage extends StatelessWidget {
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const RoleLoginPage()),
+      MaterialPageRoute<void>(
+        builder: (_) => RoleLoginPage(initialMode: mode),
+      ),
       (route) => false,
     );
   }
@@ -335,9 +349,9 @@ class _AccountSummaryCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: LavifyTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,9 +549,9 @@ class _SettingsSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: LavifyTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,9 +598,9 @@ class _SettingsTile extends StatelessWidget {
           child: Ink(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(5),
+              color: LavifyTheme.softFillStrongColor(context),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: LavifyColors.border),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
             ),
             child: Row(
               children: [
@@ -596,7 +610,7 @@ class _SettingsTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Color.alphaBlend(
                       accentColor.withAlpha(28),
-                      LavifyColors.surfaceAlt,
+                      LavifyTheme.surfaceAltColor(context),
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -610,7 +624,7 @@ class _SettingsTile extends StatelessWidget {
                       Text(
                         title,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: LavifyColors.textPrimary,
+                          color: LavifyTheme.textPrimaryColor(context),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -646,9 +660,9 @@ class _ThemeModeTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(5),
+        color: LavifyTheme.softFillStrongColor(context),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Row(
         children: [
@@ -672,7 +686,7 @@ class _ThemeModeTile extends StatelessWidget {
                 Text(
                   'Modo claro',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textPrimary,
+                    color: LavifyTheme.textPrimaryColor(context),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -729,9 +743,9 @@ class _InfoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(6),
+        color: LavifyTheme.softFillStrongColor(context),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -740,8 +754,8 @@ class _InfoBadge extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(
-              color: LavifyColors.textPrimary,
+            style: TextStyle(
+              color: LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -769,7 +783,7 @@ class _ProfileHighlight extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: LavifyColors.textPrimary,
+              color: LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -791,20 +805,20 @@ class _ReadOnlyProfileField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: LavifyColors.surfaceAlt,
+        fillColor: LavifyTheme.surfaceAltColor(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: LavifyColors.border),
+          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: LavifyColors.border),
+          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
         ),
       ),
       child: Text(
         value,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: LavifyColors.textPrimary,
+          color: LavifyTheme.textPrimaryColor(context),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -822,17 +836,21 @@ class _ProfileField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        color: LavifyTheme.textPrimaryColor(context),
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: LavifyColors.surfaceAlt,
+        fillColor: LavifyTheme.surfaceAltColor(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: LavifyColors.border),
+          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: LavifyColors.border),
+          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

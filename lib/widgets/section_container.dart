@@ -19,9 +19,9 @@ class SectionContainer extends StatelessWidget {
         width: double.infinity,
         padding: padding,
         decoration: BoxDecoration(
-          color: LavifyColors.surface,
+          color: LavifyTheme.surfaceColor(context),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: LavifyColors.border),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
         ),
         child: child,
       ),

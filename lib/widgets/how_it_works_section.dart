@@ -7,6 +7,9 @@ class HowItWorksSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 600;
+
     const items = [
       _HowItWorksItemData(
         step: '01',
@@ -43,11 +46,28 @@ class HowItWorksSection extends StatelessWidget {
           'Un flujo simple para pedir tu lavado como si fuera una app on-demand.',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: items.map((item) => _HowItWorksCard(item: item)).toList(),
+        SizedBox(height: isCompact ? 16 : 20),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final availableWidth = constraints.maxWidth;
+            final cardWidth = isCompact
+                ? availableWidth
+                : (availableWidth >= 920 ? (availableWidth - 32) / 3 : 280.0);
+
+            return Wrap(
+              spacing: isCompact ? 12 : 16,
+              runSpacing: isCompact ? 12 : 16,
+              children: items
+                  .map(
+                    (item) => _HowItWorksCard(
+                      item: item,
+                      width: cardWidth,
+                      isCompact: isCompact,
+                    ),
+                  )
+                  .toList(),
+            );
+          },
         ),
       ],
     );
@@ -55,60 +75,81 @@ class HowItWorksSection extends StatelessWidget {
 }
 
 class _HowItWorksCard extends StatelessWidget {
-  const _HowItWorksCard({required this.item});
+  const _HowItWorksCard({
+    required this.item,
+    required this.width,
+    required this.isCompact,
+  });
 
   final _HowItWorksItemData item;
+  final double width;
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: Container(
-        width: 280,
-        padding: const EdgeInsets.all(20),
+        width: width,
+        padding: EdgeInsets.all(isCompact ? 16 : 20),
         decoration: BoxDecoration(
-          color: LavifyColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: LavifyColors.border),
+          color: LavifyTheme.surfaceColor(context),
+          borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: isCompact ? 38 : 42,
+                  height: isCompact ? 38 : 42,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: Colors.white.withAlpha(10),
+                    borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
+                    color: LavifyTheme.softFillColor(context),
                   ),
                   child: Text(
                     item.step,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: LavifyColors.primary,
                       fontWeight: FontWeight.w800,
+                      fontSize: isCompact ? 13 : null,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: isCompact ? 10 : 12),
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: isCompact ? 38 : 42,
+                  height: isCompact ? 38 : 42,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
                     color: const Color(0x1A22C1FF),
                   ),
-                  child: Icon(item.icon, color: LavifyColors.primary),
+                  child: Icon(
+                    item.icon,
+                    color: LavifyColors.primary,
+                    size: isCompact ? 20 : 24,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(item.title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
+            SizedBox(height: isCompact ? 12 : 16),
+            Text(
+              item.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontSize: isCompact ? 18 : null),
+            ),
+            SizedBox(height: isCompact ? 6 : 8),
             Text(
               item.description,
-              style: Theme.of(context).textTheme.bodyMedium,
+              maxLines: isCompact ? 3 : null,
+              overflow: isCompact ? TextOverflow.ellipsis : null,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontSize: isCompact ? 14 : null),
             ),
           ],
         ),

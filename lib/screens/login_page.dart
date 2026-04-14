@@ -36,13 +36,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF06101D), Color(0xFF0D203D), Color(0xFF09111F)],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: Stack(
           children: [
             const Positioned(
@@ -130,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    _profileService.syncLoginEmail(_emailController.text);
+    _profileService.syncLoginIdentity(email: _emailController.text);
     _openApp();
   }
 
@@ -150,15 +144,19 @@ class _LoginShowcase extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return Container(
       padding: EdgeInsets.all(compact ? 24 : 34),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(34),
-        border: Border.all(color: const Color(0xFF1B3357)),
-        gradient: const LinearGradient(
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0A1528), Color(0xCC102446)],
+          colors: isLight
+              ? const [Color(0xFFFFFFFF), Color(0xFFF4F8FC)]
+              : const [Color(0xFF0A1528), Color(0xCC102446)],
         ),
       ),
       child: Column(
@@ -171,19 +169,19 @@ class _LoginShowcase extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: const Color(0x2B28D17C)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.verified_user_rounded,
                   size: 16,
                   color: LavifyColors.success,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Acceso seguro para clientes verificados',
                   style: TextStyle(
-                    color: LavifyColors.textPrimary,
+                    color: LavifyTheme.textPrimaryColor(context),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -204,7 +202,7 @@ class _LoginShowcase extends StatelessWidget {
             child: Text(
               'Inicia sesion para pedir lavados, seguir tus pedidos y guardar direcciones frecuentes desde una sola cuenta.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: LavifyColors.textSecondary,
+                color: LavifyTheme.textSecondaryColor(context),
               ),
             ),
           ),
@@ -235,9 +233,9 @@ class _LoginShowcase extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(6),
+              color: LavifyTheme.softFillStrongColor(context),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: LavifyColors.border),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
             ),
             child: Column(
               children: const [
@@ -296,9 +294,9 @@ class _LoginCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: const Color(0xDD101C31),
+        color: LavifyTheme.overlayPanelColor(context),
         borderRadius: BorderRadius.circular(34),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x22000000),
@@ -328,7 +326,7 @@ class _LoginCard extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.water_drop_rounded,
-                    color: LavifyColors.textPrimary,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -354,7 +352,7 @@ class _LoginCard extends StatelessWidget {
             Text(
               'Correo',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: LavifyColors.textPrimary,
+                color: LavifyTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -364,8 +362,11 @@ class _LoginCard extends StatelessWidget {
               keyboardType: TextInputType.emailAddress,
               style: Theme.of(
                 context,
-              ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
+              ).textTheme.bodyLarge?.copyWith(
+                color: LavifyTheme.textPrimaryColor(context),
+              ),
               decoration: _inputDecoration(
+                context: context,
                 hint: 'cliente@lavify.app',
                 prefixIcon: Icons.mail_outline_rounded,
               ),
@@ -387,7 +388,7 @@ class _LoginCard extends StatelessWidget {
                   child: Text(
                     'Contrasena',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: LavifyColors.textPrimary,
+                      color: LavifyTheme.textPrimaryColor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -404,8 +405,11 @@ class _LoginCard extends StatelessWidget {
               obscureText: obscurePassword,
               style: Theme.of(
                 context,
-              ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
+              ).textTheme.bodyLarge?.copyWith(
+                color: LavifyTheme.textPrimaryColor(context),
+              ),
               decoration: _inputDecoration(
+                context: context,
                 hint: 'Escribe tu contrasena',
                 prefixIcon: Icons.lock_outline_rounded,
                 suffix: IconButton(
@@ -414,7 +418,7 @@ class _LoginCard extends StatelessWidget {
                     obscurePassword
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: LavifyColors.textSecondary,
+                    color: LavifyTheme.textSecondaryColor(context),
                   ),
                 ),
               ),
@@ -451,9 +455,9 @@ class _LoginCard extends StatelessWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(6),
+                    color: LavifyTheme.softFillStrongColor(context),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: LavifyColors.border),
+                    border: Border.all(color: LavifyTheme.borderColor(context)),
                   ),
                   child: const Text(
                     'Demo UI',
@@ -482,15 +486,21 @@ class _LoginCard extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: const [
-                Expanded(child: Divider(color: LavifyColors.border)),
+                Expanded(
+                  child: Divider(color: LavifyTheme.borderColor(context)),
+                ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     'o continua con',
-                    style: TextStyle(color: LavifyColors.textSecondary),
+                    style: TextStyle(
+                      color: LavifyTheme.textSecondaryColor(context),
+                    ),
                   ),
                 ),
-                Expanded(child: Divider(color: LavifyColors.border)),
+                Expanded(
+                  child: Divider(color: LavifyTheme.borderColor(context)),
+                ),
               ],
             ),
             const SizedBox(height: 18),
@@ -552,9 +562,9 @@ class _MetricCard extends StatelessWidget {
       width: 170,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(6),
+        color: LavifyTheme.softFillStrongColor(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,7 +618,7 @@ class _BenefitRow extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -636,7 +646,7 @@ class _ProviderButton extends StatelessWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-        foregroundColor: LavifyColors.textPrimary,
+        foregroundColor: LavifyTheme.textPrimaryColor(context),
       ),
     );
   }
@@ -650,7 +660,7 @@ class _GoogleLogo extends StatelessWidget {
     return const Text(
       'G',
       style: TextStyle(
-        color: LavifyColors.textPrimary,
+        color: Colors.black54,
         fontSize: 24,
         fontWeight: FontWeight.w800,
         height: 1,
@@ -681,21 +691,22 @@ class _GlowBubble extends StatelessWidget {
 }
 
 InputDecoration _inputDecoration({
+  required BuildContext context,
   required String hint,
   required IconData prefixIcon,
   Widget? suffix,
 }) {
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: LavifyColors.textSecondary),
-    prefixIcon: Icon(prefixIcon, color: LavifyColors.textSecondary),
+    hintStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
+    prefixIcon: Icon(prefixIcon, color: LavifyTheme.textSecondaryColor(context)),
     suffixIcon: suffix,
     filled: true,
-    fillColor: LavifyColors.surfaceAlt,
+    fillColor: LavifyTheme.surfaceAltColor(context),
     contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),
-      borderSide: const BorderSide(color: LavifyColors.border),
+      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),

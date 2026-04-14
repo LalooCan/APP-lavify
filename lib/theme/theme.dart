@@ -223,6 +223,42 @@ class LavifyTheme {
   static Color borderColor(BuildContext context) =>
       isLight(context) ? LavifyColors.lightBorder : LavifyColors.border;
 
+  static Color textPrimaryColor(BuildContext context) => isLight(context)
+      ? LavifyColors.lightTextPrimary
+      : LavifyColors.textPrimary;
+
+  static Color textSecondaryColor(BuildContext context) => isLight(context)
+      ? LavifyColors.lightTextSecondary
+      : LavifyColors.textSecondary;
+
+  static Color softFillColor(BuildContext context) => isLight(context)
+      ? const Color(0xFFF1F6FD)
+      : Colors.white.withAlpha(10);
+
+  static Color softFillStrongColor(BuildContext context) => isLight(context)
+      ? const Color(0xFFE3EEF9)
+      : Colors.white.withAlpha(6);
+
+  static Color overlayPanelColor(BuildContext context) => isLight(context)
+      ? const Color(0xF7FFFFFF)
+      : const Color(0xCC0E1A2C);
+
+  static Color navRailColor(BuildContext context) => isLight(context)
+      ? const Color(0xF8FFFFFF)
+      : const Color(0xCC0C1627);
+
+  static Color navRailBorderColor(BuildContext context) => isLight(context)
+      ? LavifyColors.lightBorder
+      : const Color(0x1FFFFFFF);
+
+  static Color navSelectedColor(BuildContext context) => isLight(context)
+      ? const Color(0x1622C1FF)
+      : const Color(0x1F2CCBFF);
+
+  static Color navInactiveColor(BuildContext context) => isLight(context)
+      ? LavifyColors.lightTextSecondary
+      : const Color(0xFFD6D1E8);
+
   static BoxDecoration pageDecoration(BuildContext context) {
     if (isLight(context)) {
       return const BoxDecoration(

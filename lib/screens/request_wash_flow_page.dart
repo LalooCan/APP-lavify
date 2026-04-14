@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../models/wash_models.dart';
 import '../services/location_service.dart';
+import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
@@ -21,6 +22,7 @@ class RequestWashFlowPage extends StatefulWidget {
 
 class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
   static final _locationService = LocationService();
+  static final _profileService = ProfileService();
 
   late TextEditingController _addressController;
   late TextEditingController _notesController;
@@ -97,17 +99,7 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Pedir lavado')),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0A1423),
-              Color(0xFF0E1B30),
-              LavifyColors.background,
-            ],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
@@ -290,6 +282,7 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
     }
 
     _addressNotifier.value = resolvedAddress;
+    _profileService.syncFavoriteAddress(resolvedAddress);
     _isLocationConfirmedNotifier.value = true;
     _locationResolutionNotifier.value = LocationResolution(
       location: _selectedLocationNotifier.value,

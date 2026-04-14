@@ -13,13 +13,7 @@ class OrdersPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -70,9 +64,9 @@ class _OrderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: LavifyTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +84,7 @@ class _OrderCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(10),
+                  color: LavifyTheme.softFillColor(context),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(

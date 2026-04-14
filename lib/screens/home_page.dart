@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/home_service.dart';
+import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/how_it_works_section.dart';
 import '../widgets/package_card.dart';
@@ -14,6 +15,7 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   static const HomeService _homeService = HomeService();
+  static final ProfileService _profileService = ProfileService();
 
   @override
   Widget build(BuildContext context) {
@@ -21,18 +23,11 @@ class HomePage extends StatelessWidget {
     final isDesktop = width >= 1000;
     final horizontalPadding = isDesktop ? 72.0 : 24.0;
     final verticalPadding = isDesktop ? 40.0 : 24.0;
-    final session = _homeService.getSessionData();
     final featuredPackages = _homeService.getFeaturedPackages();
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -40,20 +35,27 @@ class HomePage extends StatelessWidget {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Column(
-                children: [
-                  _TopBar(isDesktop: isDesktop),
-                  const SizedBox(height: 56),
-                  if (isDesktop)
-                    _DesktopHero(session: session)
-                  else
-                    _MobileHero(session: session),
-                  const SizedBox(height: 56),
-                  _FunctionalSection(
-                    session: session,
-                    featuredPackages: featuredPackages,
-                  ),
-                ],
+              child: ValueListenableBuilder<UserProfile>(
+                valueListenable: _profileService.profile,
+                builder: (context, profile, _) {
+                  final session = _homeService.getSessionData();
+
+                  return Column(
+                    children: [
+                      _TopBar(isDesktop: isDesktop),
+                      const SizedBox(height: 56),
+                      if (isDesktop)
+                        _DesktopHero(session: session)
+                      else
+                        _MobileHero(session: session),
+                      const SizedBox(height: 56),
+                      _FunctionalSection(
+                        session: session,
+                        featuredPackages: featuredPackages,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -238,9 +240,9 @@ class _PreviewCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: const Color(0xCC0E1A2C),
+          color: LavifyTheme.overlayPanelColor(context),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: LavifyColors.border),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x22000000),
@@ -277,13 +279,18 @@ class _PreviewCard extends StatelessWidget {
             Container(
               height: 210,
               decoration: BoxDecoration(
-                color: LavifyColors.surfaceAlt,
+                color: LavifyTheme.surfaceAltColor(context),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: CustomPaint(painter: _MapGridPainter()),
+                    child: CustomPaint(
+                      painter: _MapGridPainter(
+                        gridColor: LavifyTheme.textSecondaryColor(context)
+                            .withAlpha(30),
+                      ),
+                    ),
                   ),
                   const Positioned(
                     top: 30,
@@ -318,7 +325,7 @@ class _PreviewCard extends StatelessWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: LavifyColors.background,
+                        color: LavifyTheme.surfaceColor(context),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
@@ -337,9 +344,9 @@ class _PreviewCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A2940),
+                color: LavifyTheme.surfaceAltColor(context),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: LavifyColors.border),
+                border: Border.all(color: LavifyTheme.borderColor(context)),
               ),
               child: Column(
                 children: [
@@ -409,11 +416,14 @@ class _FunctionalSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isCompact = width < 600;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const HowItWorksSection(),
-        const SizedBox(height: 56),
+        SizedBox(height: isCompact ? 36 : 56),
         Text(
           'Paquetes disponibles',
           style: Theme.of(context).textTheme.headlineMedium,
@@ -423,10 +433,10 @@ class _FunctionalSection extends StatelessWidget {
           'Elige el nivel de lavado y entra directo al flujo con el paquete preseleccionado.',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: isCompact ? 16 : 20),
         Wrap(
-          spacing: 16,
-          runSpacing: 16,
+          spacing: isCompact ? 12 : 16,
+          runSpacing: isCompact ? 12 : 16,
           children: featuredPackages
               .map(
                 (package) => PackageCard(
@@ -443,7 +453,7 @@ class _FunctionalSection extends StatelessWidget {
               )
               .toList(),
         ),
-        const SizedBox(height: 56),
+        SizedBox(height: isCompact ? 40 : 56),
         Text(
           'Confianza Lavify',
           style: Theme.of(context).textTheme.headlineMedium,
@@ -453,11 +463,11 @@ class _FunctionalSection extends StatelessWidget {
           'Operamos con una experiencia clara para cliente y lavador desde el primer pedido.',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
-        const SizedBox(height: 20),
-        const Wrap(
-          spacing: 14,
-          runSpacing: 14,
-          children: [
+        SizedBox(height: isCompact ? 16 : 20),
+        Wrap(
+          spacing: isCompact ? 12 : 14,
+          runSpacing: isCompact ? 12 : 14,
+          children: const [
             _TrustCard(
               icon: Icons.verified_user_rounded,
               title: 'Lavadores verificados',
@@ -496,9 +506,9 @@ class _SessionOverview extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0x73101C31),
+        color: LavifyTheme.overlayPanelColor(context).withAlpha(180),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,36 +559,51 @@ class _TrustCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 600;
+
     return RepaintBoundary(
       child: Container(
-        width: 250,
-        padding: const EdgeInsets.all(18),
+        width: isCompact ? double.infinity : 250,
+        padding: EdgeInsets.all(isCompact ? 16 : 18),
         decoration: BoxDecoration(
-          color: LavifyColors.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: LavifyColors.border),
+          color: LavifyTheme.surfaceColor(context),
+          borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: isCompact ? 38 : 42,
+              height: isCompact ? 38 : 42,
               decoration: BoxDecoration(
                 color: const Color(0x1A22C1FF),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
               ),
-              child: Icon(icon, color: LavifyColors.primary),
+              child: Icon(
+                icon,
+                color: LavifyColors.primary,
+                size: isCompact ? 20 : 24,
+              ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: isCompact ? 12 : 14),
             Text(
               title,
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontSize: 18),
+              ).textTheme.titleLarge?.copyWith(fontSize: isCompact ? 17 : 18),
             ),
-            const SizedBox(height: 8),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+            SizedBox(height: isCompact ? 6 : 8),
+            Text(
+              subtitle,
+              maxLines: isCompact ? 2 : null,
+              overflow: isCompact ? TextOverflow.ellipsis : null,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontSize: isCompact ? 13 : null),
+            ),
           ],
         ),
       ),
@@ -614,9 +639,9 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(10),
+        color: LavifyTheme.softFillColor(context),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -709,10 +734,10 @@ class _OptionTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: selected
             ? LavifyColors.primaryStrong
-            : Colors.white.withAlpha(10),
+            : LavifyTheme.softFillColor(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? Colors.transparent : LavifyColors.border,
+          color: selected ? Colors.transparent : LavifyTheme.borderColor(context),
         ),
       ),
       child: Column(
@@ -736,10 +761,14 @@ class _OptionTile extends StatelessWidget {
 }
 
 class _MapGridPainter extends CustomPainter {
+  _MapGridPainter({required this.gridColor});
+
+  final Color gridColor;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withAlpha(15)
+      ..color = gridColor
       ..strokeWidth = 1;
 
     const gap = 28.0;
@@ -752,5 +781,6 @@ class _MapGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MapGridPainter oldDelegate) =>
+      oldDelegate.gridColor != gridColor;
 }

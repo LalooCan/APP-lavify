@@ -11,13 +11,7 @@ class WorkerHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -57,9 +51,9 @@ class _WorkerHeroCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: LavifyTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,9 +158,9 @@ class _WorkerStatCard extends StatelessWidget {
       width: 220,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: LavifyTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,9 +185,9 @@ class _TodayAgendaCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: LavifyTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,9 +240,9 @@ class _AgendaItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(5),
+        color: LavifyTheme.softFillStrongColor(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Row(
         children: [
