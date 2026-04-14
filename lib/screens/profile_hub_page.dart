@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/profile_service.dart';
+import '../services/theme_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
@@ -14,6 +15,7 @@ class ProfileHubPage extends StatelessWidget {
   final AppMode mode;
 
   static final _profileService = ProfileService();
+  static final _themeService = ThemeService();
 
   @override
   Widget build(BuildContext context) {
@@ -23,13 +25,7 @@ class ProfileHubPage extends StatelessWidget {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
-          ),
-        ),
+        decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: Padding(
             padding: EdgeInsets.all(isDesktop ? 32 : 24),
@@ -73,6 +69,7 @@ class ProfileHubPage extends StatelessWidget {
                                 flex: 7,
                                 child: _SettingsPanel(
                                   profile: profile,
+                                  isLightMode: _themeService.isLightMode,
                                   onEditProfile: () =>
                                       _showEditProfileDialog(context, profile),
                                   onEditVehicle: () =>
@@ -118,6 +115,7 @@ class ProfileHubPage extends StatelessWidget {
                                         },
                                       ),
                                   onLogout: () => _handleLogout(context),
+                                  onToggleTheme: _themeService.toggleBrightness,
                                 ),
                               ),
                             ],
@@ -133,6 +131,7 @@ class ProfileHubPage extends StatelessWidget {
                           const SizedBox(height: 20),
                           _SettingsPanel(
                             profile: profile,
+                            isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
                             onEditVehicle: () => _showSingleFieldDialog(
@@ -169,6 +168,7 @@ class ProfileHubPage extends StatelessWidget {
                               },
                             ),
                             onLogout: () => _handleLogout(context),
+                            onToggleTheme: _themeService.toggleBrightness,
                           ),
                         ],
                       ],
@@ -417,19 +417,23 @@ class _AccountSummaryCard extends StatelessWidget {
 class _SettingsPanel extends StatelessWidget {
   const _SettingsPanel({
     required this.profile,
+    required this.isLightMode,
     required this.onEditProfile,
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
     required this.onLogout,
+    required this.onToggleTheme,
   });
 
   final UserProfile profile;
+  final bool isLightMode;
   final VoidCallback onEditProfile;
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
   final VoidCallback onLogout;
+  final ValueChanged<bool> onToggleTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -475,6 +479,17 @@ class _SettingsPanel extends StatelessWidget {
               title: 'Metodo de pago',
               subtitle: profile.paymentMethod,
               onTap: onEditPayment,
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _SettingsSection(
+          title: 'Apariencia',
+          subtitle: 'Personaliza como se ve la app en tu dispositivo.',
+          children: [
+            _ThemeModeTile(
+              isLightMode: isLightMode,
+              onChanged: onToggleTheme,
             ),
           ],
         ),
@@ -612,6 +627,70 @@ class _SettingsTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ThemeModeTile extends StatelessWidget {
+  const _ThemeModeTile({
+    required this.isLightMode,
+    required this.onChanged,
+  });
+
+  final bool isLightMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(5),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: LavifyColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0x1A22C1FF),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              isLightMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: LavifyColors.primary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Modo claro',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: LavifyColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isLightMode
+                      ? 'La app usa una apariencia clara.'
+                      : 'Activa una apariencia mas luminosa.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: isLightMode,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }

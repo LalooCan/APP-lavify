@@ -817,9 +817,9 @@ class _BenefitRow extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: compact ? 13 : null,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: compact ? 13 : null),
               ),
             ],
           ),

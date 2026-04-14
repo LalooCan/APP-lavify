@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'services/theme_service.dart';
 import 'screens/role_login_page.dart';
 import 'theme/theme.dart';
 
@@ -10,13 +11,22 @@ void main() {
 class LavifyApp extends StatelessWidget {
   const LavifyApp({super.key});
 
+  static final _themeService = ThemeService();
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Lavify',
-      debugShowCheckedModeBanner: false,
-      theme: LavifyTheme.theme,
-      home: const RoleLoginPage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: _themeService.themeMode,
+      builder: (context, themeMode, child) {
+        return MaterialApp(
+          title: 'Lavify',
+          debugShowCheckedModeBanner: false,
+          theme: LavifyTheme.lightTheme,
+          darkTheme: LavifyTheme.darkTheme,
+          themeMode: themeMode,
+          home: const RoleLoginPage(),
+        );
+      },
     );
   }
 }
