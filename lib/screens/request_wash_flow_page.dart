@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../controllers/wash_request_draft_controller.dart';
 import '../models/wash_models.dart';
-import '../services/location_service.dart';
-import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
@@ -21,73 +20,22 @@ class RequestWashFlowPage extends StatefulWidget {
 }
 
 class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
-  static final _locationService = LocationService();
-  static final _profileService = ProfileService();
+  late final WashRequestDraftController _draftController;
+  static const bool _isSubmitting = false;
 
-  late TextEditingController _addressController;
-  late TextEditingController _notesController;
-  late final ValueNotifier<WashPackage> _selectedPackageNotifier;
-  late final ValueNotifier<ScheduleSlot> _selectedScheduleNotifier;
-  late final ValueNotifier<VehicleType> _selectedVehicleNotifier;
-  late final ValueNotifier<ServiceLocation> _selectedLocationNotifier;
-  late final ValueNotifier<String> _addressNotifier;
-  late final ValueNotifier<String> _notesNotifier;
-  late final ValueNotifier<bool> _isLocationConfirmedNotifier;
-  late final ValueNotifier<bool> _isResolvingLocationNotifier;
-  late final ValueNotifier<String?> _locationMessageNotifier;
-  late final ValueNotifier<LocationResolution?> _locationResolutionNotifier;
-  final bool _isSubmitting = false;
-
-  WashRequestDraft get draft => WashRequestDraft(
-    selectedPackage: _selectedPackageNotifier.value,
-    address: _addressNotifier.value,
-    selectedSchedule: _selectedScheduleNotifier.value,
-    selectedVehicle: _selectedVehicleNotifier.value,
-    estimatedMinutes: 45,
-    travelFee: 20,
-    notes: _notesNotifier.value,
-    selectedLocation: _selectedLocationNotifier.value,
-    isLocationConfirmed: _isLocationConfirmedNotifier.value,
-  );
+  WashRequestDraft get draft => _draftController.draft;
 
   @override
   void initState() {
     super.initState();
-    const initialLocation = ServiceLocation(
-      latitude: 19.432608,
-      longitude: -99.133209,
+    _draftController = WashRequestDraftController(
+      initialPackage: widget.initialPackage,
     );
-    _selectedPackageNotifier = ValueNotifier<WashPackage>(
-      widget.initialPackage ?? washPackages.last,
-    );
-    _selectedScheduleNotifier = ValueNotifier<ScheduleSlot>(scheduleSlots[1]);
-    _selectedVehicleNotifier = ValueNotifier<VehicleType>(vehicleTypes[1]);
-    _selectedLocationNotifier = ValueNotifier<ServiceLocation>(initialLocation);
-    _addressNotifier = ValueNotifier<String>('Av. Reforma 245, CDMX');
-    _notesNotifier = ValueNotifier<String>('');
-    _isLocationConfirmedNotifier = ValueNotifier<bool>(false);
-    _isResolvingLocationNotifier = ValueNotifier<bool>(false);
-    _locationMessageNotifier = ValueNotifier<String?>(null);
-    _locationResolutionNotifier = ValueNotifier<LocationResolution?>(null);
-    _addressController = TextEditingController(text: _addressNotifier.value);
-    _notesController = TextEditingController(text: _notesNotifier.value);
-    _resolveLocation(initialLocation, updateAddressField: true);
   }
 
   @override
   void dispose() {
-    _addressController.dispose();
-    _notesController.dispose();
-    _selectedPackageNotifier.dispose();
-    _selectedScheduleNotifier.dispose();
-    _selectedVehicleNotifier.dispose();
-    _selectedLocationNotifier.dispose();
-    _addressNotifier.dispose();
-    _notesNotifier.dispose();
-    _isLocationConfirmedNotifier.dispose();
-    _isResolvingLocationNotifier.dispose();
-    _locationMessageNotifier.dispose();
-    _locationResolutionNotifier.dispose();
+    _draftController.dispose();
     super.dispose();
   }
 
@@ -123,26 +71,31 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                       Expanded(
                         flex: 8,
                         child: _BookingDetails(
-                          addressController: _addressController,
-                          notesController: _notesController,
-                          selectedPackageListenable: _selectedPackageNotifier,
-                          selectedScheduleListenable: _selectedScheduleNotifier,
-                          selectedVehicleListenable: _selectedVehicleNotifier,
-                          selectedLocationListenable: _selectedLocationNotifier,
-                          addressListenable: _addressNotifier,
+                          addressController: _draftController.addressController,
+                          notesController: _draftController.notesController,
+                          selectedPackageListenable:
+                              _draftController.selectedPackageNotifier,
+                          selectedScheduleListenable:
+                              _draftController.selectedScheduleNotifier,
+                          selectedVehicleListenable:
+                              _draftController.selectedVehicleNotifier,
+                          selectedLocationListenable:
+                              _draftController.selectedLocationNotifier,
+                          addressListenable: _draftController.addressNotifier,
                           isLocationConfirmedListenable:
-                              _isLocationConfirmedNotifier,
+                              _draftController.isLocationConfirmedNotifier,
                           isResolvingLocationListenable:
-                              _isResolvingLocationNotifier,
-                          locationMessageListenable: _locationMessageNotifier,
+                              _draftController.isResolvingLocationNotifier,
+                          locationMessageListenable:
+                              _draftController.locationMessageNotifier,
                           locationResolutionListenable:
-                              _locationResolutionNotifier,
-                          onPackageSelected: _handlePackageSelected,
-                          onScheduleSelected: _handleScheduleSelected,
-                          onVehicleSelected: _handleVehicleSelected,
-                          onAddressChanged: _handleAddressChanged,
-                          onNotesChanged: _handleNotesChanged,
-                          onLocationChanged: _handleLocationChanged,
+                              _draftController.locationResolutionNotifier,
+                          onPackageSelected: _draftController.selectPackage,
+                          onScheduleSelected: _draftController.selectSchedule,
+                          onVehicleSelected: _draftController.selectVehicle,
+                          onAddressChanged: _draftController.updateAddress,
+                          onNotesChanged: _draftController.updateNotes,
+                          onLocationChanged: _draftController.updateLocation,
                           onConfirmLocation: _handleLocationConfirmation,
                         ),
                       ),
@@ -150,15 +103,7 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                       Expanded(
                         flex: 5,
                         child: AnimatedBuilder(
-                          animation: Listenable.merge([
-                            _selectedPackageNotifier,
-                            _selectedScheduleNotifier,
-                            _selectedVehicleNotifier,
-                            _selectedLocationNotifier,
-                            _addressNotifier,
-                            _notesNotifier,
-                            _isLocationConfirmedNotifier,
-                          ]),
+                          animation: _draftController.summaryListenable,
                           builder: (context, _) {
                             return _BookingSummary(
                               draft: draft,
@@ -174,39 +119,36 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                   Column(
                     children: [
                       _BookingDetails(
-                        addressController: _addressController,
-                        notesController: _notesController,
-                        selectedPackageListenable: _selectedPackageNotifier,
-                        selectedScheduleListenable: _selectedScheduleNotifier,
-                        selectedVehicleListenable: _selectedVehicleNotifier,
-                        selectedLocationListenable: _selectedLocationNotifier,
-                        addressListenable: _addressNotifier,
+                        addressController: _draftController.addressController,
+                        notesController: _draftController.notesController,
+                        selectedPackageListenable:
+                            _draftController.selectedPackageNotifier,
+                        selectedScheduleListenable:
+                            _draftController.selectedScheduleNotifier,
+                        selectedVehicleListenable:
+                            _draftController.selectedVehicleNotifier,
+                        selectedLocationListenable:
+                            _draftController.selectedLocationNotifier,
+                        addressListenable: _draftController.addressNotifier,
                         isLocationConfirmedListenable:
-                            _isLocationConfirmedNotifier,
+                            _draftController.isLocationConfirmedNotifier,
                         isResolvingLocationListenable:
-                            _isResolvingLocationNotifier,
-                        locationMessageListenable: _locationMessageNotifier,
+                            _draftController.isResolvingLocationNotifier,
+                        locationMessageListenable:
+                            _draftController.locationMessageNotifier,
                         locationResolutionListenable:
-                            _locationResolutionNotifier,
-                        onPackageSelected: _handlePackageSelected,
-                        onScheduleSelected: _handleScheduleSelected,
-                        onVehicleSelected: _handleVehicleSelected,
-                        onAddressChanged: _handleAddressChanged,
-                        onNotesChanged: _handleNotesChanged,
-                        onLocationChanged: _handleLocationChanged,
+                            _draftController.locationResolutionNotifier,
+                        onPackageSelected: _draftController.selectPackage,
+                        onScheduleSelected: _draftController.selectSchedule,
+                        onVehicleSelected: _draftController.selectVehicle,
+                        onAddressChanged: _draftController.updateAddress,
+                        onNotesChanged: _draftController.updateNotes,
+                        onLocationChanged: _draftController.updateLocation,
                         onConfirmLocation: _handleLocationConfirmation,
                       ),
                       const SizedBox(height: 20),
                       AnimatedBuilder(
-                        animation: Listenable.merge([
-                          _selectedPackageNotifier,
-                          _selectedScheduleNotifier,
-                          _selectedVehicleNotifier,
-                          _selectedLocationNotifier,
-                          _addressNotifier,
-                          _notesNotifier,
-                          _isLocationConfirmedNotifier,
-                        ]),
+                        animation: _draftController.summaryListenable,
                         builder: (context, _) {
                           return _BookingSummary(
                             draft: draft,
@@ -225,73 +167,16 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
     );
   }
 
-  void _handlePackageSelected(WashPackage package) {
-    _selectedPackageNotifier.value = package;
-  }
-
-  void _handleScheduleSelected(ScheduleSlot slot) {
-    _selectedScheduleNotifier.value = slot;
-  }
-
-  void _handleVehicleSelected(VehicleType vehicle) {
-    _selectedVehicleNotifier.value = vehicle;
-  }
-
-  void _handleAddressChanged(String value) {
-    _addressNotifier.value = value;
-    _isLocationConfirmedNotifier.value = false;
-    _locationResolutionNotifier.value = LocationResolution(
-      location: _selectedLocationNotifier.value,
-      address: value.trim().isEmpty
-          ? _selectedLocationNotifier.value.coordinatesLabel
-          : value,
-      source: LocationAddressSource.manual,
-      isPrecise: false,
-    );
-    _locationMessageNotifier.value = null;
-  }
-
-  void _handleNotesChanged(String value) {
-    _notesNotifier.value = value;
-  }
-
-  void _handleLocationChanged(ServiceLocation location) {
-    _selectedLocationNotifier.value = location;
-    _isLocationConfirmedNotifier.value = false;
-    _locationResolutionNotifier.value = LocationResolution(
-      location: location,
-      address: location.coordinatesLabel,
-      source: LocationAddressSource.fallback,
-      isPrecise: false,
-    );
-    _locationMessageNotifier.value = null;
-    _resolveLocation(location, updateAddressField: true);
-  }
-
   void _handleLocationConfirmation() {
-    final resolvedAddress = _addressController.text.trim();
-    if (resolvedAddress.isEmpty) {
+    final validationMessage = _draftController.confirmLocation();
+    if (validationMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Selecciona o escribe una direccion antes de confirmarla.',
-          ),
+        SnackBar(
+          content: Text(validationMessage),
         ),
       );
       return;
     }
-
-    _addressNotifier.value = resolvedAddress;
-    _profileService.syncFavoriteAddress(resolvedAddress);
-    _isLocationConfirmedNotifier.value = true;
-    _locationResolutionNotifier.value = LocationResolution(
-      location: _selectedLocationNotifier.value,
-      address: resolvedAddress,
-      source: LocationAddressSource.manual,
-      isPrecise: _locationResolutionNotifier.value?.isPrecise ?? false,
-    );
-    _locationMessageNotifier.value =
-        'Ubicacion confirmada y lista para enviarse al backend.';
   }
 
   void _handleConfirm() {
@@ -299,20 +184,11 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
       return;
     }
 
-    final trimmedAddress = draft.address.trim();
-    if (trimmedAddress.isEmpty) {
+    final validationMessage = draft.validationMessage;
+    if (validationMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Agrega una direccion antes de confirmar el lavado.'),
-        ),
-      );
-      return;
-    }
-
-    if (!draft.isLocationConfirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Confirma la ubicacion en el mapa antes de continuar.'),
+        SnackBar(
+          content: Text(validationMessage),
         ),
       );
       return;
@@ -323,34 +199,6 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
         builder: (_) => OrderConfirmationPage(draft: draft),
       ),
     );
-  }
-
-  Future<void> _resolveLocation(
-    ServiceLocation location, {
-    required bool updateAddressField,
-  }) async {
-    _isResolvingLocationNotifier.value = true;
-
-    final resolution = await _locationService.reverseGeocode(location);
-
-    if (!mounted || _selectedLocationNotifier.value != location) {
-      return;
-    }
-
-    _isResolvingLocationNotifier.value = false;
-    _locationResolutionNotifier.value = resolution;
-    final resolvedAddress = resolution.address.trim();
-    if (updateAddressField && resolvedAddress.isNotEmpty) {
-      _addressController.value = _addressController.value.copyWith(
-        text: resolvedAddress,
-        selection: TextSelection.collapsed(offset: resolvedAddress.length),
-        composing: TextRange.empty,
-      );
-      _addressNotifier.value = resolvedAddress;
-    }
-    _locationMessageNotifier.value = resolution.hasError
-        ? resolution.errorMessage
-        : null;
   }
 }
 

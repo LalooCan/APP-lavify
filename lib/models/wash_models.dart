@@ -24,6 +24,18 @@ class WashPackage {
 
   String get formattedPrice => '\$$price';
 
+  factory WashPackage.fromMap(Map<String, dynamic> map) {
+    return WashPackage(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      description: map['description'] as String,
+      price: map['price'] as int,
+      priceLabel: map['priceLabel'] as String,
+      summary: map['summary'] as String,
+      icon: Icons.local_car_wash_rounded,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -34,6 +46,8 @@ class WashPackage {
       'summary': summary,
     };
   }
+
+  Map<String, dynamic> toJson() => toMap();
 }
 
 class ScheduleSlot {
@@ -66,6 +80,13 @@ class ServiceLocation {
 
   LatLng toLatLng() => LatLng(latitude, longitude);
 
+  factory ServiceLocation.fromMap(Map<String, dynamic> map) {
+    return ServiceLocation(
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+    );
+  }
+
   String get coordinatesLabel =>
       '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
 
@@ -79,6 +100,8 @@ class ServiceLocation {
   Map<String, dynamic> toMap() {
     return {'latitude': latitude, 'longitude': longitude};
   }
+
+  Map<String, dynamic> toJson() => toMap();
 
   @override
   bool operator ==(Object other) {
@@ -144,6 +167,43 @@ class ServiceLocationPayload {
   Map<String, dynamic> toMap() {
     return {'lat': lat, 'lng': lng, 'address': address};
   }
+
+  Map<String, dynamic> toJson() => toMap();
+}
+
+enum RequestLifecycleStatus { draft, confirmed, assigned, inProgress, completed }
+
+extension RequestLifecycleStatusX on RequestLifecycleStatus {
+  String get apiValue {
+    switch (this) {
+      case RequestLifecycleStatus.draft:
+        return 'draft';
+      case RequestLifecycleStatus.confirmed:
+        return 'confirmed';
+      case RequestLifecycleStatus.assigned:
+        return 'assigned';
+      case RequestLifecycleStatus.inProgress:
+        return 'in_progress';
+      case RequestLifecycleStatus.completed:
+        return 'completed';
+    }
+  }
+
+  static RequestLifecycleStatus fromValue(String value) {
+    switch (value) {
+      case 'confirmed':
+        return RequestLifecycleStatus.confirmed;
+      case 'assigned':
+        return RequestLifecycleStatus.assigned;
+      case 'in_progress':
+        return RequestLifecycleStatus.inProgress;
+      case 'completed':
+        return RequestLifecycleStatus.completed;
+      case 'draft':
+      default:
+        return RequestLifecycleStatus.draft;
+    }
+  }
 }
 
 class WashRequestDraft {
@@ -172,8 +232,55 @@ class WashRequestDraft {
   bool get hasValidPackage => selectedPackage.id.trim().isNotEmpty;
   bool get hasValidAddress => address.trim().isNotEmpty;
   bool get hasValidLocation => isLocationConfirmed;
+  bool get hasValidPricing => selectedPackage.price >= 0 && travelFee >= 0;
+  int get totalPrice => selectedPackage.price + travelFee;
   bool get isReadyForConfirmation =>
-      hasValidPackage && hasValidAddress && hasValidLocation;
+      hasValidPackage &&
+      hasValidAddress &&
+      hasValidLocation &&
+      hasValidPricing;
+
+  String? get validationMessage {
+    if (!hasValidPackage) {
+      return 'Selecciona un paquete antes de continuar.';
+    }
+    if (!hasValidAddress) {
+      return 'Agrega una direccion antes de confirmar el lavado.';
+    }
+    if (!hasValidLocation) {
+      return 'Confirma la ubicacion en el mapa antes de continuar.';
+    }
+    if (!hasValidPricing) {
+      return 'No se pudo calcular el precio del servicio.';
+    }
+    return null;
+  }
+
+  factory WashRequestDraft.fromMap(Map<String, dynamic> map) {
+    return WashRequestDraft(
+      selectedPackage: WashPackage.fromMap(
+        map['selectedPackage'] as Map<String, dynamic>,
+      ),
+      address: map['address'] as String,
+      selectedSchedule: ScheduleSlot(
+        id: map['scheduleId'] as String,
+        time: map['scheduleTime'] as String,
+        period: map['schedulePeriod'] as String,
+      ),
+      selectedVehicle: VehicleType(
+        id: map['vehicleTypeId'] as String,
+        name: map['vehicleTypeName'] as String,
+        icon: Icons.directions_car_filled_rounded,
+      ),
+      estimatedMinutes: map['estimatedMinutes'] as int,
+      travelFee: map['travelFee'] as int,
+      notes: (map['notes'] as String?) ?? '',
+      selectedLocation: ServiceLocation.fromMap(
+        map['selectedLocation'] as Map<String, dynamic>,
+      ),
+      isLocationConfirmed: map['isLocationConfirmed'] as bool,
+    );
+  }
 
   WashRequestDraft copyWith({
     WashPackage? selectedPackage,
@@ -200,8 +307,6 @@ class WashRequestDraft {
   }
 
   WashRequest toRequest() {
-    final total = selectedPackage.price + travelFee;
-
     return WashRequest(
       serviceType: 'mobile_car_wash',
       packageId: selectedPackage.id,
@@ -216,15 +321,39 @@ class WashRequestDraft {
       notes: notes.trim(),
       servicePrice: selectedPackage.price,
       travelFee: travelFee,
-      totalPrice: total,
+      totalPrice: totalPrice,
       estimatedMinutes: estimatedMinutes,
       currency: 'MXN',
-      status: 'draft',
+      status: RequestLifecycleStatus.draft,
       createdAt: DateTime.now().toUtc(),
     );
   }
 
   Map<String, dynamic> toBackendPayload() => toRequest().toMap();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'selectedPackage': selectedPackage.toMap(),
+      'packageId': selectedPackage.id,
+      'packageName': selectedPackage.name,
+      'address': address.trim(),
+      'scheduleId': selectedSchedule.id,
+      'scheduleTime': selectedSchedule.time,
+      'schedulePeriod': selectedSchedule.period,
+      'vehicleTypeId': selectedVehicle.id,
+      'vehicleTypeName': selectedVehicle.name,
+      'estimatedMinutes': estimatedMinutes,
+      'travelFee': travelFee,
+      'totalPrice': totalPrice,
+      'notes': notes.trim(),
+      'selectedLocation': selectedLocation.toMap(),
+      'latitude': selectedLocation.latitude,
+      'longitude': selectedLocation.longitude,
+      'isLocationConfirmed': isLocationConfirmed,
+    };
+  }
+
+  Map<String, dynamic> toJson() => toMap();
 
   ServiceLocationPayload toLocationPayload() {
     return ServiceLocationPayload(
@@ -273,10 +402,33 @@ class WashRequest {
   final int totalPrice;
   final int estimatedMinutes;
   final String currency;
-  final String status;
+  final RequestLifecycleStatus status;
   final DateTime createdAt;
 
   int get price => totalPrice;
+
+  factory WashRequest.fromMap(Map<String, dynamic> map) {
+    return WashRequest(
+      serviceType: map['serviceType'] as String,
+      packageId: map['packageId'] as String,
+      packageName: map['packageName'] as String,
+      vehicleTypeId: map['vehicleTypeId'] as String,
+      vehicleTypeName: map['vehicleTypeName'] as String,
+      address: map['address'] as String,
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+      scheduleId: map['scheduleId'] as String,
+      scheduleLabel: map['scheduleLabel'] as String,
+      notes: (map['notes'] as String?) ?? '',
+      servicePrice: map['servicePrice'] as int,
+      travelFee: map['travelFee'] as int,
+      totalPrice: map['totalPrice'] as int,
+      estimatedMinutes: map['estimatedMinutes'] as int,
+      currency: map['currency'] as String,
+      status: RequestLifecycleStatusX.fromValue(map['status'] as String),
+      createdAt: DateTime.parse(map['createdAt'] as String),
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -296,11 +448,12 @@ class WashRequest {
       'totalPrice': totalPrice,
       'estimatedMinutes': estimatedMinutes,
       'currency': currency,
-      'status': status,
+      'status': status.apiValue,
       'createdAt': createdAt.toIso8601String(),
     };
   }
 
+  Map<String, dynamic> toJsonMap() => toMap();
   String toJson() => const JsonEncoder.withIndent('  ').convert(toMap());
 
   Map<String, dynamic> toApiPayload() {
@@ -330,6 +483,23 @@ enum OrderStatus {
 }
 
 extension OrderStatusX on OrderStatus {
+  String get apiValue {
+    switch (this) {
+      case OrderStatus.searching:
+        return 'searching';
+      case OrderStatus.assigned:
+        return 'assigned';
+      case OrderStatus.onTheWay:
+        return 'on_the_way';
+      case OrderStatus.arrived:
+        return 'arrived';
+      case OrderStatus.inProgress:
+        return 'in_progress';
+      case OrderStatus.completed:
+        return 'completed';
+    }
+  }
+
   String get label {
     switch (this) {
       case OrderStatus.searching:
@@ -346,6 +516,37 @@ extension OrderStatusX on OrderStatus {
         return 'Completado';
     }
   }
+
+  static OrderStatus fromValue(String value) {
+    switch (value) {
+      case 'assigned':
+        return OrderStatus.assigned;
+      case 'on_the_way':
+        return OrderStatus.onTheWay;
+      case 'arrived':
+        return OrderStatus.arrived;
+      case 'in_progress':
+        return OrderStatus.inProgress;
+      case 'completed':
+        return OrderStatus.completed;
+      case 'searching':
+      default:
+        return OrderStatus.searching;
+    }
+  }
+
+  bool get isActiveForWorker {
+    switch (this) {
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+      case OrderStatus.arrived:
+      case OrderStatus.inProgress:
+        return true;
+      case OrderStatus.searching:
+      case OrderStatus.completed:
+        return false;
+    }
+  }
 }
 
 class WashOrder {
@@ -353,7 +554,9 @@ class WashOrder {
     required this.id,
     required this.request,
     required this.status,
+    required this.customerEmail,
     required this.assignedWasherName,
+    this.assignedWorkerEmail,
     required this.assignedVehicleLabel,
     required this.createdAt,
     required this.etaMinutes,
@@ -362,22 +565,78 @@ class WashOrder {
   final String id;
   final WashRequest request;
   final OrderStatus status;
+  final String customerEmail;
   final String assignedWasherName;
+  final String? assignedWorkerEmail;
   final String assignedVehicleLabel;
   final DateTime createdAt;
   final int etaMinutes;
 
-  WashOrder copyWith({OrderStatus? status, int? etaMinutes}) {
+  factory WashOrder.fromMap(Map<String, dynamic> map) {
+    return WashOrder(
+      id: map['id'] as String,
+      request: WashRequest.fromMap(map['request'] as Map<String, dynamic>),
+      status: OrderStatusX.fromValue(map['status'] as String),
+      customerEmail: map['customerEmail'] as String,
+      assignedWasherName: map['assignedWasherName'] as String,
+      assignedWorkerEmail: map['assignedWorkerEmail'] as String?,
+      assignedVehicleLabel: map['assignedVehicleLabel'] as String,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      etaMinutes: map['etaMinutes'] as int,
+    );
+  }
+
+  WashOrder copyWith({
+    OrderStatus? status,
+    String? customerEmail,
+    String? assignedWasherName,
+    String? assignedWorkerEmail,
+    String? assignedVehicleLabel,
+    int? etaMinutes,
+  }) {
     return WashOrder(
       id: id,
       request: request,
       status: status ?? this.status,
-      assignedWasherName: assignedWasherName,
-      assignedVehicleLabel: assignedVehicleLabel,
+      customerEmail: customerEmail ?? this.customerEmail,
+      assignedWasherName: assignedWasherName ?? this.assignedWasherName,
+      assignedWorkerEmail: assignedWorkerEmail ?? this.assignedWorkerEmail,
+      assignedVehicleLabel: assignedVehicleLabel ?? this.assignedVehicleLabel,
       createdAt: createdAt,
       etaMinutes: etaMinutes ?? this.etaMinutes,
     );
   }
+
+  RequestLifecycleStatus get requestLifecycleStatus {
+    switch (status) {
+      case OrderStatus.searching:
+        return RequestLifecycleStatus.confirmed;
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+      case OrderStatus.arrived:
+        return RequestLifecycleStatus.assigned;
+      case OrderStatus.inProgress:
+        return RequestLifecycleStatus.inProgress;
+      case OrderStatus.completed:
+        return RequestLifecycleStatus.completed;
+    }
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'request': request.toMap(),
+      'status': status.apiValue,
+      'customerEmail': customerEmail,
+      'assignedWasherName': assignedWasherName,
+      'assignedWorkerEmail': assignedWorkerEmail,
+      'assignedVehicleLabel': assignedVehicleLabel,
+      'createdAt': createdAt.toIso8601String(),
+      'etaMinutes': etaMinutes,
+    };
+  }
+
+  Map<String, dynamic> toJson() => toMap();
 }
 
 class UserProfile {
@@ -395,6 +654,16 @@ class UserProfile {
   final String favoriteAddress;
   final String paymentMethod;
 
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    return UserProfile(
+      name: map['name'] as String,
+      email: map['email'] as String,
+      vehicleLabel: map['vehicleLabel'] as String,
+      favoriteAddress: map['favoriteAddress'] as String,
+      paymentMethod: map['paymentMethod'] as String,
+    );
+  }
+
   UserProfile copyWith({
     String? name,
     String? email,
@@ -410,6 +679,18 @@ class UserProfile {
       paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'email': email,
+      'vehicleLabel': vehicleLabel,
+      'favoriteAddress': favoriteAddress,
+      'paymentMethod': paymentMethod,
+    };
+  }
+
+  Map<String, dynamic> toJson() => toMap();
 }
 
 const List<WashPackage> washPackages = [

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/session_models.dart';
 import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
@@ -131,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
   void _openApp() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => const AppShell(mode: AppMode.client),
+        builder: (_) => const AppShell(mode: AppRole.client),
       ),
     );
   }
@@ -485,17 +486,14 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Row(
-              children: const [
+              children: [
                 Expanded(
                   child: Divider(color: LavifyTheme.borderColor(context)),
                 ),
-                Padding(
+                const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     'o continua con',
-                    style: TextStyle(
-                      color: LavifyTheme.textSecondaryColor(context),
-                    ),
                   ),
                 ),
                 Expanded(
@@ -505,7 +503,7 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Row(
-              children: const [
+              children: [
                 Expanded(
                   child: _ProviderButton(
                     label: 'Google',
@@ -516,7 +514,7 @@ class _LoginCard extends StatelessWidget {
                 Expanded(
                   child: _ProviderButton(
                     label: 'Apple',
-                    logo: Icon(Icons.apple_rounded, size: 24),
+                    logo: const Icon(Icons.apple_rounded, size: 24),
                   ),
                 ),
               ],

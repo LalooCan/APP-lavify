@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../models/wash_models.dart';
+import '../services/order_service.dart';
+import '../services/worker_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
+import 'worker_services_page.dart';
 
-class WorkerHomePage extends StatelessWidget {
-  const WorkerHomePage({super.key});
+class WorkerDashboardPage extends StatelessWidget {
+  const WorkerDashboardPage({super.key});
+
+  static final OrderService _orderService = OrderService();
+  static final WorkerService _workerService = WorkerService();
 
   @override
   Widget build(BuildContext context) {
@@ -24,15 +31,42 @@ class WorkerHomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Consulta tu disponibilidad, servicios del dia y rendimiento reciente.',
+                  'Consulta tu disponibilidad, servicios activos y avance del dia.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 24),
-                const _WorkerHeroCard(),
+                ValueListenableBuilder<bool>(
+                  valueListenable: _workerService.isAvailable,
+                  builder: (context, isAvailable, _) {
+                    return _HeroCard(
+                      isAvailable: isAvailable,
+                      onToggleAvailability: _workerService.toggleAvailability,
+                      onOpenServices: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const WorkerServicesPage(),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
                 const SizedBox(height: 20),
-                const _WorkerStatsRow(),
+                ValueListenableBuilder<List<WashOrder>>(
+                  valueListenable: _orderService.orders,
+                  builder: (context, _, _) {
+                    final orders = _orderService.workerVisibleOrders;
+                    return _StatsRow(orders: orders);
+                  },
+                ),
                 const SizedBox(height: 20),
-                const _TodayAgendaCard(),
+                ValueListenableBuilder<List<WashOrder>>(
+                  valueListenable: _orderService.orders,
+                  builder: (context, _, _) {
+                    final orders = _orderService.workerVisibleOrders;
+                    return _AgendaCard(orders: orders);
+                  },
+                ),
               ],
             ),
           ),
@@ -42,8 +76,16 @@ class WorkerHomePage extends StatelessWidget {
   }
 }
 
-class _WorkerHeroCard extends StatelessWidget {
-  const _WorkerHeroCard();
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.isAvailable,
+    required this.onToggleAvailability,
+    required this.onOpenServices,
+  });
+
+  final bool isAvailable;
+  final VoidCallback onToggleAvailability;
+  final VoidCallback onOpenServices;
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +107,13 @@ class _WorkerHeroCard extends StatelessWidget {
                 height: 58,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+                  gradient: LinearGradient(
+                    colors: isAvailable
+                        ? const [LavifyColors.success, Color(0xFF3BE28F)]
+                        : const [
+                            LavifyColors.primaryStrong,
+                            LavifyColors.primary,
+                          ],
                   ),
                 ),
                 child: const Icon(
@@ -80,12 +127,16 @@ class _WorkerHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Listo para tomar servicios',
+                      isAvailable
+                          ? 'Disponible para tomar servicios'
+                          : 'Disponibilidad pausada',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Mantente disponible para recibir solicitudes cerca de tu zona.',
+                      isAvailable
+                          ? 'Ya puedes aceptar nuevas solicitudes desde la seccion de servicios.'
+                          : 'Activa tu disponibilidad para empezar a recibir trabajo.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -98,11 +149,19 @@ class _WorkerHeroCard extends StatelessWidget {
             spacing: 12,
             runSpacing: 12,
             children: [
-              PrimaryButton(label: 'Activar disponibilidad', onPressed: () {}),
+              PrimaryButton(
+                label: isAvailable
+                    ? 'Pausar disponibilidad'
+                    : 'Activar disponibilidad',
+                icon: isAvailable
+                    ? Icons.pause_circle_outline_rounded
+                    : Icons.play_circle_outline_rounded,
+                onPressed: onToggleAvailability,
+              ),
               SecondaryButton(
-                label: 'Ver servicios de hoy',
+                label: 'Ver servicios',
                 icon: Icons.schedule_rounded,
-                onPressed: () {},
+                onPressed: onOpenServices,
               ),
             ],
           ),
@@ -112,37 +171,49 @@ class _WorkerHeroCard extends StatelessWidget {
   }
 }
 
-class _WorkerStatsRow extends StatelessWidget {
-  const _WorkerStatsRow();
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.orders});
+
+  final List<WashOrder> orders;
 
   @override
   Widget build(BuildContext context) {
+    final activeOrders = orders
+        .where((order) => order.status != OrderStatus.completed)
+        .length;
+    final pendingPickup = orders
+        .where((order) => order.status == OrderStatus.searching)
+        .length;
+    final completedOrders = orders
+        .where((order) => order.status == OrderStatus.completed)
+        .length;
+
     return Wrap(
       spacing: 16,
       runSpacing: 16,
-      children: const [
-        _WorkerStatCard(
-          title: '4',
-          subtitle: 'Servicios hoy',
-          icon: Icons.bubble_chart_rounded,
+      children: [
+        _StatCard(
+          title: '$activeOrders',
+          subtitle: 'Servicios activos',
+          icon: Icons.local_shipping_rounded,
         ),
-        _WorkerStatCard(
-          title: '\$860',
-          subtitle: 'Ganancia estimada',
-          icon: Icons.payments_rounded,
+        _StatCard(
+          title: '$pendingPickup',
+          subtitle: 'Por aceptar',
+          icon: Icons.notifications_active_rounded,
         ),
-        _WorkerStatCard(
-          title: '4.9',
-          subtitle: 'Calificacion',
-          icon: Icons.star_rounded,
+        _StatCard(
+          title: '$completedOrders',
+          subtitle: 'Completados',
+          icon: Icons.task_alt_rounded,
         ),
       ],
     );
   }
 }
 
-class _WorkerStatCard extends StatelessWidget {
-  const _WorkerStatCard({
+class _StatCard extends StatelessWidget {
+  const _StatCard({
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -176,11 +247,15 @@ class _WorkerStatCard extends StatelessWidget {
   }
 }
 
-class _TodayAgendaCard extends StatelessWidget {
-  const _TodayAgendaCard();
+class _AgendaCard extends StatelessWidget {
+  const _AgendaCard({required this.orders});
+
+  final List<WashOrder> orders;
 
   @override
   Widget build(BuildContext context) {
+    final visibleOrders = orders.take(3).toList();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
@@ -191,33 +266,24 @@ class _TodayAgendaCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
-            'Agenda de hoy',
-            style: TextStyle(
-              color: LavifyColors.textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+            'Agenda visible',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 18),
+          if (visibleOrders.isEmpty)
+            Text(
+              'Aun no tienes servicios cargados.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            )
+          else
+            ...visibleOrders.map(
+              (order) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _AgendaItem(order: order),
+              ),
             ),
-          ),
-          SizedBox(height: 18),
-          _AgendaItem(
-            time: '09:00',
-            title: 'Express en Roma Norte',
-            subtitle: 'Sedan mediano · Cliente confirmado',
-          ),
-          SizedBox(height: 12),
-          _AgendaItem(
-            time: '11:30',
-            title: 'Full Care en Polanco',
-            subtitle: 'SUV · Pago digital',
-          ),
-          SizedBox(height: 12),
-          _AgendaItem(
-            time: '14:00',
-            title: 'Premium en Del Valle',
-            subtitle: 'Compacto · Agua disponible',
-          ),
         ],
       ),
     );
@@ -225,15 +291,9 @@ class _TodayAgendaCard extends StatelessWidget {
 }
 
 class _AgendaItem extends StatelessWidget {
-  const _AgendaItem({
-    required this.time,
-    required this.title,
-    required this.subtitle,
-  });
+  const _AgendaItem({required this.order});
 
-  final String time;
-  final String title;
-  final String subtitle;
+  final WashOrder order;
 
   @override
   Widget build(BuildContext context) {
@@ -255,10 +315,12 @@ class _AgendaItem extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              time,
+              order.request.scheduleLabel.split(' - ').last,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: LavifyColors.textPrimary,
                 fontWeight: FontWeight.w700,
+                fontSize: 12,
               ),
             ),
           ),
@@ -268,14 +330,17 @@ class _AgendaItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  '${order.request.packageName} en ${order.request.address}',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: LavifyColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  '${order.request.vehicleTypeName} · ${order.status.label}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
             ),
           ),

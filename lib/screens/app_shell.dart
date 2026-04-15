@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../models/session_models.dart';
 import 'home_page.dart';
 import 'orders_page.dart';
 import 'profile_hub_page.dart';
 import '../theme/theme.dart';
-import 'worker_home_page.dart';
-import 'worker_jobs_page.dart';
-
-enum AppMode { client, worker }
+import 'worker_dashboard_page.dart';
+import 'worker_services_page.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.mode});
 
-  final AppMode mode;
+  final AppRole mode;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -27,19 +26,19 @@ class _AppShellState extends State<AppShell> {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 1024;
 
-    final pages = widget.mode == AppMode.client
+    final pages = widget.mode == AppRole.client
         ? <Widget>[
             const HomePage(),
             const OrdersPage(),
-            const ProfileHubPage(mode: AppMode.client),
+            const ProfileHubPage(mode: AppRole.client),
           ]
         : <Widget>[
-            const WorkerHomePage(),
-            const WorkerJobsPage(),
-            const ProfileHubPage(mode: AppMode.worker),
+            const WorkerDashboardPage(),
+            const WorkerServicesPage(),
+            const ProfileHubPage(mode: AppRole.worker),
           ];
 
-    final destinations = widget.mode == AppMode.client
+    final destinations = widget.mode == AppRole.client
         ? const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),

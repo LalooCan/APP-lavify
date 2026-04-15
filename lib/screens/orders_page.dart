@@ -33,7 +33,8 @@ class OrdersPage extends StatelessWidget {
                 Expanded(
                   child: ValueListenableBuilder<List<WashOrder>>(
                     valueListenable: _orderService.orders,
-                    builder: (context, orders, child) {
+                    builder: (context, _, child) {
+                      final orders = _orderService.clientVisibleOrders;
                       return ListView.separated(
                         itemCount: orders.length,
                         separatorBuilder: (context, index) =>

@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 
+import '../models/session_models.dart';
 import '../models/wash_models.dart';
 import '../services/profile_service.dart';
+import '../services/session_service.dart';
 import '../services/theme_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
-import 'app_shell.dart';
 import 'role_login_page.dart';
 
 class ProfileHubPage extends StatelessWidget {
   const ProfileHubPage({super.key, required this.mode});
 
-  final AppMode mode;
+  final AppRole mode;
 
   static final _profileService = ProfileService();
+  static final _sessionService = SessionService();
   static final _themeService = ThemeService();
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 920;
-    final isWorker = mode == AppMode.worker;
+    final isWorker = mode == AppRole.worker;
 
     return Scaffold(
       body: Container(
@@ -205,7 +207,7 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: LavifyColors.surface,
+          backgroundColor: LavifyTheme.surfaceColor(context),
           title: const Text('Editar perfil'),
           content: SizedBox(
             width: 420,
@@ -267,7 +269,7 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: LavifyColors.surface,
+          backgroundColor: LavifyTheme.surfaceColor(dialogContext),
           title: Text(title),
           content: SizedBox(
             width: 420,
@@ -296,7 +298,7 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: LavifyColors.surface,
+          backgroundColor: LavifyTheme.surfaceColor(dialogContext),
           title: const Text('Cerrar sesion'),
           content: const Text(
             'Vas a salir de tu cuenta actual y regresar a la pantalla de login.',
@@ -319,6 +321,7 @@ class ProfileHubPage extends StatelessWidget {
       return;
     }
 
+    _sessionService.clearSession();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
         builder: (_) => RoleLoginPage(initialMode: mode),
@@ -337,13 +340,13 @@ class _AccountSummaryCard extends StatelessWidget {
   });
 
   final UserProfile profile;
-  final AppMode mode;
+  final AppRole mode;
   final VoidCallback onEditProfile;
   final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
-    final isWorker = mode == AppMode.worker;
+    final isWorker = mode == AppRole.worker;
 
     return Container(
       width: double.infinity,

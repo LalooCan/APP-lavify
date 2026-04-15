@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/home_service.dart';
+import '../services/order_service.dart';
 import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/how_it_works_section.dart';
@@ -15,6 +16,7 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   static const HomeService _homeService = HomeService();
+  static final OrderService _orderService = OrderService();
   static final ProfileService _profileService = ProfileService();
 
   @override
@@ -132,7 +134,7 @@ class _DesktopHero extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: const _PreviewCard(),
+              child: _PreviewCard(orderService: HomePage._orderService),
             ),
           ),
         ),
@@ -153,7 +155,7 @@ class _MobileHero extends StatelessWidget {
       children: [
         _HeroContent(session: session),
         const SizedBox(height: 32),
-        const _PreviewCard(),
+        _PreviewCard(orderService: HomePage._orderService),
       ],
     );
   }
@@ -232,176 +234,232 @@ class _HeroContent extends StatelessWidget {
 }
 
 class _PreviewCard extends StatelessWidget {
-  const _PreviewCard();
+  const _PreviewCard({required this.orderService});
+
+  final OrderService orderService;
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: LavifyTheme.overlayPanelColor(context),
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: LavifyTheme.borderColor(context)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x22000000),
-              blurRadius: 28,
-              offset: Offset(0, 18),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.water_drop_rounded,
-                  color: LavifyColors.primary,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Seguimiento en vivo',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontSize: 18),
-                ),
-                const Spacer(),
-                const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0x3322C1FF),
-                  child: Icon(Icons.person, color: LavifyColors.primary),
+    return ValueListenableBuilder<List<WashOrder>>(
+      valueListenable: orderService.orders,
+      builder: (context, _, _) {
+        final orders = orderService.clientVisibleOrders;
+        final order = orders.isNotEmpty ? orders.first : null;
+        final isSearching = order?.status == OrderStatus.searching;
+        final selectedPackage = order?.request.packageName;
+        final badgeColor = order == null
+            ? LavifyColors.primary
+            : _statusColor(order.status);
+        final badgeLabel = order == null
+            ? 'Preview'
+            : isSearching
+                ? 'Buscando'
+                : order.status.label;
+        final mapLabel = order == null
+            ? 'Explora tu siguiente lavado'
+            : isSearching
+                ? 'Buscando lavador cerca de ti'
+                : order.etaMinutes > 0
+                    ? 'Llegando en ${order.etaMinutes} min'
+                    : order.status.label;
+        final actionLabel = order == null
+            ? 'Pedir tu primer lavado'
+            : isSearching
+                ? 'Solicitud enviada · \$${order.request.totalPrice}'
+                : 'Servicio activo · \$${order.request.totalPrice}';
+
+        return RepaintBoundary(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: LavifyTheme.overlayPanelColor(context),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 28,
+                  offset: Offset(0, 18),
                 ),
               ],
             ),
-            const SizedBox(height: 22),
-            Container(
-              height: 210,
-              decoration: BoxDecoration(
-                color: LavifyTheme.surfaceAltColor(context),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _MapGridPainter(
-                        gridColor: LavifyTheme.textSecondaryColor(context)
-                            .withAlpha(30),
-                      ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.water_drop_rounded,
+                      color: LavifyColors.primary,
                     ),
-                  ),
-                  const Positioned(
-                    top: 30,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Icon(
-                        Icons.linear_scale_rounded,
-                        color: LavifyColors.primary,
-                        size: 76,
-                      ),
+                    const SizedBox(width: 10),
+                    Text(
+                      order == null
+                          ? 'Seguimiento en vivo'
+                          : isSearching
+                              ? 'Buscando lavador'
+                              : 'Seguimiento en vivo',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(fontSize: 18),
                     ),
-                  ),
-                  const Positioned(
-                    top: 74,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Icon(
-                        Icons.location_on_rounded,
-                        color: Colors.pinkAccent,
-                        size: 34,
-                      ),
+                    const Spacer(),
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0x3322C1FF),
+                      child: Icon(Icons.person, color: LavifyColors.primary),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Container(
+                  height: 210,
+                  decoration: BoxDecoration(
+                    color: LavifyTheme.surfaceAltColor(context),
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  Positioned(
-                    bottom: 18,
-                    right: 18,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: LavifyTheme.surfaceColor(context),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'Llegando en 18 min',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: LavifyColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: LavifyTheme.surfaceAltColor(context),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: LavifyTheme.borderColor(context)),
-              ),
-              child: Column(
-                children: [
-                  Row(
+                  child: Stack(
                     children: [
-                      Text(
-                        'Tipo de lavado',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: LavifyColors.textPrimary,
-                          fontWeight: FontWeight.w600,
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _MapGridPainter(
+                            gridColor: LavifyTheme.textSecondaryColor(context)
+                                .withAlpha(30),
+                          ),
                         ),
                       ),
-                      const Spacer(),
-                      const _MiniBadge(label: 'En camino'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: _OptionTile(
-                          icon: Icons.local_car_wash_rounded,
-                          label: 'Exterior',
-                          selected: true,
+                      Positioned(
+                        top: 30,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Icon(
+                            isSearching
+                                ? Icons.radar_rounded
+                                : Icons.linear_scale_rounded,
+                            color: LavifyColors.primary,
+                            size: 76,
+                          ),
                         ),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _OptionTile(
-                          icon: Icons.cleaning_services_rounded,
-                          label: 'Interior',
+                      const Positioned(
+                        top: 74,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Icon(
+                            Icons.location_on_rounded,
+                            color: Colors.pinkAccent,
+                            size: 34,
+                          ),
                         ),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _OptionTile(
-                          icon: Icons.auto_awesome_rounded,
-                          label: 'Premium',
+                      Positioned(
+                        bottom: 18,
+                        right: 18,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: LavifyTheme.surfaceColor(context),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            mapLabel,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: LavifyColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  PrimaryButton(
-                    label: 'Confirmar lavado · \$199',
-                    onPressed: () {},
-                    isExpanded: true,
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: LavifyTheme.surfaceAltColor(context),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: LavifyTheme.borderColor(context)),
                   ),
-                ],
-              ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            order == null ? 'Tipo de lavado' : 'Estado del pedido',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: LavifyColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const Spacer(),
+                          _MiniBadge(label: badgeLabel, color: badgeColor),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _OptionTile(
+                              icon: Icons.local_car_wash_rounded,
+                              label: 'Express',
+                              selected: selectedPackage == 'Express',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _OptionTile(
+                              icon: Icons.cleaning_services_rounded,
+                              label: 'Full Care',
+                              selected: selectedPackage == 'Full Care',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _OptionTile(
+                              icon: Icons.auto_awesome_rounded,
+                              label: 'Premium',
+                              selected: selectedPackage == 'Premium' ||
+                                  selectedPackage == null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      PrimaryButton(
+                        label: actionLabel,
+                        onPressed: () {},
+                        isExpanded: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  Color _statusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.searching:
+        return const Color(0xFFFFC857);
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+        return LavifyColors.primary;
+      case OrderStatus.arrived:
+      case OrderStatus.inProgress:
+        return const Color(0xFF9B7BFF);
+      case OrderStatus.completed:
+        return LavifyColors.success;
+    }
   }
 }
 
@@ -693,22 +751,23 @@ class _MetricItem extends StatelessWidget {
 }
 
 class _MiniBadge extends StatelessWidget {
-  const _MiniBadge({required this.label});
+  const _MiniBadge({required this.label, this.color = LavifyColors.success});
 
   final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0x1F28D17C),
+        color: color.withAlpha(31),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: LavifyColors.success,
+          color: color,
           fontWeight: FontWeight.w700,
         ),
       ),

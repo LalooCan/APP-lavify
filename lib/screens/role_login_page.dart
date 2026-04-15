@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/session_models.dart';
 import '../services/profile_service.dart';
+import '../services/session_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import 'app_shell.dart';
@@ -8,10 +10,10 @@ import 'app_shell.dart';
 class RoleLoginPage extends StatefulWidget {
   const RoleLoginPage({
     super.key,
-    this.initialMode = AppMode.client,
+    this.initialMode = AppRole.client,
   });
 
-  final AppMode initialMode;
+  final AppRole initialMode;
 
   @override
   State<RoleLoginPage> createState() => _RoleLoginPageState();
@@ -19,15 +21,16 @@ class RoleLoginPage extends StatefulWidget {
 
 class _RoleLoginPageState extends State<RoleLoginPage> {
   static final _profileService = ProfileService();
+  static final _sessionService = SessionService();
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberSession = true;
-  late AppMode _selectedMode;
+  late AppRole _selectedMode;
 
-  bool get _isClient => _selectedMode == AppMode.client;
+  bool get _isClient => _selectedMode == AppRole.client;
 
   @override
   void initState() {
@@ -132,7 +135,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     );
   }
 
-  void _setMode(AppMode mode) {
+  void _setMode(AppRole mode) {
     setState(() {
       _selectedMode = mode;
     });
@@ -157,6 +160,13 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     }
 
     _profileService.syncLoginIdentity(email: _emailController.text);
+    final profile = _profileService.profile.value;
+    _sessionService.startSession(
+      role: _selectedMode,
+      email: profile.email,
+      visibleName: profile.name,
+      favoriteAddress: profile.favoriteAddress,
+    );
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (_) => AppShell(mode: _selectedMode)),
     );
@@ -166,10 +176,10 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
 class _LoginShowcase extends StatelessWidget {
   const _LoginShowcase({required this.mode, this.compact = false});
 
-  final AppMode mode;
+  final AppRole mode;
   final bool compact;
 
-  bool get isClient => mode == AppMode.client;
+  bool get isClient => mode == AppRole.client;
 
   @override
   Widget build(BuildContext context) {
@@ -415,17 +425,17 @@ class _LoginCard extends StatelessWidget {
   });
 
   final GlobalKey<FormState> formKey;
-  final AppMode selectedMode;
+  final AppRole selectedMode;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool obscurePassword;
   final bool rememberSession;
-  final ValueChanged<AppMode> onModeChanged;
+  final ValueChanged<AppRole> onModeChanged;
   final VoidCallback onTogglePassword;
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback onLogin;
 
-  bool get isClient => selectedMode == AppMode.client;
+  bool get isClient => selectedMode == AppRole.client;
 
   @override
   Widget build(BuildContext context) {
@@ -632,7 +642,7 @@ class _LoginCard extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () => onModeChanged(
-                      isClient ? AppMode.worker : AppMode.client,
+                      isClient ? AppRole.worker : AppRole.client,
                     ),
                     child: Text(
                       isClient ? 'Cambiar a trabajador' : 'Cambiar a cliente',
@@ -654,8 +664,8 @@ class _RoleSelector extends StatelessWidget {
     required this.onModeChanged,
   });
 
-  final AppMode selectedMode;
-  final ValueChanged<AppMode> onModeChanged;
+  final AppRole selectedMode;
+  final ValueChanged<AppRole> onModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -672,8 +682,8 @@ class _RoleSelector extends StatelessWidget {
             child: _RoleChip(
               label: 'Cliente',
               icon: Icons.person_rounded,
-              selected: selectedMode == AppMode.client,
-              onTap: () => onModeChanged(AppMode.client),
+              selected: selectedMode == AppRole.client,
+              onTap: () => onModeChanged(AppRole.client),
             ),
           ),
           const SizedBox(width: 8),
@@ -681,8 +691,8 @@ class _RoleSelector extends StatelessWidget {
             child: _RoleChip(
               label: 'Trabajador',
               icon: Icons.local_car_wash_rounded,
-              selected: selectedMode == AppMode.worker,
-              onTap: () => onModeChanged(AppMode.worker),
+              selected: selectedMode == AppRole.worker,
+              onTap: () => onModeChanged(AppRole.worker),
             ),
           ),
         ],

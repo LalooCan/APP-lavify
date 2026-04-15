@@ -11,7 +11,7 @@ void main() {
 class LavifyApp extends StatelessWidget {
   const LavifyApp({super.key});
 
-  static final _themeService = ThemeService();
+  static final ThemeService _themeService = ThemeService();
 
   @override
   Widget build(BuildContext context) {

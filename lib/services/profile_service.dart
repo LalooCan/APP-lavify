@@ -1,26 +1,31 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/wash_models.dart';
+import '../repositories/mock_profile_repository.dart';
+import '../repositories/profile_repository.dart';
+import 'session_service.dart';
 
 class ProfileService {
-  ProfileService._internal();
+  ProfileService._internal() : _repository = MockProfileRepository();
+
+  final ProfileRepository _repository;
+  static final SessionService _sessionService = SessionService();
 
   static final ProfileService _instance = ProfileService._internal();
 
   factory ProfileService() => _instance;
 
-  final ValueNotifier<UserProfile> profile = ValueNotifier<UserProfile>(
-    const UserProfile(
-      name: 'Elige tu nombre',
-      email: 'cliente@lavify.app',
-      vehicleLabel: 'Sedan mediano - Color gris',
-      favoriteAddress: '',
-      paymentMethod: 'Visa terminacion 4242',
-    ),
+  late final ValueNotifier<UserProfile> profile = ValueNotifier<UserProfile>(
+    _repository.getProfile(),
   );
 
   void updateProfile(UserProfile next) {
-    profile.value = next;
+    profile.value = _repository.saveProfile(next);
+    _sessionService.updateSession(
+      email: next.email,
+      visibleName: next.name,
+      favoriteAddress: next.favoriteAddress,
+    );
   }
 
   void syncLoginEmail(String email) {
@@ -48,6 +53,11 @@ class ProfileService {
           ? resolvedName
           : currentProfile.name,
     );
+    _repository.saveProfile(profile.value);
+    _sessionService.updateSession(
+      email: profile.value.email,
+      visibleName: profile.value.name,
+    );
   }
 
   void syncFavoriteAddress(String address) {
@@ -56,7 +66,10 @@ class ProfileService {
       return;
     }
 
-    profile.value = profile.value.copyWith(favoriteAddress: normalizedAddress);
+    profile.value = _repository.saveProfile(
+      profile.value.copyWith(favoriteAddress: normalizedAddress),
+    );
+    _sessionService.updateSession(favoriteAddress: normalizedAddress);
   }
 
   String resolveGreetingName() {

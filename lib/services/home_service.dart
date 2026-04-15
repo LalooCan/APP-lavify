@@ -1,5 +1,6 @@
 import '../models/wash_models.dart';
 import 'profile_service.dart';
+import 'session_service.dart';
 
 class HomeSessionData {
   const HomeSessionData({
@@ -19,11 +20,17 @@ class HomeService {
   const HomeService();
 
   HomeSessionData getSessionData() {
+    final session = SessionService().currentSession.value;
     final profile = ProfileService().profile.value;
+    final favoriteAddress = session?.favoriteAddress ?? profile.favoriteAddress;
+    final visibleName = (session?.visibleName.trim().isNotEmpty ?? false) &&
+            session?.visibleName != 'Elige tu nombre'
+        ? session!.visibleName
+        : ProfileService().resolveGreetingName();
 
     return HomeSessionData(
-      firstName: ProfileService().resolveGreetingName(),
-      savedAddress: _buildSavedAddress(profile.favoriteAddress),
+      firstName: visibleName,
+      savedAddress: _buildSavedAddress(favoriteAddress),
       availabilityLabel: 'Disponible en tu zona',
       etaLabel: '20-30 min',
     );

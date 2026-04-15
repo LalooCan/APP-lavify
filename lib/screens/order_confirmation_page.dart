@@ -141,7 +141,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     });
 
     try {
-      final order = await _orderService.createOrder(widget.draft.toRequest());
+      final order = await _orderService.createOrderFromDraft(widget.draft);
 
       if (!mounted) {
         return;
