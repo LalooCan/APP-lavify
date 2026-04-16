@@ -135,7 +135,9 @@ class OrderTrackingPage extends StatelessWidget {
                               mapBadgeLabel,
                               style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(
-                                    color: LavifyTheme.textPrimaryColor(context),
+                                    color: LavifyTheme.textPrimaryColor(
+                                      context,
+                                    ),
                                     fontWeight: FontWeight.w700,
                                   ),
                             ),
@@ -153,7 +155,9 @@ class OrderTrackingPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: LavifyTheme.surfaceColor(context),
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: LavifyTheme.borderColor(context)),
+                      border: Border.all(
+                        color: LavifyTheme.borderColor(context),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,7 +195,9 @@ class OrderTrackingPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: LavifyTheme.surfaceColor(context),
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: LavifyTheme.borderColor(context)),
+                      border: Border.all(
+                        color: LavifyTheme.borderColor(context),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,7 +331,9 @@ class _TrackingStep extends StatelessWidget {
                 color: completed ? LavifyColors.primary : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: completed ? LavifyColors.primary : LavifyColors.border,
+                  color: completed
+                      ? LavifyColors.primary
+                      : LavifyTheme.borderColor(context),
                   width: 2,
                 ),
               ),
@@ -334,7 +342,9 @@ class _TrackingStep extends StatelessWidget {
               Container(
                 width: 2,
                 height: 34,
-                color: completed ? LavifyColors.primary : LavifyColors.border,
+                color: completed
+                    ? LavifyColors.primary
+                    : LavifyTheme.borderColor(context),
               ),
           ],
         ),
@@ -345,8 +355,8 @@ class _TrackingStep extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: completed
-                  ? LavifyColors.textPrimary
-                  : LavifyColors.textSecondary,
+                  ? LavifyTheme.textPrimaryColor(context)
+                  : LavifyTheme.textSecondaryColor(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -377,7 +387,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: LavifyColors.textPrimary,
+                color: LavifyTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),

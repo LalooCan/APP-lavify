@@ -56,47 +56,57 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
                   builder: (context, isAvailable, _) {
                     return _AvailabilityBanner(
                       isAvailable: isAvailable,
-                      onToggle: _workerService.toggleAvailability,
+                      onToggle: _handleToggleAvailability,
                     );
                   },
                 ),
                 const SizedBox(height: 18),
                 Expanded(
-                  child: ValueListenableBuilder<List<WashOrder>>(
-                    valueListenable: _orderService.orders,
-                    builder: (context, _, _) {
-                      final orders = _orderService.workerVisibleOrders;
-                      WashOrder? activeOrder;
-                      for (final item in orders) {
-                        if (item.status.isActiveForWorker) {
-                          activeOrder = item;
-                          break;
-                        }
-                      }
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _workerService.isAvailable,
+                    builder: (context, isAvailable, _) {
+                      return ValueListenableBuilder<List<WashOrder>>(
+                        valueListenable: _orderService.orders,
+                        builder: (context, _, _) {
+                          final orders = _orderService.workerVisibleOrders;
+                          WashOrder? activeOrder;
+                          for (final item in orders) {
+                            if (item.status.isActiveForWorker) {
+                              activeOrder = item;
+                              break;
+                            }
+                          }
 
-                      if (orders.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'Aun no hay servicios para mostrar.',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        );
-                      }
+                          if (orders.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'Aun no hay servicios para mostrar.',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                            );
+                          }
 
-                      return ListView.separated(
-                        itemCount: orders.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 14),
-                        itemBuilder: (context, index) {
-                          final order = orders[index];
-                          return _WorkerOrderCard(
-                            order: order,
-                            isBusy: _busyOrderId == order.id,
-                            workerAvailable: _workerService.isAvailable.value,
-                            hasAnotherActiveOrder:
-                                activeOrder != null && activeOrder.id != order.id,
-                            onTakeOrder: () => _takeOrder(order),
-                            onAdvanceOrder: () => _advanceOrder(order),
+                          return ListView.separated(
+                            itemCount: orders.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 14),
+                            itemBuilder: (context, index) {
+                              final order = orders[index];
+                              return _WorkerOrderCard(
+                                order: order,
+                                isBusy: _busyOrderId == order.id,
+                                workerAvailable: isAvailable,
+                                hasAnotherActiveOrder:
+                                    activeOrder != null &&
+                                    activeOrder.id != order.id,
+                                hasScheduleConflict:
+                                    _orderService.hasScheduleConflictForWorker(
+                                      order,
+                                    ),
+                                onTakeOrder: () => _takeOrder(order),
+                                onAdvanceOrder: () => _advanceOrder(order),
+                              );
+                            },
                           );
                         },
                       );
@@ -128,6 +138,17 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
       return;
     }
 
+    if (_orderService.hasScheduleConflictForWorker(order)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Ya tienes un servicio asignado en el horario ${order.request.scheduleLabel}.',
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _busyOrderId = order.id;
     });
@@ -150,6 +171,22 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
         });
       }
     }
+  }
+
+  void _handleToggleAvailability() {
+    final isAvailable = _workerService.isAvailable.value;
+    if (isAvailable && _orderService.hasActiveWorkerOrder) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No puedes pausar tu disponibilidad mientras tienes un servicio en curso.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    _workerService.toggleAvailability();
   }
 
   Future<void> _advanceOrder(WashOrder order) async {
@@ -237,6 +274,7 @@ class _WorkerOrderCard extends StatelessWidget {
     required this.isBusy,
     required this.workerAvailable,
     required this.hasAnotherActiveOrder,
+    required this.hasScheduleConflict,
     required this.onTakeOrder,
     required this.onAdvanceOrder,
   });
@@ -245,6 +283,7 @@ class _WorkerOrderCard extends StatelessWidget {
   final bool isBusy;
   final bool workerAvailable;
   final bool hasAnotherActiveOrder;
+  final bool hasScheduleConflict;
   final VoidCallback onTakeOrder;
   final VoidCallback onAdvanceOrder;
 
@@ -254,7 +293,8 @@ class _WorkerOrderCard extends StatelessWidget {
     final actionLabel = _actionLabel(order);
     final canTake = order.status == OrderStatus.searching &&
         workerAvailable &&
-        !hasAnotherActiveOrder;
+        !hasAnotherActiveOrder &&
+        !hasScheduleConflict;
     final canAdvance = order.status != OrderStatus.searching &&
         order.status != OrderStatus.completed;
     final isActionEnabled = !isBusy && (canTake || canAdvance);
@@ -357,6 +397,15 @@ class _WorkerOrderCard extends StatelessWidget {
               'Ya tienes un servicio activo. Completa ese trabajo antes de tomar otro.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFFFFC857),
+              ),
+            ),
+          ],
+          if (order.status == OrderStatus.searching && hasScheduleConflict) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Ya tienes otro servicio asignado en ese mismo horario.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFFFF8A80),
               ),
             ),
           ],

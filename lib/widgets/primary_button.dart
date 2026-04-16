@@ -51,8 +51,8 @@ class PrimaryButton extends StatelessWidget {
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             foregroundColor: isEnabled
-                ? LavifyColors.textPrimary
-                : LavifyColors.textSecondary,
+                ? Colors.white
+                : Colors.white.withAlpha(180),
           ),
         ),
       ),

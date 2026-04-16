@@ -39,6 +39,30 @@ class OrderService {
 
   bool get hasActiveWorkerOrder => activeWorkerOrder != null;
 
+  bool hasScheduleConflictForWorker(WashOrder candidateOrder) {
+    final workerEmail = _normalizedCurrentSessionEmail;
+    if (workerEmail == null) {
+      return false;
+    }
+
+    for (final order in orders.value) {
+      if (order.id == candidateOrder.id) {
+        continue;
+      }
+      if (order.assignedWorkerEmail != workerEmail) {
+        continue;
+      }
+      if (order.status == OrderStatus.completed) {
+        continue;
+      }
+      if (order.request.scheduleId == candidateOrder.request.scheduleId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   List<WashOrder> get clientVisibleOrders {
     final sessionEmail = _normalizedCurrentSessionEmail;
     if (sessionEmail == null) {
@@ -107,13 +131,16 @@ class OrderService {
     final activeOrder = activeWorkerOrder;
     final hasAnotherActiveOrder =
         activeOrder != null && activeOrder.id != orderId;
+    final hasScheduleConflict =
+        order != null && hasScheduleConflictForWorker(order);
 
     if (order == null ||
         order.status != OrderStatus.searching ||
         session == null ||
         session.role != AppRole.worker ||
         workerEmail == null ||
-        hasAnotherActiveOrder) {
+        hasAnotherActiveOrder ||
+        hasScheduleConflict) {
       return null;
     }
 

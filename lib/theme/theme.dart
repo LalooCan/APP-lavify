@@ -110,7 +110,7 @@ class LavifyTheme {
               surfaceTintColor: const WidgetStatePropertyAll(
                 Colors.transparent,
               ),
-        ),
+            ),
       ),
     );
   }
@@ -216,9 +216,8 @@ class LavifyTheme {
   static Color surfaceColor(BuildContext context) =>
       isLight(context) ? LavifyColors.lightSurface : LavifyColors.surface;
 
-  static Color surfaceAltColor(BuildContext context) => isLight(context)
-      ? LavifyColors.lightSurfaceAlt
-      : LavifyColors.surfaceAlt;
+  static Color surfaceAltColor(BuildContext context) =>
+      isLight(context) ? LavifyColors.lightSurfaceAlt : LavifyColors.surfaceAlt;
 
   static Color borderColor(BuildContext context) =>
       isLight(context) ? LavifyColors.lightBorder : LavifyColors.border;
@@ -231,33 +230,39 @@ class LavifyTheme {
       ? LavifyColors.lightTextSecondary
       : LavifyColors.textSecondary;
 
-  static Color softFillColor(BuildContext context) => isLight(context)
-      ? const Color(0xFFF1F6FD)
-      : Colors.white.withAlpha(10);
+  static Color softFillColor(BuildContext context) =>
+      isLight(context) ? const Color(0xFFF1F6FD) : Colors.white.withAlpha(10);
 
-  static Color softFillStrongColor(BuildContext context) => isLight(context)
-      ? const Color(0xFFE3EEF9)
-      : Colors.white.withAlpha(6);
+  static Color softFillStrongColor(BuildContext context) =>
+      isLight(context) ? const Color(0xFFE3EEF9) : Colors.white.withAlpha(6);
 
-  static Color overlayPanelColor(BuildContext context) => isLight(context)
-      ? const Color(0xF7FFFFFF)
-      : const Color(0xCC0E1A2C);
+  static Color overlayPanelColor(BuildContext context) =>
+      isLight(context) ? const Color(0xF7FFFFFF) : const Color(0xCC0E1A2C);
 
-  static Color navRailColor(BuildContext context) => isLight(context)
-      ? const Color(0xF8FFFFFF)
-      : const Color(0xCC0C1627);
+  static Color navRailColor(BuildContext context) =>
+      isLight(context) ? const Color(0xF8FFFFFF) : const Color(0xCC0C1627);
 
-  static Color navRailBorderColor(BuildContext context) => isLight(context)
-      ? LavifyColors.lightBorder
-      : const Color(0x1FFFFFFF);
+  static Color navRailBorderColor(BuildContext context) =>
+      isLight(context) ? LavifyColors.lightBorder : const Color(0x1FFFFFFF);
 
-  static Color navSelectedColor(BuildContext context) => isLight(context)
-      ? const Color(0x1622C1FF)
-      : const Color(0x1F2CCBFF);
+  static Color navSelectedColor(BuildContext context) =>
+      isLight(context) ? const Color(0x1622C1FF) : const Color(0x1F2CCBFF);
 
   static Color navInactiveColor(BuildContext context) => isLight(context)
       ? LavifyColors.lightTextSecondary
       : const Color(0xFFD6D1E8);
+
+  static Color selectedTileColor(BuildContext context) =>
+      isLight(context) ? const Color(0x162F6BFF) : const Color(0x331D5FFF);
+
+  static Color selectedTileSoftColor(BuildContext context) =>
+      isLight(context) ? const Color(0x1022C1FF) : Colors.white.withAlpha(8);
+
+  static Color codePanelColor(BuildContext context) =>
+      isLight(context) ? const Color(0xFF112033) : LavifyColors.background;
+
+  static Color codePanelTextColor(BuildContext context) =>
+      isLight(context) ? const Color(0xFFF4F8FC) : LavifyColors.textPrimary;
 
   static BoxDecoration pageDecoration(BuildContext context) {
     if (isLight(context)) {
@@ -265,11 +270,7 @@ class LavifyTheme {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF7FBFF),
-            Color(0xFFEAF3FF),
-            Color(0xFFF4F8FC),
-          ],
+          colors: [Color(0xFFF7FBFF), Color(0xFFEAF3FF), Color(0xFFF4F8FC)],
         ),
       );
     }
@@ -278,11 +279,7 @@ class LavifyTheme {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF07101D),
-          Color(0xFF102446),
-          Color(0xFF09111F),
-        ],
+        colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
       ),
     );
   }

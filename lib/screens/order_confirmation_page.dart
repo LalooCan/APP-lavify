@@ -92,15 +92,17 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: LavifyColors.background,
+                          color: LavifyTheme.codePanelColor(context),
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: LavifyColors.border),
+                          border: Border.all(
+                            color: LavifyTheme.borderColor(context),
+                          ),
                         ),
                         child: SelectableText(
                           request.toJson(),
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                color: LavifyColors.textPrimary,
+                                color: LavifyTheme.codePanelTextColor(context),
                                 fontFamily: 'monospace',
                               ),
                         ),
@@ -180,7 +182,7 @@ class _ConfirmationRow extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: LavifyColors.textPrimary,
+              color: LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w700,
             ),
           ),

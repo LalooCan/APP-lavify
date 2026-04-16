@@ -85,10 +85,7 @@ class _TopBar extends StatelessWidget {
               colors: [LavifyColors.primaryStrong, LavifyColors.primary],
             ),
           ),
-          child: const Icon(
-            Icons.water_drop_rounded,
-            color: LavifyColors.textPrimary,
-          ),
+          child: const Icon(Icons.water_drop_rounded, color: Colors.white),
         ),
         const SizedBox(width: 14),
         Text(
@@ -217,7 +214,7 @@ class _HeroContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 40),
-        const Divider(color: LavifyColors.border, height: 1),
+        Divider(color: LavifyTheme.borderColor(context), height: 1),
         const SizedBox(height: 28),
         const Wrap(
           spacing: 28,
@@ -253,20 +250,20 @@ class _PreviewCard extends StatelessWidget {
         final badgeLabel = order == null
             ? 'Preview'
             : isSearching
-                ? 'Buscando'
-                : order.status.label;
+            ? 'Buscando'
+            : order.status.label;
         final mapLabel = order == null
             ? 'Explora tu siguiente lavado'
             : isSearching
-                ? 'Buscando lavador cerca de ti'
-                : order.etaMinutes > 0
-                    ? 'Llegando en ${order.etaMinutes} min'
-                    : order.status.label;
+            ? 'Buscando lavador cerca de ti'
+            : order.etaMinutes > 0
+            ? 'Llegando en ${order.etaMinutes} min'
+            : order.status.label;
         final actionLabel = order == null
             ? 'Pedir tu primer lavado'
             : isSearching
-                ? 'Solicitud enviada · \$${order.request.totalPrice}'
-                : 'Servicio activo · \$${order.request.totalPrice}';
+            ? 'Solicitud enviada · \$${order.request.totalPrice}'
+            : 'Servicio activo · \$${order.request.totalPrice}';
 
         return RepaintBoundary(
           child: Container(
@@ -297,8 +294,8 @@ class _PreviewCard extends StatelessWidget {
                       order == null
                           ? 'Seguimiento en vivo'
                           : isSearching
-                              ? 'Buscando lavador'
-                              : 'Seguimiento en vivo',
+                          ? 'Buscando lavador'
+                          : 'Seguimiento en vivo',
                       style: Theme.of(
                         context,
                       ).textTheme.titleLarge?.copyWith(fontSize: 18),
@@ -323,8 +320,9 @@ class _PreviewCard extends StatelessWidget {
                       Positioned.fill(
                         child: CustomPaint(
                           painter: _MapGridPainter(
-                            gridColor: LavifyTheme.textSecondaryColor(context)
-                                .withAlpha(30),
+                            gridColor: LavifyTheme.textSecondaryColor(
+                              context,
+                            ).withAlpha(30),
                           ),
                         ),
                       ),
@@ -368,8 +366,9 @@ class _PreviewCard extends StatelessWidget {
                           ),
                           child: Text(
                             mapLabel,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: LavifyColors.textPrimary,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: LavifyTheme.textPrimaryColor(context),
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
@@ -391,9 +390,12 @@ class _PreviewCard extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            order == null ? 'Tipo de lavado' : 'Estado del pedido',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: LavifyColors.textPrimary,
+                            order == null
+                                ? 'Tipo de lavado'
+                                : 'Estado del pedido',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: LavifyTheme.textPrimaryColor(context),
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
@@ -424,7 +426,8 @@ class _PreviewCard extends StatelessWidget {
                             child: _OptionTile(
                               icon: Icons.auto_awesome_rounded,
                               label: 'Premium',
-                              selected: selectedPackage == 'Premium' ||
+                              selected:
+                                  selectedPackage == 'Premium' ||
                                   selectedPackage == null,
                             ),
                           ),
@@ -592,7 +595,7 @@ class _SessionOverview extends StatelessWidget {
               Text(
                 'Tiempo estimado: ${session.etaLabel}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -679,7 +682,7 @@ class _NavLabel extends StatelessWidget {
     return Text(
       label,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: LavifyColors.textPrimary.withAlpha(219),
+        color: LavifyTheme.textPrimaryColor(context).withAlpha(219),
         fontWeight: FontWeight.w600,
       ),
     );
@@ -713,7 +716,7 @@ class _StatusChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: LavifyColors.textPrimary,
+              color: LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -796,20 +799,21 @@ class _OptionTile extends StatelessWidget {
             : LavifyTheme.softFillColor(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? Colors.transparent : LavifyTheme.borderColor(context),
+          color: selected
+              ? Colors.transparent
+              : LavifyTheme.borderColor(context),
         ),
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: selected ? LavifyColors.textPrimary : LavifyColors.primary,
-          ),
+          Icon(icon, color: selected ? Colors.white : LavifyColors.primary),
           const SizedBox(height: 10),
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: LavifyColors.textPrimary,
+              color: selected
+                  ? Colors.white
+                  : LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w700,
             ),
           ),

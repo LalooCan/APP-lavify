@@ -16,6 +16,22 @@ class WorkerDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void handleToggleAvailability() {
+      final isAvailable = _workerService.isAvailable.value;
+      if (isAvailable && _orderService.hasActiveWorkerOrder) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No puedes pausar tu disponibilidad mientras tienes un servicio en curso.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      _workerService.toggleAvailability();
+    }
+
     return Scaffold(
       body: Container(
         decoration: LavifyTheme.pageDecoration(context),
@@ -40,7 +56,28 @@ class WorkerDashboardPage extends StatelessWidget {
                   builder: (context, isAvailable, _) {
                     return _HeroCard(
                       isAvailable: isAvailable,
-                      onToggleAvailability: _workerService.toggleAvailability,
+                      onToggleAvailability: handleToggleAvailability,
+                      onOpenServices: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const WorkerServicesPage(),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+                ValueListenableBuilder<List<WashOrder>>(
+                  valueListenable: _orderService.orders,
+                  builder: (context, _, _) {
+                    final activeOrder = _orderService.activeWorkerOrder;
+                    if (activeOrder == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return _AcceptedJobPanel(
+                      order: activeOrder,
                       onOpenServices: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -171,6 +208,207 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
+class _AcceptedJobPanel extends StatelessWidget {
+  const _AcceptedJobPanel({
+    required this.order,
+    required this.onOpenServices,
+  });
+
+  final WashOrder order;
+  final VoidCallback onOpenServices;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _statusColor(order.status);
+    final progressLabel = _progressLabel(order);
+    final helperLabel = _helperLabel(order);
+    final etaLabel = order.etaMinutes > 0
+        ? '${order.etaMinutes} min'
+        : order.status == OrderStatus.arrived
+            ? 'En sitio'
+            : order.status == OrderStatus.inProgress
+                ? 'En proceso'
+                : 'Sin ETA';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: LavifyTheme.overlayPanelColor(context),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x16000000),
+            blurRadius: 24,
+            offset: Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+                  ),
+                ),
+                child: const Icon(
+                  Icons.route_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Trabajo aceptado',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      helperLabel,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              _StatusBadge(label: progressLabel, color: accent),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: LavifyTheme.surfaceAltColor(context),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  order.request.packageName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  order.request.address,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: LavifyTheme.textPrimaryColor(context),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _InfoPill(
+                      icon: Icons.schedule_rounded,
+                      label: order.request.scheduleLabel,
+                    ),
+                    _InfoPill(
+                      icon: Icons.directions_car_filled_rounded,
+                      label: order.request.vehicleTypeName,
+                    ),
+                    _InfoPill(
+                      icon: Icons.timer_rounded,
+                      label: etaLabel,
+                      accent: accent,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Total del servicio: \$${order.request.totalPrice} ${order.request.currency}',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: LavifyTheme.textPrimaryColor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 220,
+                child: PrimaryButton(
+                  label: 'Abrir panel del servicio',
+                  icon: Icons.open_in_new_rounded,
+                  onPressed: onOpenServices,
+                  isExpanded: true,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Color _statusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.searching:
+        return const Color(0xFFFFC857);
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+        return LavifyColors.primary;
+      case OrderStatus.arrived:
+      case OrderStatus.inProgress:
+        return const Color(0xFF9B7BFF);
+      case OrderStatus.completed:
+        return LavifyColors.success;
+    }
+  }
+
+  static String _progressLabel(WashOrder order) {
+    switch (order.status) {
+      case OrderStatus.assigned:
+        return 'Preparando salida';
+      case OrderStatus.onTheWay:
+        return 'En camino';
+      case OrderStatus.arrived:
+        return 'Ya llegaste';
+      case OrderStatus.inProgress:
+        return 'Lavando';
+      case OrderStatus.completed:
+        return 'Completado';
+      case OrderStatus.searching:
+        return 'Disponible';
+    }
+  }
+
+  static String _helperLabel(WashOrder order) {
+    switch (order.status) {
+      case OrderStatus.assigned:
+        return 'Confirma ruta y sal a tiempo al punto del servicio.';
+      case OrderStatus.onTheWay:
+        return 'Mantén actualizado el avance mientras vas al cliente.';
+      case OrderStatus.arrived:
+        return 'Marca inicio cuando estés listo para comenzar el lavado.';
+      case OrderStatus.inProgress:
+        return 'Sigue el servicio y completa el trabajo al terminar.';
+      case OrderStatus.completed:
+        return 'Este servicio ya quedó terminado.';
+      case OrderStatus.searching:
+        return 'Aún no hay un trabajo tomado.';
+    }
+  }
+}
+
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.orders});
 
@@ -208,6 +446,71 @@ class _StatsRow extends StatelessWidget {
           icon: Icons.task_alt_rounded,
         ),
       ],
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withAlpha(28),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    this.accent,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedAccent = accent ?? LavifyColors.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: LavifyTheme.softFillStrongColor(context),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: resolvedAccent),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: LavifyTheme.textPrimaryColor(context),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

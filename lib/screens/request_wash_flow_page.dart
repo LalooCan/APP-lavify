@@ -170,11 +170,9 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
   void _handleLocationConfirmation() {
     final validationMessage = _draftController.confirmLocation();
     if (validationMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(validationMessage),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validationMessage)));
       return;
     }
   }
@@ -186,11 +184,9 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
 
     final validationMessage = draft.validationMessage;
     if (validationMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(validationMessage),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validationMessage)));
       return;
     }
 
@@ -305,9 +301,10 @@ class _BookingDetails extends StatelessWidget {
                 onChanged: onNotesChanged,
                 maxLines: 3,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                 ),
                 decoration: _inputDecoration(
+                  context: context,
                   label: 'Notas para el lavador',
                   hint:
                       'Ej. Tocar timbre, entrar por porton azul, agua disponible.',
@@ -359,9 +356,9 @@ class _BookingSummary extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: LavifyColors.surface,
+              color: LavifyTheme.surfaceColor(context),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: LavifyColors.border),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x22000000),
@@ -428,7 +425,7 @@ class _BookingSummary extends StatelessWidget {
                   value: '${draft.estimatedMinutes} min',
                 ),
                 const SizedBox(height: 18),
-                const Divider(color: LavifyColors.border),
+                Divider(color: LavifyTheme.borderColor(context)),
                 const SizedBox(height: 16),
                 _PriceLine(
                   label: package.priceLabel,
@@ -507,8 +504,8 @@ class _StepCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  color: Colors.white.withAlpha(10),
-                  border: Border.all(color: LavifyColors.border),
+                  color: LavifyTheme.softFillColor(context),
+                  border: Border.all(color: LavifyTheme.borderColor(context)),
                 ),
                 child: Text(
                   step,
@@ -585,9 +582,13 @@ class _PackageCard extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            color: selected ? const Color(0x331D5FFF) : LavifyColors.surfaceAlt,
+            color: selected
+                ? LavifyTheme.selectedTileColor(context)
+                : LavifyTheme.surfaceAltColor(context),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected
+                  ? LavifyColors.primary
+                  : LavifyTheme.borderColor(context),
             ),
           ),
           child: Column(
@@ -602,13 +603,11 @@ class _PackageCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                       color: selected
                           ? LavifyColors.primaryStrong
-                          : Colors.white.withAlpha(10),
+                          : LavifyTheme.softFillColor(context),
                     ),
                     child: Icon(
                       package.icon,
-                      color: selected
-                          ? LavifyColors.textPrimary
-                          : LavifyColors.primary,
+                      color: selected ? Colors.white : LavifyColors.primary,
                     ),
                   ),
                   const Spacer(),
@@ -691,7 +690,7 @@ class _LocationSelectionPanel extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: LavifyColors.surfaceAlt,
+            color: LavifyTheme.surfaceAltColor(context),
             borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
@@ -717,7 +716,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                     Text(
                       'Ubicacion del servicio',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: LavifyColors.textPrimary,
+                        color: LavifyTheme.textPrimaryColor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -736,10 +735,11 @@ class _LocationSelectionPanel extends StatelessWidget {
         TextField(
           controller: addressController,
           onChanged: onAddressChanged,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: LavifyTheme.textPrimaryColor(context),
+          ),
           decoration: _inputDecoration(
+            context: context,
             label: 'Direccion del servicio',
             hint: 'Ej. Av. Paseo de la Reforma 245, Juarez, CDMX',
           ),
@@ -761,9 +761,9 @@ class _LocationSelectionPanel extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(6),
+            color: LavifyTheme.softFillStrongColor(context),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: LavifyColors.border),
+            border: Border.all(color: LavifyTheme.borderColor(context)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -773,7 +773,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                   Text(
                     'Ubicacion seleccionada',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: LavifyColors.textPrimary,
+                      color: LavifyTheme.textPrimaryColor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -800,7 +800,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                     ? 'Aun no hay direccion seleccionada'
                     : (locationResolution?.address ?? addressController.text),
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -815,7 +815,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                     'Toca o arrastra el pin para fijar la ubicacion exacta del servicio.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: locationMessage == null
-                      ? LavifyColors.textSecondary
+                      ? LavifyTheme.textSecondaryColor(context)
                       : isLocationConfirmed
                       ? LavifyColors.success
                       : const Color(0xFFFFC857),
@@ -857,7 +857,7 @@ class _VehicleSelectionSection extends StatelessWidget {
           child: Text(
             'Tipo de vehiculo',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: LavifyColors.textPrimary,
+              color: LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -939,9 +939,13 @@ class _SelectableSlot extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            color: selected ? const Color(0x331D5FFF) : LavifyColors.surfaceAlt,
+            color: selected
+                ? LavifyTheme.selectedTileColor(context)
+                : LavifyTheme.surfaceAltColor(context),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected
+                  ? LavifyColors.primary
+                  : LavifyTheme.borderColor(context),
             ),
           ),
           child: Column(
@@ -949,7 +953,7 @@ class _SelectableSlot extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -959,7 +963,7 @@ class _SelectableSlot extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: selected
                       ? LavifyColors.primary
-                      : LavifyColors.textSecondary,
+                      : LavifyTheme.textSecondaryColor(context),
                 ),
               ),
             ],
@@ -997,11 +1001,13 @@ class _VehicleChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             color: selected
-                ? const Color(0x331D5FFF)
-                : Colors.white.withAlpha(8),
+                ? LavifyTheme.selectedTileColor(context)
+                : LavifyTheme.selectedTileSoftColor(context),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected
+                  ? LavifyColors.primary
+                  : LavifyTheme.borderColor(context),
             ),
           ),
           child: Row(
@@ -1012,7 +1018,7 @@ class _VehicleChip extends StatelessWidget {
               Text(
                 vehicle.name,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1107,7 +1113,7 @@ class _SummaryRow extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: LavifyColors.textPrimary,
+            color: LavifyTheme.textPrimaryColor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1130,8 +1136,8 @@ class _PriceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = highlight
-        ? LavifyColors.textPrimary
-        : LavifyColors.textSecondary;
+        ? LavifyTheme.textPrimaryColor(context)
+        : LavifyTheme.textSecondaryColor(context);
 
     return Row(
       children: [
@@ -1147,7 +1153,9 @@ class _PriceLine extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: highlight ? LavifyColors.primary : LavifyColors.textPrimary,
+            color: highlight
+                ? LavifyColors.primary
+                : LavifyTheme.textPrimaryColor(context),
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -1157,23 +1165,24 @@ class _PriceLine extends StatelessWidget {
 }
 
 InputDecoration _inputDecoration({
+  required BuildContext context,
   required String label,
   required String hint,
 }) {
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: const TextStyle(color: LavifyColors.textSecondary),
-    hintStyle: const TextStyle(color: LavifyColors.textSecondary),
+    labelStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
+    hintStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
     filled: true,
-    fillColor: LavifyColors.surfaceAlt,
+    fillColor: LavifyTheme.surfaceAltColor(context),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.border),
+      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.border),
+      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),

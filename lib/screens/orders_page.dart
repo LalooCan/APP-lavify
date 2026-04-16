@@ -85,13 +85,13 @@ class _OrderCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: LavifyTheme.softFillColor(context),
+                  color: _statusAccent(order.status).withAlpha(22),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   order.status.label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: LavifyColors.textPrimary,
+                    color: _statusAccent(order.status),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -119,5 +119,20 @@ class _OrderCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _statusAccent(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.searching:
+        return const Color(0xFFFFC857);
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+        return LavifyColors.primary;
+      case OrderStatus.arrived:
+      case OrderStatus.inProgress:
+        return const Color(0xFF9B7BFF);
+      case OrderStatus.completed:
+        return LavifyColors.success;
+    }
   }
 }
