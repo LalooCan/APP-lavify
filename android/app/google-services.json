@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "66350788000",
+    "project_id": "lavify-c0b88",
+    "storage_bucket": "lavify-c0b88.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:66350788000:android:ea8fbbe964a37e7de908c5",
+        "android_client_info": {
+          "package_name": "com.lavify.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "66350788000-rh2p0imbfn0mk8jh83459damuih93704.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lavify.app",
+            "certificate_hash": "646920559a1e45daad61bb64b3bbc2654cda98f5"
+          }
+        },
+        {
+          "client_id": "66350788000-vrkk9hflkn0m4e6gha4d7q3bbslaaae8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5Ju9H2f4FMzcCQdNCIXwjWUy9ETyizeY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "66350788000-vrkk9hflkn0m4e6gha4d7q3bbslaaae8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

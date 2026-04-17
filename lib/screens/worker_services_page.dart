@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
@@ -80,7 +80,7 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
                           if (orders.isEmpty) {
                             return Center(
                               child: Text(
-                                'Aun no hay servicios para mostrar.',
+                                'Todavia no hay servicios disponibles para este panel.',
                                 style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             );
@@ -448,3 +448,5 @@ class _WorkerOrderCard extends StatelessWidget {
     }
   }
 }
+
+

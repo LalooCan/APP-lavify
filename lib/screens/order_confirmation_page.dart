@@ -42,7 +42,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Todo listo para confirmar el pedido mock y dejar el payload preparado para backend.',
+                  'Todo listo para confirmar tu pedido y revisar la informacion que luego consumira el backend.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 24),

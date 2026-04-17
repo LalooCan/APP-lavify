@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
@@ -396,15 +396,15 @@ class _AcceptedJobPanel extends StatelessWidget {
       case OrderStatus.assigned:
         return 'Confirma ruta y sal a tiempo al punto del servicio.';
       case OrderStatus.onTheWay:
-        return 'Mantén actualizado el avance mientras vas al cliente.';
+        return 'Manten actualizado el avance mientras vas al cliente.';
       case OrderStatus.arrived:
-        return 'Marca inicio cuando estés listo para comenzar el lavado.';
+        return 'Marca inicio cuando estes listo para comenzar el lavado.';
       case OrderStatus.inProgress:
         return 'Sigue el servicio y completa el trabajo al terminar.';
       case OrderStatus.completed:
-        return 'Este servicio ya quedó terminado.';
+        return 'Este servicio ya quedo terminado.';
       case OrderStatus.searching:
-        return 'Aún no hay un trabajo tomado.';
+        return 'Aun no hay un trabajo tomado.';
     }
   }
 }
@@ -577,7 +577,7 @@ class _AgendaCard extends StatelessWidget {
           const SizedBox(height: 18),
           if (visibleOrders.isEmpty)
             Text(
-              'Aun no tienes servicios cargados.',
+              'Cuando aceptes servicios, aqui veras tus proximos trabajos.',
               style: Theme.of(context).textTheme.bodyMedium,
             )
           else
@@ -652,3 +652,5 @@ class _AgendaItem extends StatelessWidget {
     );
   }
 }
+
+

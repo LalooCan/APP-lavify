@@ -1,4 +1,4 @@
-package com.example.lavify_app
+package com.lavify.app
 
 import io.flutter.embedding.android.FlutterActivity
 

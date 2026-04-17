@@ -25,6 +25,15 @@ class OrderService {
 
   List<WashOrder> get currentOrders => orders.value;
 
+  WashOrder? getOrderById(String orderId) {
+    for (final order in orders.value) {
+      if (order.id == orderId) {
+        return order;
+      }
+    }
+    return null;
+  }
+
   WashOrder? get activeWorkerOrder {
     final workerEmail = _normalizedCurrentSessionEmail;
     for (final order in orders.value) {
@@ -194,12 +203,7 @@ class OrderService {
   }
 
   WashOrder? _findById(String orderId) {
-    for (final order in orders.value) {
-      if (order.id == orderId) {
-        return order;
-      }
-    }
-    return null;
+    return getOrderById(orderId);
   }
 
   WashOrder _saveOrder(WashOrder order) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/session_models.dart';
+import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/session_service.dart';
 import '../theme/theme.dart';
@@ -20,6 +21,7 @@ class RoleLoginPage extends StatefulWidget {
 }
 
 class _RoleLoginPageState extends State<RoleLoginPage> {
+  static final _authService = AuthService();
   static final _profileService = ProfileService();
   static final _sessionService = SessionService();
 
@@ -100,6 +102,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                   onTogglePassword: _togglePassword,
                                   onRememberChanged: _setRememberSession,
                                   onLogin: _submitLogin,
+                                  onGoogleLogin: _signInWithGoogle,
                                 ),
                               ),
                             ],
@@ -117,6 +120,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                 onTogglePassword: _togglePassword,
                                 onRememberChanged: _setRememberSession,
                                 onLogin: _submitLogin,
+                                onGoogleLogin: _signInWithGoogle,
                               ),
                               const SizedBox(height: 16),
                               _LoginShowcase(
@@ -165,6 +169,36 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
       role: _selectedMode,
       email: profile.email,
       visibleName: profile.name,
+      favoriteAddress: profile.favoriteAddress,
+    );
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => AppShell(mode: _selectedMode)),
+    );
+  }
+
+  Future<void> _signInWithGoogle() async {
+    FocusScope.of(context).unfocus();
+    final user = await _authService.signInWithGoogle();
+    if (!mounted) {
+      return;
+    }
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo iniciar sesion con Google'),
+        ),
+      );
+      return;
+    }
+
+    final email = user.email ?? '';
+    _profileService.syncLoginIdentity(email: email);
+    final profile = _profileService.profile.value;
+    _sessionService.startSession(
+      role: _selectedMode,
+      email: email.isNotEmpty ? email : profile.email,
+      visibleName: user.displayName ?? profile.name,
       favoriteAddress: profile.favoriteAddress,
     );
     Navigator.of(context).pushReplacement(
@@ -422,6 +456,7 @@ class _LoginCard extends StatelessWidget {
     required this.onTogglePassword,
     required this.onRememberChanged,
     required this.onLogin,
+    required this.onGoogleLogin,
   });
 
   final GlobalKey<FormState> formKey;
@@ -434,6 +469,7 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onTogglePassword;
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback onLogin;
+  final Future<void> Function() onGoogleLogin;
 
   bool get isClient => selectedMode == AppRole.client;
 
@@ -602,7 +638,7 @@ class _LoginCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: onGoogleLogin,
                     icon: const Text(
                       'G',
                       style: TextStyle(

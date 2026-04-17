@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "66350788000",
+    "project_id": "lavify-c0b88",
+    "storage_bucket": "lavify-c0b88.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:66350788000:android:ea8fbbe964a37e7de908c5",
+        "android_client_info": {
+          "package_name": "com.lavify.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5Ju9H2f4FMzcCQdNCIXwjWUy9ETyizeY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

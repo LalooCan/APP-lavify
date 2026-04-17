@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/home_service.dart';
@@ -248,7 +248,7 @@ class _PreviewCard extends StatelessWidget {
             ? LavifyColors.primary
             : _statusColor(order.status);
         final badgeLabel = order == null
-            ? 'Preview'
+            ? 'Listo'
             : isSearching
             ? 'Buscando'
             : order.status.label;
@@ -847,3 +847,5 @@ class _MapGridPainter extends CustomPainter {
   bool shouldRepaint(covariant _MapGridPainter oldDelegate) =>
       oldDelegate.gridColor != gridColor;
 }
+
+

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../models/session_models.dart';
-import 'home_page.dart';
-import 'orders_page.dart';
-import 'profile_hub_page.dart';
-import '../theme/theme.dart';
-import 'worker_dashboard_page.dart';
-import 'worker_services_page.dart';
+import 'package:lavify_app/models/session_models.dart';
+import 'package:lavify_app/screens/home_page.dart';
+import 'package:lavify_app/screens/orders_page.dart';
+import 'package:lavify_app/screens/profile_hub_page.dart';
+import 'package:lavify_app/screens/worker_dashboard_page.dart';
+import 'package:lavify_app/screens/worker_services_page.dart';
+import 'package:lavify_app/theme/theme.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.mode});

@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/session_models.dart';
+import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
@@ -461,7 +462,7 @@ class _LoginCard extends StatelessWidget {
                     border: Border.all(color: LavifyTheme.borderColor(context)),
                   ),
                   child: const Text(
-                    'Demo UI',
+                    'Beta',
                     style: TextStyle(
                       color: LavifyColors.primary,
                       fontWeight: FontWeight.w700,
@@ -508,6 +509,24 @@ class _LoginCard extends StatelessWidget {
                   child: _ProviderButton(
                     label: 'Google',
                     logo: _GoogleLogo(),
+                    onPressed: () async {
+                      final authService = AuthService();
+                      final user = await authService.signInWithGoogle();
+                      if (!context.mounted) {
+                        return;
+                      }
+                      if (user != null) {
+                        Navigator.pushReplacementNamed(context, '/home');
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'No se pudo iniciar sesion con Google',
+                            ),
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ),
                 SizedBox(width: 12),
@@ -515,6 +534,7 @@ class _LoginCard extends StatelessWidget {
                   child: _ProviderButton(
                     label: 'Apple',
                     logo: const Icon(Icons.apple_rounded, size: 24),
+                    onPressed: () {},
                   ),
                 ),
               ],
@@ -631,15 +651,20 @@ class _BenefitRow extends StatelessWidget {
 }
 
 class _ProviderButton extends StatelessWidget {
-  const _ProviderButton({required this.label, required this.logo});
+  const _ProviderButton({
+    required this.label,
+    required this.logo,
+    required this.onPressed,
+  });
 
   final String label;
   final Widget logo;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      onPressed: () {},
+      onPressed: onPressed,
       icon: logo,
       label: Text(label),
       style: OutlinedButton.styleFrom(
@@ -720,3 +745,4 @@ InputDecoration _inputDecoration({
     ),
   );
 }
+
