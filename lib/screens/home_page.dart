@@ -1,15 +1,18 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/home_service.dart';
 import '../services/order_service.dart';
 import '../services/profile_service.dart';
+import '../services/session_service.dart';
 import '../theme/theme.dart';
 import '../widgets/how_it_works_section.dart';
+import '../widgets/live_tracking_map.dart';
 import '../widgets/package_card.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
 import '../widgets/section_text.dart';
+import 'order_tracking_page.dart';
 import 'request_wash_flow_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -18,6 +21,7 @@ class HomePage extends StatelessWidget {
   static const HomeService _homeService = HomeService();
   static final OrderService _orderService = OrderService();
   static final ProfileService _profileService = ProfileService();
+  static final SessionService _sessionService = SessionService();
 
   @override
   Widget build(BuildContext context) {
@@ -40,22 +44,27 @@ class HomePage extends StatelessWidget {
               child: ValueListenableBuilder<UserProfile>(
                 valueListenable: _profileService.profile,
                 builder: (context, profile, _) {
-                  final session = _homeService.getSessionData();
+                  return ValueListenableBuilder(
+                    valueListenable: _sessionService.currentSession,
+                    builder: (context, sessionState, _) {
+                      final session = _homeService.getSessionData();
 
-                  return Column(
-                    children: [
-                      _TopBar(isDesktop: isDesktop),
-                      const SizedBox(height: 56),
-                      if (isDesktop)
-                        _DesktopHero(session: session)
-                      else
-                        _MobileHero(session: session),
-                      const SizedBox(height: 56),
-                      _FunctionalSection(
-                        session: session,
-                        featuredPackages: featuredPackages,
-                      ),
-                    ],
+                      return Column(
+                        children: [
+                          _TopBar(isDesktop: isDesktop),
+                          const SizedBox(height: 56),
+                          if (isDesktop)
+                            _DesktopHero(session: session)
+                          else
+                            _MobileHero(session: session),
+                          const SizedBox(height: 56),
+                          _FunctionalSection(
+                            session: session,
+                            featuredPackages: featuredPackages,
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
@@ -77,13 +86,14 @@ class _TopBar extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 46,
-          height: 46,
+          width: 50,
+          height: 50,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             gradient: const LinearGradient(
               colors: [LavifyColors.primaryStrong, LavifyColors.primary],
             ),
+            boxShadow: LavifyTheme.panelShadow(context, floating: false),
           ),
           child: const Icon(Icons.water_drop_rounded, color: Colors.white),
         ),
@@ -240,8 +250,7 @@ class _PreviewCard extends StatelessWidget {
     return ValueListenableBuilder<List<WashOrder>>(
       valueListenable: orderService.orders,
       builder: (context, _, _) {
-        final orders = orderService.clientVisibleOrders;
-        final order = orders.isNotEmpty ? orders.first : null;
+        final order = orderService.activeClientOrder;
         final isSearching = order?.status == OrderStatus.searching;
         final selectedPackage = order?.request.packageName;
         final badgeColor = order == null
@@ -272,13 +281,7 @@ class _PreviewCard extends StatelessWidget {
               color: LavifyTheme.overlayPanelColor(context),
               borderRadius: BorderRadius.circular(32),
               border: Border.all(color: LavifyTheme.borderColor(context)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22000000),
-                  blurRadius: 28,
-                  offset: Offset(0, 18),
-                ),
-              ],
+              boxShadow: LavifyTheme.panelShadow(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,73 +312,119 @@ class _PreviewCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 22),
-                Container(
+                SizedBox(
                   height: 210,
-                  decoration: BoxDecoration(
-                    color: LavifyTheme.surfaceAltColor(context),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _MapGridPainter(
-                            gridColor: LavifyTheme.textSecondaryColor(
-                              context,
-                            ).withAlpha(30),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 30,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Icon(
-                            isSearching
-                                ? Icons.radar_rounded
-                                : Icons.linear_scale_rounded,
-                            color: LavifyColors.primary,
-                            size: 76,
-                          ),
-                        ),
-                      ),
-                      const Positioned(
-                        top: 74,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Icon(
-                            Icons.location_on_rounded,
-                            color: Colors.pinkAccent,
-                            size: 34,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 18,
-                        right: 18,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
+                  child: order == null
+                      ? Container(
                           decoration: BoxDecoration(
-                            color: LavifyTheme.surfaceColor(context),
-                            borderRadius: BorderRadius.circular(14),
+                            color: LavifyTheme.surfaceAltColor(context),
+                            borderRadius: BorderRadius.circular(24),
                           ),
-                          child: Text(
-                            mapLabel,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: LavifyTheme.textPrimaryColor(context),
-                                  fontWeight: FontWeight.w700,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _MapGridPainter(
+                                    gridColor: LavifyTheme.textSecondaryColor(
+                                      context,
+                                    ).withAlpha(30),
+                                  ),
                                 ),
+                              ),
+                              const Positioned(
+                                top: 30,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.radar_rounded,
+                                    color: LavifyColors.primary,
+                                    size: 76,
+                                  ),
+                                ),
+                              ),
+                              const Positioned(
+                                top: 74,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.location_on_rounded,
+                                    color: Colors.pinkAccent,
+                                    size: 34,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 18,
+                                right: 18,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: LavifyTheme.surfaceColor(context),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: LavifyTheme.borderColor(context),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    mapLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: LavifyTheme.textPrimaryColor(
+                                            context,
+                                          ),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        )
+                      : Stack(
+                          children: [
+                            Positioned.fill(
+                              child: LiveTrackingMap(
+                                order: order,
+                                compact: true,
+                                borderRadius: 24,
+                              ),
+                            ),
+                            Positioned(
+                              right: 18,
+                              bottom: 18,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: LavifyTheme.surfaceColor(context),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: LavifyTheme.borderColor(context),
+                                  ),
+                                ),
+                                child: Text(
+                                  mapLabel,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: LavifyTheme.textPrimaryColor(
+                                          context,
+                                        ),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -436,7 +485,22 @@ class _PreviewCard extends StatelessWidget {
                       const SizedBox(height: 18),
                       PrimaryButton(
                         label: actionLabel,
-                        onPressed: () {},
+                        onPressed: () {
+                          if (order == null) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const RequestWashFlowPage(),
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => OrderTrackingPage(order: order),
+                            ),
+                          );
+                        },
                         isExpanded: true,
                       ),
                     ],
@@ -570,6 +634,7 @@ class _SessionOverview extends StatelessWidget {
         color: LavifyTheme.overlayPanelColor(context).withAlpha(180),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: LavifyTheme.borderColor(context)),
+        boxShadow: LavifyTheme.panelShadow(context, floating: false),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,6 +696,7 @@ class _TrustCard extends StatelessWidget {
           color: LavifyTheme.surfaceColor(context),
           borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
           border: Border.all(color: LavifyTheme.borderColor(context)),
+          boxShadow: LavifyTheme.panelShadow(context, floating: false),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,6 +832,7 @@ class _MiniBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withAlpha(31),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withAlpha(50)),
       ),
       child: Text(
         label,
@@ -794,15 +861,21 @@ class _OptionTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
-        color: selected
-            ? LavifyColors.primaryStrong
-            : LavifyTheme.softFillColor(context),
+        gradient: selected
+            ? const LinearGradient(
+                colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+              )
+            : null,
+        color: selected ? null : LavifyTheme.softFillColor(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: selected
               ? Colors.transparent
               : LavifyTheme.borderColor(context),
         ),
+        boxShadow: selected
+            ? LavifyTheme.panelShadow(context, floating: false)
+            : null,
       ),
       child: Column(
         children: [
@@ -847,5 +920,3 @@ class _MapGridPainter extends CustomPainter {
   bool shouldRepaint(covariant _MapGridPainter oldDelegate) =>
       oldDelegate.gridColor != gridColor;
 }
-
-

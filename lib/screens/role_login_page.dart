@@ -9,10 +9,7 @@ import '../widgets/primary_button.dart';
 import 'app_shell.dart';
 
 class RoleLoginPage extends StatefulWidget {
-  const RoleLoginPage({
-    super.key,
-    this.initialMode = AppRole.client,
-  });
+  const RoleLoginPage({super.key, this.initialMode = AppRole.client});
 
   final AppRole initialMode;
 
@@ -20,16 +17,21 @@ class RoleLoginPage extends StatefulWidget {
   State<RoleLoginPage> createState() => _RoleLoginPageState();
 }
 
+enum _AuthEntryIntent { signUp, signIn }
+
 class _RoleLoginPageState extends State<RoleLoginPage> {
   static final _authService = AuthService();
   static final _profileService = ProfileService();
   static final _sessionService = SessionService();
 
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberSession = true;
+  bool _showAuthForm = false;
+  _AuthEntryIntent _authIntent = _AuthEntryIntent.signUp;
   late AppRole _selectedMode;
 
   bool get _isClient => _selectedMode == AppRole.client;
@@ -42,6 +44,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -81,53 +84,76 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                   ),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1160),
-                    child: isDesktop
-                        ? Row(
-                            children: [
-                              Expanded(
-                                flex: 11,
-                                child: _LoginShowcase(mode: _selectedMode),
-                              ),
-                              const SizedBox(width: 28),
-                              Expanded(
-                                flex: 9,
-                                child: _LoginCard(
-                                  formKey: _formKey,
-                                  selectedMode: _selectedMode,
-                                  emailController: _emailController,
-                                  passwordController: _passwordController,
-                                  obscurePassword: _obscurePassword,
-                                  rememberSession: _rememberSession,
-                                  onModeChanged: _setMode,
-                                  onTogglePassword: _togglePassword,
-                                  onRememberChanged: _setRememberSession,
-                                  onLogin: _submitLogin,
-                                  onGoogleLogin: _signInWithGoogle,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              _LoginCard(
-                                formKey: _formKey,
-                                selectedMode: _selectedMode,
-                                emailController: _emailController,
-                                passwordController: _passwordController,
-                                obscurePassword: _obscurePassword,
-                                rememberSession: _rememberSession,
-                                onModeChanged: _setMode,
-                                onTogglePassword: _togglePassword,
-                                onRememberChanged: _setRememberSession,
-                                onLogin: _submitLogin,
-                                onGoogleLogin: _signInWithGoogle,
-                              ),
-                              const SizedBox(height: 16),
-                              _LoginShowcase(
-                                mode: _selectedMode,
-                                compact: true,
-                              ),
-                            ],
+                    child: _showAuthForm
+                        ? isDesktop
+                              ? Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 11,
+                                      child: _LoginShowcase(
+                                        mode: _selectedMode,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 28),
+                                    Expanded(
+                                      flex: 9,
+                                      child: _LoginCard(
+                                        formKey: _formKey,
+                                        selectedMode: _selectedMode,
+                                        authIntent: _authIntent,
+                                        nameController: _nameController,
+                                        emailController: _emailController,
+                                        passwordController: _passwordController,
+                                        obscurePassword: _obscurePassword,
+                                        rememberSession: _rememberSession,
+                                        onModeChanged: _setMode,
+                                        onTogglePassword: _togglePassword,
+                                        onRememberChanged: _setRememberSession,
+                                        onLogin: _submitLogin,
+                                        onGoogleLogin: _signInWithGoogle,
+                                        onBack: _hideAuthForm,
+                                        onSwitchToSignIn: _switchToSignIn,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    _LoginCard(
+                                      formKey: _formKey,
+                                      selectedMode: _selectedMode,
+                                      authIntent: _authIntent,
+                                      nameController: _nameController,
+                                      emailController: _emailController,
+                                      passwordController: _passwordController,
+                                      obscurePassword: _obscurePassword,
+                                      rememberSession: _rememberSession,
+                                      onModeChanged: _setMode,
+                                      onTogglePassword: _togglePassword,
+                                      onRememberChanged: _setRememberSession,
+                                      onLogin: _submitLogin,
+                                      onGoogleLogin: _signInWithGoogle,
+                                      onBack: _hideAuthForm,
+                                      onSwitchToSignIn: _switchToSignIn,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _LoginShowcase(
+                                      mode: _selectedMode,
+                                      compact: true,
+                                    ),
+                                  ],
+                                )
+                        : _EntryLanding(
+                            onCreateAccount: () => _openAuthForm(
+                              mode: AppRole.client,
+                              intent: _AuthEntryIntent.signUp,
+                            ),
+                            onSignIn: () =>
+                                _openAuthForm(intent: _AuthEntryIntent.signIn),
+                            onWorkerAccess: () => _openAuthForm(
+                              mode: AppRole.worker,
+                              intent: _AuthEntryIntent.signIn,
+                            ),
                           ),
                   ),
                 ),
@@ -142,6 +168,30 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
   void _setMode(AppRole mode) {
     setState(() {
       _selectedMode = mode;
+    });
+  }
+
+  void _openAuthForm({AppRole? mode, _AuthEntryIntent? intent}) {
+    setState(() {
+      if (mode != null) {
+        _selectedMode = mode;
+      }
+      if (intent != null) {
+        _authIntent = intent;
+      }
+      _showAuthForm = true;
+    });
+  }
+
+  void _hideAuthForm() {
+    setState(() {
+      _showAuthForm = false;
+    });
+  }
+
+  void _switchToSignIn() {
+    setState(() {
+      _authIntent = _AuthEntryIntent.signIn;
     });
   }
 
@@ -163,7 +213,12 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
       return;
     }
 
-    _profileService.syncLoginIdentity(email: _emailController.text);
+    _profileService.syncLoginIdentity(
+      email: _emailController.text,
+      displayName: _authIntent == _AuthEntryIntent.signUp
+          ? _nameController.text
+          : null,
+    );
     final profile = _profileService.profile.value;
     _sessionService.startSession(
       role: _selectedMode,
@@ -185,9 +240,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo iniciar sesion con Google'),
-        ),
+        const SnackBar(content: Text('No se pudo iniciar sesion con Google')),
       );
       return;
     }
@@ -296,9 +349,10 @@ class _LoginShowcase extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isLight
-              ? const [Color(0xFFFFFFFF), Color(0xFFF4F8FC)]
-              : const [Color(0xFF0A1528), Color(0xCC102446)],
+              ? const [Color(0xFFFFFFFF), Color(0xFFF6F8FC)]
+              : const [Color(0xE3131E32), Color(0xD810223F)],
         ),
+        boxShadow: LavifyTheme.panelShadow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,6 +502,8 @@ class _LoginCard extends StatelessWidget {
   const _LoginCard({
     required this.formKey,
     required this.selectedMode,
+    required this.authIntent,
+    required this.nameController,
     required this.emailController,
     required this.passwordController,
     required this.obscurePassword,
@@ -457,10 +513,14 @@ class _LoginCard extends StatelessWidget {
     required this.onRememberChanged,
     required this.onLogin,
     required this.onGoogleLogin,
+    required this.onBack,
+    required this.onSwitchToSignIn,
   });
 
   final GlobalKey<FormState> formKey;
   final AppRole selectedMode;
+  final _AuthEntryIntent authIntent;
+  final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool obscurePassword;
@@ -470,8 +530,11 @@ class _LoginCard extends StatelessWidget {
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback onLogin;
   final Future<void> Function() onGoogleLogin;
+  final VoidCallback onBack;
+  final VoidCallback onSwitchToSignIn;
 
   bool get isClient => selectedMode == AppRole.client;
+  bool get isSignUp => authIntent == _AuthEntryIntent.signUp;
 
   @override
   Widget build(BuildContext context) {
@@ -481,14 +544,22 @@ class _LoginCard extends StatelessWidget {
         color: LavifyTheme.overlayPanelColor(context),
         borderRadius: BorderRadius.circular(34),
         border: Border.all(color: LavifyTheme.borderColor(context)),
+        boxShadow: LavifyTheme.panelShadow(context),
       ),
       child: Form(
         key: formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            TextButton.icon(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+              label: const Text('Volver'),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            ),
+            const SizedBox(height: 10),
             Text(
-              'Elige como quieres entrar',
+              isSignUp ? 'Crea tu cuenta gratis' : 'Inicia sesion',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: LavifyTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w700,
@@ -501,16 +572,63 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              isClient ? 'Cliente Lavify' : 'Trabajador Lavify',
+              isSignUp
+                  ? isClient
+                        ? 'Nueva cuenta de cliente'
+                        : 'Nueva cuenta de trabajador'
+                  : isClient
+                  ? 'Cliente Lavify'
+                  : 'Trabajador Lavify',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 4),
             Text(
-              isClient
-                  ? 'Entraras a tu cuenta para pedir y seguir servicios.'
-                  : 'Entraras a tu panel operativo de Lavify.',
+              isSignUp
+                  ? isClient
+                        ? 'Crea tu acceso para pedir lavados y seguir tus servicios desde un solo lugar.'
+                        : 'Crea tu acceso operativo para aceptar servicios y gestionar tu jornada.'
+                  : isClient
+                  ? 'Entra a tu cuenta para pedir y seguir servicios.'
+                  : 'Entra a tu panel operativo de Lavify.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            if (isSignUp) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Nombre',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: LavifyTheme.textPrimaryColor(context),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: nameController,
+                textCapitalization: TextCapitalization.words,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: LavifyTheme.textPrimaryColor(context),
+                ),
+                decoration: _inputDecoration(
+                  context: context,
+                  hint: isClient ? 'Ej. Andrea Lopez' : 'Ej. Carlos Mendez',
+                  prefixIcon: Icons.person_outline_rounded,
+                ),
+                validator: (value) {
+                  if (!isSignUp) {
+                    return null;
+                  }
+
+                  final text = value?.trim() ?? '';
+                  if (text.isEmpty) {
+                    return 'Ingresa tu nombre.';
+                  }
+                  if (text.length < 2) {
+                    return 'Escribe un nombre valido.';
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 24),
             Text(
               'Correo',
@@ -523,9 +641,7 @@ class _LoginCard extends StatelessWidget {
             TextFormField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: LavifyTheme.textPrimaryColor(context),
               ),
               decoration: _inputDecoration(
@@ -556,9 +672,7 @@ class _LoginCard extends StatelessWidget {
             TextFormField(
               controller: passwordController,
               obscureText: obscurePassword,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: LavifyTheme.textPrimaryColor(context),
               ),
               decoration: _inputDecoration(
@@ -595,7 +709,9 @@ class _LoginCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Mantener sesion iniciada',
+                          isSignUp
+                              ? 'Recordar mi cuenta en este dispositivo'
+                              : 'Mantener sesion iniciada',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ),
@@ -626,7 +742,11 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             PrimaryButton(
-              label: isClient
+              label: isSignUp
+                  ? isClient
+                        ? 'Crear cuenta como cliente'
+                        : 'Crear cuenta como trabajador'
+                  : isClient
                   ? 'Entrar como cliente'
                   : 'Entrar como trabajador',
               icon: Icons.login_rounded,
@@ -647,7 +767,7 @@ class _LoginCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    label: const Text('Google'),
+                    label: Text(isSignUp ? 'Registrarme con Google' : 'Google'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -671,17 +791,28 @@ class _LoginCard extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    isClient
+                    isSignUp
+                        ? 'Ya tienes cuenta?'
+                        : isClient
                         ? 'Quieres trabajar con Lavify?'
                         : 'Necesitas lavar tu carro ?',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   TextButton(
-                    onPressed: () => onModeChanged(
-                      isClient ? AppRole.worker : AppRole.client,
-                    ),
+                    onPressed: () {
+                      if (isSignUp) {
+                        onSwitchToSignIn();
+                        return;
+                      }
+
+                      onModeChanged(isClient ? AppRole.worker : AppRole.client);
+                    },
                     child: Text(
-                      isClient ? 'Cambiar a trabajador' : 'Cambiar a cliente',
+                      isSignUp
+                          ? 'Iniciar sesion'
+                          : isClient
+                          ? 'Cambiar a trabajador'
+                          : 'Cambiar a cliente',
                     ),
                   ),
                 ],
@@ -692,6 +823,292 @@ class _LoginCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EntryLanding extends StatelessWidget {
+  const _EntryLanding({
+    required this.onCreateAccount,
+    required this.onSignIn,
+    required this.onWorkerAccess,
+  });
+
+  final VoidCallback onCreateAccount;
+  final VoidCallback onSignIn;
+  final VoidCallback onWorkerAccess;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 980;
+
+    final heroCard = Container(
+      padding: EdgeInsets.all(isDesktop ? 36 : 28),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(isDesktop ? 38 : 32),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isLight
+              ? const [Color(0xFFFFFFFF), Color(0xFFF7F9FD)]
+              : const [Color(0xE3131E32), Color(0xD810223F)],
+        ),
+        boxShadow: LavifyTheme.panelShadow(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+                  ),
+                  boxShadow: LavifyTheme.panelShadow(context, floating: false),
+                ),
+                child: const Icon(
+                  Icons.water_drop_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                'Lavify',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: LavifyTheme.softFillStrongColor(context),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.verified_rounded,
+                  size: 16,
+                  color: LavifyColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Reserva lavados en minutos',
+                  style: TextStyle(
+                    color: LavifyTheme.textPrimaryColor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 26),
+          Text(
+            'Tu auto limpio,\n'
+            'tu tiempo intacto.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              fontSize: isDesktop ? 64 : 46,
+              height: 0.96,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ShaderMask(
+            shaderCallback: (bounds) {
+              return const LinearGradient(
+                colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+              ).createShader(bounds);
+            },
+            child: Text(
+              'Pide tu lavado desde donde estes',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontSize: isDesktop ? 42 : 34,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Text(
+              'Lavify centraliza tu solicitud, seguimiento y servicio en una sola experiencia. '
+              'Olvidate de coordinar por mensajes y crea tu cuenta gratis para pedir tu primer lavado.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                height: 1.55,
+                fontSize: isDesktop ? 24 : 20,
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'Crear cuenta gratis',
+              icon: Icons.arrow_forward_rounded,
+              onPressed: onCreateAccount,
+              isExpanded: true,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            children: [
+              Text(
+                'Ya tienes cuenta?',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              TextButton(
+                onPressed: onSignIn,
+                child: const Text('Iniciar sesion'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: onWorkerAccess,
+            icon: const Icon(Icons.local_car_wash_rounded, size: 18),
+            label: const Text('Acceso para trabajadores'),
+          ),
+        ],
+      ),
+    );
+
+    if (isDesktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(flex: 11, child: heroCard),
+          const SizedBox(width: 24),
+          const Expanded(flex: 9, child: _EntryHighlights()),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        heroCard,
+        const SizedBox(height: 16),
+        const _EntryHighlights(compact: true),
+      ],
+    );
+  }
+}
+
+class _EntryHighlights extends StatelessWidget {
+  const _EntryHighlights({this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = const [
+      _EntryHighlightData(
+        icon: Icons.schedule_rounded,
+        title: 'Reservas simples',
+        subtitle:
+            'Elige paquete, confirma ubicacion y agenda sin complicaciones.',
+      ),
+      _EntryHighlightData(
+        icon: Icons.route_rounded,
+        title: 'Seguimiento en vivo',
+        subtitle: 'Visualiza cuando va el lavador y como avanza tu servicio.',
+      ),
+      _EntryHighlightData(
+        icon: Icons.verified_user_rounded,
+        title: 'Lavadores verificados',
+        subtitle: 'Perfiles cuidados para una experiencia mas confiable.',
+      ),
+    ];
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 18 : 24),
+      decoration: BoxDecoration(
+        color: LavifyTheme.overlayPanelColor(context),
+        borderRadius: BorderRadius.circular(compact ? 26 : 32),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+        boxShadow: LavifyTheme.panelShadow(context, floating: false),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Todo listo para empezar',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0x1A22C1FF),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(item.icon, color: LavifyColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: LavifyTheme.textPrimaryColor(context),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.subtitle,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EntryHighlightData {
+  const _EntryHighlightData({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
 }
 
 class _RoleSelector extends StatelessWidget {
@@ -918,21 +1335,21 @@ class _CompactMetricChip extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: LavifyTheme.textPrimaryColor(context),
-                    fontWeight: FontWeight.w700,
-                  ),
+              Text(
+                value,
+                style: TextStyle(
+                  color: LavifyTheme.textPrimaryColor(context),
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
               const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: LavifyTheme.textSecondaryColor(context),
-                    fontSize: 12,
-                  ),
+              Text(
+                label,
+                style: TextStyle(
+                  color: LavifyTheme.textSecondaryColor(context),
+                  fontSize: 12,
                 ),
+              ),
             ],
           ),
         ],
@@ -987,7 +1404,10 @@ InputDecoration _inputDecoration({
   return InputDecoration(
     hintText: hint,
     hintStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
-    prefixIcon: Icon(prefixIcon, color: LavifyTheme.textSecondaryColor(context)),
+    prefixIcon: Icon(
+      prefixIcon,
+      color: LavifyTheme.textSecondaryColor(context),
+    ),
     suffixIcon: suffix,
     filled: true,
     fillColor: LavifyTheme.surfaceAltColor(context),

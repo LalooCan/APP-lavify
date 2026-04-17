@@ -1,18 +1,23 @@
 import 'package:flutter/foundation.dart';
 
+import '../app_config.dart';
 import '../models/session_models.dart';
 import '../models/wash_models.dart';
-import '../repositories/mock_order_fixtures.dart';
+import '../repositories/firestore_order_repository.dart';
 import '../repositories/mock_order_repository.dart';
 import '../repositories/order_repository.dart';
 import 'session_service.dart';
+import 'tracking_service.dart';
 
 class OrderService {
-  OrderService._internal() : _repository = MockOrderRepository() {
-    orders = ValueNotifier<List<WashOrder>>(MockOrderFixtures.initialOrders());
-    for (final order in orders.value) {
-      _repository.updateOrder(order);
-    }
+  OrderService._internal() : _repository = _buildRepository() {
+    orders = ValueNotifier<List<WashOrder>>(_repository.getOrders());
+    _repository.watchOrders().listen((nextOrders) {
+      orders.value = nextOrders;
+      for (final order in nextOrders) {
+        _trackingService.syncOrder(order);
+      }
+    });
   }
 
   static final OrderService _instance = OrderService._internal();
@@ -21,9 +26,27 @@ class OrderService {
 
   final OrderRepository _repository;
   final SessionService _sessionService = SessionService();
+  final TrackingService _trackingService = TrackingService();
   late final ValueNotifier<List<WashOrder>> orders;
 
+  static OrderRepository _buildRepository() {
+    switch (AppConfig.ordersBackendMode) {
+      case OrdersBackendMode.firestore:
+        return FirestoreOrderRepository();
+      case OrdersBackendMode.mock:
+        return MockOrderRepository();
+    }
+  }
+
   List<WashOrder> get currentOrders => orders.value;
+
+  ValueListenable<OrderTrackingSnapshot?> trackingForOrder(String orderId) {
+    return _trackingService.trackingForOrder(orderId);
+  }
+
+  OrderTrackingSnapshot? trackingSnapshotForOrder(String orderId) {
+    return _trackingService.snapshotForOrder(orderId);
+  }
 
   WashOrder? getOrderById(String orderId) {
     for (final order in orders.value) {
@@ -79,8 +102,20 @@ class OrderService {
     }
 
     return orders.value
-        .where((order) => order.customerEmail.trim().toLowerCase() == sessionEmail)
+        .where(
+          (order) => order.customerEmail.trim().toLowerCase() == sessionEmail,
+        )
         .toList(growable: false);
+  }
+
+  WashOrder? get activeClientOrder {
+    final visibleOrders = clientVisibleOrders;
+    for (final order in visibleOrders) {
+      if (order.status != OrderStatus.completed) {
+        return order;
+      }
+    }
+    return visibleOrders.isNotEmpty ? visibleOrders.first : null;
   }
 
   List<WashOrder> get workerVisibleOrders {
@@ -89,18 +124,36 @@ class OrderService {
       return const <WashOrder>[];
     }
 
-    return orders.value.where((order) {
-      if (order.status == OrderStatus.searching) {
-        return true;
-      }
-      return order.assignedWorkerEmail == workerEmail;
-    }).toList(growable: false);
+    return orders.value
+        .where((order) {
+          if (order.status == OrderStatus.searching) {
+            return true;
+          }
+          return order.assignedWorkerEmail == workerEmail;
+        })
+        .toList(growable: false);
   }
 
   Future<WashOrder> createOrderFromDraft(WashRequestDraft draft) async {
     await Future<void>.delayed(const Duration(milliseconds: 900));
-    final order = _repository.createOrderFromDraft(draft);
-    orders.value = _repository.getOrders();
+    final session = _sessionService.currentSession.value;
+    final request = draft.toRequest();
+    final order = WashOrder(
+      id: 'order_${DateTime.now().millisecondsSinceEpoch}',
+      request: request,
+      status: OrderStatus.searching,
+      customerEmail: session?.email ?? 'cliente@lavify.app',
+      assignedWasherName: 'Por asignar',
+      assignedWorkerEmail: null,
+      assignedVehicleLabel: request.vehicleTypeName,
+      createdAt: DateTime.now().toUtc(),
+      etaMinutes: request.estimatedMinutes,
+    );
+    await _repository.createOrder(order);
+    if (!AppConfig.usesRemoteOrdersBackend) {
+      orders.value = _repository.getOrders();
+    }
+    _trackingService.syncOrder(order);
     return order;
   }
 
@@ -194,12 +247,39 @@ class OrderService {
       OrderStatus.searching => order.etaMinutes,
     };
 
-    return _saveOrder(
-      order.copyWith(
-        status: nextStatus,
-        etaMinutes: nextEta,
-      ),
+    return _saveOrder(order.copyWith(status: nextStatus, etaMinutes: nextEta));
+  }
+
+  void updateWorkerLiveLocation(
+    String orderId,
+    ServiceLocation location, {
+    TrackingSource source = TrackingSource.deviceGps,
+    double? heading,
+    double? speedKph,
+    List<ServiceLocation>? routePoints,
+  }) {
+    final order = _findById(orderId);
+    if (order == null) {
+      return;
+    }
+
+    _trackingService.updateWorkerLocation(
+      order: order,
+      location: location,
+      source: source,
+      heading: heading,
+      speedKph: speedKph,
+      routePoints: routePoints,
     );
+  }
+
+  void setTrackingRoute(String orderId, List<ServiceLocation> routePoints) {
+    final order = _findById(orderId);
+    if (order == null) {
+      return;
+    }
+
+    _trackingService.setBackendRoute(order: order, routePoints: routePoints);
   }
 
   WashOrder? _findById(String orderId) {
@@ -208,7 +288,10 @@ class OrderService {
 
   WashOrder _saveOrder(WashOrder order) {
     _repository.updateOrder(order);
-    orders.value = _repository.getOrders();
+    if (!AppConfig.usesRemoteOrdersBackend) {
+      orders.value = _repository.getOrders();
+    }
+    _trackingService.syncOrder(order);
     return order;
   }
 
@@ -230,7 +313,9 @@ class OrderService {
   }
 
   String? get _normalizedCurrentSessionEmail {
-    final email = _sessionService.currentSession.value?.email.trim().toLowerCase();
+    final email = _sessionService.currentSession.value?.email
+        .trim()
+        .toLowerCase();
     if (email == null || email.isEmpty) {
       return null;
     }

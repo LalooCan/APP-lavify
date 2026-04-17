@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
 import '../theme/theme.dart';
+import '../widgets/live_tracking_map.dart';
 import '../widgets/primary_button.dart';
 
 class OrderTrackingPage extends StatelessWidget {
@@ -27,8 +27,8 @@ class OrderTrackingPage extends StatelessWidget {
         final mapBadgeLabel = isSearching
             ? 'Buscando lavador cerca de ti'
             : liveOrder.etaMinutes > 0
-                ? 'Llegando en ${liveOrder.etaMinutes} min'
-                : liveOrder.status.label;
+            ? 'Llegando en ${liveOrder.etaMinutes} min'
+            : liveOrder.status.label;
 
         return Scaffold(
           appBar: AppBar(title: Text('Pedido ${liveOrder.id}')),
@@ -60,8 +60,9 @@ class OrderTrackingPage extends StatelessWidget {
                                   isSearching
                                       ? 'Buscando lavador'
                                       : liveOrder.status.label,
-                                  style:
-                                      Theme.of(context).textTheme.headlineMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium,
                                 ),
                               ),
                               Container(
@@ -95,67 +96,42 @@ class OrderTrackingPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: SizedBox(
-                        height: 280,
-                        width: double.infinity,
-                        child: Stack(
-                          children: [
-                            GoogleMap(
-                              initialCameraPosition: CameraPosition(
-                                target: LatLng(
-                                  liveOrder.request.latitude,
-                                  liveOrder.request.longitude,
-                                ),
-                                zoom: 14,
+                    SizedBox(
+                      height: 280,
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: LiveTrackingMap(order: liveOrder),
+                          ),
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
                               ),
-                              myLocationButtonEnabled: false,
-                              zoomControlsEnabled: false,
-                              mapToolbarEnabled: false,
-                              markers: {
-                                Marker(
-                                  markerId: const MarkerId('service_location'),
-                                  position: LatLng(
-                                    liveOrder.request.latitude,
-                                    liveOrder.request.longitude,
-                                  ),
-                                  infoWindow: InfoWindow(
-                                    title: isSearching
-                                        ? 'Ubicacion del lavado'
-                                        : 'Lavado en seguimiento',
-                                  ),
+                              decoration: BoxDecoration(
+                                color: LavifyTheme.overlayPanelColor(context),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: LavifyTheme.borderColor(context),
                                 ),
-                              },
-                            ),
-                            Positioned(
-                              right: 16,
-                              bottom: 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: LavifyTheme.overlayPanelColor(context),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: LavifyTheme.borderColor(context),
-                                  ),
-                                ),
-                                child: Text(
-                                  mapBadgeLabel,
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(
-                                        color:
-                                            LavifyTheme.textPrimaryColor(context),
-                                        fontWeight: FontWeight.w700,
+                              ),
+                              child: Text(
+                                mapBadgeLabel,
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      color: LavifyTheme.textPrimaryColor(
+                                        context,
                                       ),
-                                ),
+                                      fontWeight: FontWeight.w700,
+                                    ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     if (isSearching) ...[

@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
 import '../services/worker_service.dart';
 import '../theme/theme.dart';
+import '../widgets/live_tracking_map.dart';
 import '../widgets/primary_button.dart';
 
 class WorkerServicesPage extends StatefulWidget {
@@ -86,27 +87,33 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
                             );
                           }
 
-                          return ListView.separated(
-                            itemCount: orders.length,
-                            separatorBuilder: (context, index) =>
+                          return ListView(
+                            children: [
+                              if (activeOrder != null) ...[
+                                _ActiveWorkerServiceBanner(order: activeOrder),
                                 const SizedBox(height: 14),
-                            itemBuilder: (context, index) {
-                              final order = orders[index];
-                              return _WorkerOrderCard(
-                                order: order,
-                                isBusy: _busyOrderId == order.id,
-                                workerAvailable: isAvailable,
-                                hasAnotherActiveOrder:
-                                    activeOrder != null &&
-                                    activeOrder.id != order.id,
-                                hasScheduleConflict:
-                                    _orderService.hasScheduleConflictForWorker(
-                                      order,
-                                    ),
-                                onTakeOrder: () => _takeOrder(order),
-                                onAdvanceOrder: () => _advanceOrder(order),
-                              );
-                            },
+                              ],
+                              ...List.generate(orders.length, (index) {
+                                final order = orders[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: index == orders.length - 1 ? 0 : 14,
+                                  ),
+                                  child: _WorkerOrderCard(
+                                    order: order,
+                                    isBusy: _busyOrderId == order.id,
+                                    workerAvailable: isAvailable,
+                                    hasAnotherActiveOrder:
+                                        activeOrder != null &&
+                                        activeOrder.id != order.id,
+                                    hasScheduleConflict: _orderService
+                                        .hasScheduleConflictForWorker(order),
+                                    onTakeOrder: () => _takeOrder(order),
+                                    onAdvanceOrder: () => _advanceOrder(order),
+                                  ),
+                                );
+                              }),
+                            ],
                           );
                         },
                       );
@@ -204,22 +211,87 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
         return;
       }
 
-      final message = updatedOrder.status == OrderStatus.onTheWay &&
+      final message =
+          updatedOrder.status == OrderStatus.onTheWay &&
               updatedOrder.etaMinutes > 0
           ? 'Ruta actualizada. ETA restante: ${updatedOrder.etaMinutes} min.'
           : 'Servicio ${updatedOrder.id} actualizado a ${updatedOrder.status.label}.';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() {
           _busyOrderId = null;
         });
       }
+    }
+  }
+}
+
+class _ActiveWorkerServiceBanner extends StatelessWidget {
+  const _ActiveWorkerServiceBanner({required this.order});
+
+  final WashOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _statusColor(order.status);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: LavifyTheme.overlayPanelColor(context),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Servicio en curso',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const Spacer(),
+              Text(
+                order.status.label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 180,
+            child: LiveTrackingMap(
+              order: order,
+              compact: true,
+              borderRadius: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.searching:
+        return const Color(0xFFFFC857);
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+        return LavifyColors.primary;
+      case OrderStatus.arrived:
+      case OrderStatus.inProgress:
+        return const Color(0xFF9B7BFF);
+      case OrderStatus.completed:
+        return LavifyColors.success;
     }
   }
 }
@@ -291,11 +363,14 @@ class _WorkerOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _statusColor(order.status);
     final actionLabel = _actionLabel(order);
-    final canTake = order.status == OrderStatus.searching &&
+    final helperText = _helperText(order);
+    final canTake =
+        order.status == OrderStatus.searching &&
         workerAvailable &&
         !hasAnotherActiveOrder &&
         !hasScheduleConflict;
-    final canAdvance = order.status != OrderStatus.searching &&
+    final canAdvance =
+        order.status != OrderStatus.searching &&
         order.status != OrderStatus.completed;
     final isActionEnabled = !isBusy && (canTake || canAdvance);
 
@@ -313,24 +388,21 @@ class _WorkerOrderCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: accent.withAlpha(28),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   order.status.label,
-                  style: TextStyle(
-                    color: accent,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w700),
                 ),
               ),
               const Spacer(),
-              Text(
-                order.id,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text(order.id, style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
           const SizedBox(height: 14),
@@ -347,6 +419,25 @@ class _WorkerOrderCard extends StatelessWidget {
           Text(
             '${order.request.vehicleTypeName} · ${order.request.scheduleLabel}',
             style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          if (order.status != OrderStatus.searching) ...[
+            SizedBox(
+              height: 160,
+              child: LiveTrackingMap(
+                order: order,
+                compact: true,
+                borderRadius: 18,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            helperText,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: LavifyTheme.textPrimaryColor(context),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (order.request.notes.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -386,27 +477,28 @@ class _WorkerOrderCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               'Activa tu disponibilidad para poder tomar este servicio.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFFFFC857),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFFFC857)),
             ),
           ],
-          if (order.status == OrderStatus.searching && hasAnotherActiveOrder) ...[
+          if (order.status == OrderStatus.searching &&
+              hasAnotherActiveOrder) ...[
             const SizedBox(height: 10),
             Text(
               'Ya tienes un servicio activo. Completa ese trabajo antes de tomar otro.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFFFFC857),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFFFC857)),
             ),
           ],
           if (order.status == OrderStatus.searching && hasScheduleConflict) ...[
             const SizedBox(height: 10),
             Text(
               'Ya tienes otro servicio asignado en ese mismo horario.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFFFF8A80),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFFF8A80)),
             ),
           ],
         ],
@@ -447,6 +539,21 @@ class _WorkerOrderCard extends StatelessWidget {
         return null;
     }
   }
+
+  String _helperText(WashOrder order) {
+    switch (order.status) {
+      case OrderStatus.searching:
+        return 'Solicitud abierta para lavadores disponibles en esta zona.';
+      case OrderStatus.assigned:
+        return 'Confirma salida y prepara el trayecto al domicilio del cliente.';
+      case OrderStatus.onTheWay:
+        return 'Sigue avanzando la ruta para mantener el ETA actualizado.';
+      case OrderStatus.arrived:
+        return 'Ya estas en sitio. Marca inicio cuando vayas a comenzar.';
+      case OrderStatus.inProgress:
+        return 'El servicio esta en curso. Completa cuando hayas terminado.';
+      case OrderStatus.completed:
+        return 'Este servicio ya fue cerrado correctamente.';
+    }
+  }
 }
-
-

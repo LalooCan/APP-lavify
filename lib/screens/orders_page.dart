@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
@@ -31,6 +31,20 @@ class OrdersPage extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 24),
+                ValueListenableBuilder<List<WashOrder>>(
+                  valueListenable: _orderService.orders,
+                  builder: (context, _, _) {
+                    final activeOrder = _orderService.activeClientOrder;
+                    if (activeOrder == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: _ActiveOrderBanner(order: activeOrder),
+                    );
+                  },
+                ),
                 Expanded(
                   child: ValueListenableBuilder<List<WashOrder>>(
                     valueListenable: _orderService.orders,
@@ -60,6 +74,95 @@ class OrdersPage extends StatelessWidget {
   }
 }
 
+class _ActiveOrderBanner extends StatelessWidget {
+  const _ActiveOrderBanner({required this.order});
+
+  final WashOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _statusAccent(order.status);
+    final helper = order.status == OrderStatus.searching
+        ? 'Tu solicitud sigue buscando un lavador disponible.'
+        : order.status == OrderStatus.completed
+        ? 'Tu ultimo servicio ya fue completado.'
+        : 'Tu pedido activo sigue avanzando. Puedes abrir el seguimiento cuando quieras.';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => OrderTrackingPage(order: order),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: LavifyTheme.overlayPanelColor(context),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: LavifyTheme.borderColor(context)),
+            boxShadow: LavifyTheme.panelShadow(context, floating: false),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: accent.withAlpha(24),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(Icons.route_rounded, color: accent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pedido activo',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(helper, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                order.status.label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _statusAccent(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.searching:
+        return const Color(0xFFFFC857);
+      case OrderStatus.assigned:
+      case OrderStatus.onTheWay:
+        return LavifyColors.primary;
+      case OrderStatus.arrived:
+      case OrderStatus.inProgress:
+        return const Color(0xFF9B7BFF);
+      case OrderStatus.completed:
+        return LavifyColors.success;
+    }
+  }
+}
+
 class _OrderCard extends StatelessWidget {
   const _OrderCard({required this.order});
 
@@ -84,6 +187,7 @@ class _OrderCard extends StatelessWidget {
             color: LavifyTheme.surfaceColor(context),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: LavifyTheme.borderColor(context)),
+            boxShadow: LavifyTheme.panelShadow(context, floating: false),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,6 +207,9 @@ class _OrderCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: _statusAccent(order.status).withAlpha(22),
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: _statusAccent(order.status).withAlpha(40),
+                      ),
                     ),
                     child: Text(
                       order.status.label,
@@ -181,6 +288,7 @@ class _EmptyOrdersState extends StatelessWidget {
           color: LavifyTheme.surfaceColor(context),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: LavifyTheme.borderColor(context)),
+          boxShadow: LavifyTheme.panelShadow(context),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -207,4 +315,3 @@ class _EmptyOrdersState extends StatelessWidget {
     );
   }
 }
-

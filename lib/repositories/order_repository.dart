@@ -1,7 +1,11 @@
 import '../models/wash_models.dart';
 
 abstract class OrderRepository {
+  Stream<List<WashOrder>> watchOrders();
+
   List<WashOrder> getOrders();
-  WashOrder createOrderFromDraft(WashRequestDraft draft);
+
+  Future<WashOrder> createOrder(WashOrder order);
+
   WashOrder updateOrder(WashOrder order);
 }

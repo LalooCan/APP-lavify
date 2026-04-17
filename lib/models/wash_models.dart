@@ -171,7 +171,13 @@ class ServiceLocationPayload {
   Map<String, dynamic> toJson() => toMap();
 }
 
-enum RequestLifecycleStatus { draft, confirmed, assigned, inProgress, completed }
+enum RequestLifecycleStatus {
+  draft,
+  confirmed,
+  assigned,
+  inProgress,
+  completed,
+}
 
 extension RequestLifecycleStatusX on RequestLifecycleStatus {
   String get apiValue {
@@ -235,10 +241,7 @@ class WashRequestDraft {
   bool get hasValidPricing => selectedPackage.price >= 0 && travelFee >= 0;
   int get totalPrice => selectedPackage.price + travelFee;
   bool get isReadyForConfirmation =>
-      hasValidPackage &&
-      hasValidAddress &&
-      hasValidLocation &&
-      hasValidPricing;
+      hasValidPackage && hasValidAddress && hasValidLocation && hasValidPricing;
 
   String? get validationMessage {
     if (!hasValidPackage) {
@@ -637,6 +640,93 @@ class WashOrder {
   }
 
   Map<String, dynamic> toJson() => toMap();
+}
+
+enum TrackingSource { mock, deviceGps, backend, directionsApi }
+
+class WorkerLiveLocation {
+  const WorkerLiveLocation({
+    required this.location,
+    required this.updatedAt,
+    required this.source,
+    this.heading,
+    this.speedKph,
+  });
+
+  final ServiceLocation location;
+  final DateTime updatedAt;
+  final TrackingSource source;
+  final double? heading;
+  final double? speedKph;
+
+  WorkerLiveLocation copyWith({
+    ServiceLocation? location,
+    DateTime? updatedAt,
+    TrackingSource? source,
+    double? heading,
+    double? speedKph,
+  }) {
+    return WorkerLiveLocation(
+      location: location ?? this.location,
+      updatedAt: updatedAt ?? this.updatedAt,
+      source: source ?? this.source,
+      heading: heading ?? this.heading,
+      speedKph: speedKph ?? this.speedKph,
+    );
+  }
+}
+
+class OrderTrackingSnapshot {
+  const OrderTrackingSnapshot({
+    required this.orderId,
+    required this.customerLocation,
+    required this.updatedAt,
+    required this.source,
+    this.workerLocation,
+    this.distanceKm,
+    this.etaMinutes,
+    this.routePoints = const <ServiceLocation>[],
+  });
+
+  final String orderId;
+  final ServiceLocation customerLocation;
+  final WorkerLiveLocation? workerLocation;
+  final double? distanceKm;
+  final int? etaMinutes;
+  final List<ServiceLocation> routePoints;
+  final DateTime updatedAt;
+  final TrackingSource source;
+
+  bool get hasWorkerLocation => workerLocation != null;
+
+  OrderTrackingSnapshot copyWith({
+    ServiceLocation? customerLocation,
+    WorkerLiveLocation? workerLocation,
+    bool clearWorkerLocation = false,
+    double? distanceKm,
+    int? etaMinutes,
+    List<ServiceLocation>? routePoints,
+    DateTime? updatedAt,
+    TrackingSource? source,
+  }) {
+    return OrderTrackingSnapshot(
+      orderId: orderId,
+      customerLocation: customerLocation ?? this.customerLocation,
+      workerLocation: clearWorkerLocation
+          ? null
+          : (workerLocation ?? this.workerLocation),
+      distanceKm: distanceKm ?? this.distanceKm,
+      etaMinutes: etaMinutes ?? this.etaMinutes,
+      routePoints: routePoints ?? this.routePoints,
+      updatedAt: updatedAt ?? this.updatedAt,
+      source: source ?? this.source,
+    );
+  }
+}
+
+extension WashOrderTrackingX on WashOrder {
+  ServiceLocation get customerLocation =>
+      ServiceLocation(latitude: request.latitude, longitude: request.longitude);
 }
 
 class UserProfile {

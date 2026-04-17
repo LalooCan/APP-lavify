@@ -102,8 +102,11 @@ class _AppShellState extends State<AppShell> {
                 width: isExpanded ? 176 : 78,
                 decoration: BoxDecoration(
                   color: LavifyTheme.navRailColor(context),
+                  boxShadow: LavifyTheme.panelShadow(context, floating: false),
                   border: Border(
-                    right: BorderSide(color: LavifyTheme.navRailBorderColor(context)),
+                    right: BorderSide(
+                      color: LavifyTheme.navRailBorderColor(context),
+                    ),
                   ),
                 ),
                 child: SafeArea(
@@ -122,7 +125,14 @@ class _AppShellState extends State<AppShell> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF1A8BFF), Color(0xFF2CCBFF)],
+                                colors: [
+                                  LavifyColors.primaryStrong,
+                                  LavifyColors.primary,
+                                ],
+                              ),
+                              boxShadow: LavifyTheme.panelShadow(
+                                context,
+                                floating: false,
                               ),
                             ),
                             child: const Icon(
@@ -140,7 +150,9 @@ class _AppShellState extends State<AppShell> {
                                   child: Text(
                                     'Lavify',
                                     style: TextStyle(
-                                      color: LavifyTheme.textPrimaryColor(context),
+                                      color: LavifyTheme.textPrimaryColor(
+                                        context,
+                                      ),
                                       fontWeight: FontWeight.w800,
                                       fontSize: 18,
                                     ),
@@ -151,7 +163,9 @@ class _AppShellState extends State<AppShell> {
                         const SizedBox(height: 22),
                         Expanded(
                           child: Column(
-                            children: List.generate(destinations.length, (index) {
+                            children: List.generate(destinations.length, (
+                              index,
+                            ) {
                               final destination = destinations[index];
                               final isSelected = index == _selectedIndex;
 
@@ -160,7 +174,7 @@ class _AppShellState extends State<AppShell> {
                                 child: _SidebarDestination(
                                   icon: isSelected
                                       ? (destination.selectedIcon ??
-                                          destination.icon)
+                                            destination.icon)
                                       : destination.icon,
                                   label: destination.label,
                                   selected: isSelected,
@@ -189,14 +203,27 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       body: pages[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: destinations,
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        decoration: BoxDecoration(
+          color: LavifyTheme.navRailColor(context),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: LavifyTheme.navRailBorderColor(context)),
+          boxShadow: LavifyTheme.panelShadow(context, floating: false),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            backgroundColor: Colors.transparent,
+            destinations: destinations,
+          ),
+        ),
       ),
     );
   }

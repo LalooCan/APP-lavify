@@ -1,29 +1,31 @@
+import 'dart:async';
+
 import '../models/wash_models.dart';
-import '../services/session_service.dart';
+import 'mock_order_fixtures.dart';
 import 'order_repository.dart';
 
 class MockOrderRepository implements OrderRepository {
+  MockOrderRepository() {
+    _orders.addAll(MockOrderFixtures.initialOrders());
+  }
+
   final List<WashOrder> _orders = <WashOrder>[];
+  final StreamController<List<WashOrder>> _controller =
+      StreamController<List<WashOrder>>.broadcast();
+
+  @override
+  Stream<List<WashOrder>> watchOrders() async* {
+    yield getOrders();
+    yield* _controller.stream;
+  }
 
   @override
   List<WashOrder> getOrders() => List<WashOrder>.unmodifiable(_orders);
 
   @override
-  WashOrder createOrderFromDraft(WashRequestDraft draft) {
-    final request = draft.toRequest();
-    final session = SessionService().currentSession.value;
-    final order = WashOrder(
-      id: 'order_${DateTime.now().millisecondsSinceEpoch}',
-      request: request,
-      status: OrderStatus.searching,
-      customerEmail: session?.email ?? 'cliente@lavify.app',
-      assignedWasherName: 'Por asignar',
-      assignedWorkerEmail: null,
-      assignedVehicleLabel: request.vehicleTypeName,
-      createdAt: DateTime.now().toUtc(),
-      etaMinutes: request.estimatedMinutes,
-    );
+  Future<WashOrder> createOrder(WashOrder order) async {
     _orders.insert(0, order);
+    _controller.add(getOrders());
     return order;
   }
 
@@ -35,6 +37,7 @@ class MockOrderRepository implements OrderRepository {
     } else {
       _orders.insert(0, order);
     }
+    _controller.add(getOrders());
     return order;
   }
 }

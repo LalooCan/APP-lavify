@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
 class LavifyColors {
-  static const Color background = Color(0xFF09111F);
-  static const Color surface = Color(0xFF101C31);
-  static const Color surfaceAlt = Color(0xFF162845);
-  static const Color primary = Color(0xFF22C1FF);
-  static const Color primaryStrong = Color(0xFF2F6BFF);
-  static const Color textPrimary = Color(0xFFF7FAFC);
-  static const Color textSecondary = Color(0xFF9FB0C7);
+  static const Color background = Color(0xFF081120);
+  static const Color surface = Color(0xFF111C31);
+  static const Color surfaceAlt = Color(0xFF172742);
+  static const Color primary = Color(0xFF5AC8FA);
+  static const Color primaryStrong = Color(0xFF3478F6);
+  static const Color textPrimary = Color(0xFFF8FBFF);
+  static const Color textSecondary = Color(0xFF9DAFC5);
   static const Color success = Color(0xFF28D17C);
-  static const Color border = Color(0xFF243754);
+  static const Color border = Color(0xFF273754);
 
-  static const Color lightBackground = Color(0xFFF4F8FC);
+  static const Color lightBackground = Color(0xFFF3F6FB);
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceAlt = Color(0xFFE8F0FA);
-  static const Color lightTextPrimary = Color(0xFF112033);
-  static const Color lightTextSecondary = Color(0xFF5D718A);
-  static const Color lightBorder = Color(0xFFD5E1EF);
+  static const Color lightSurfaceAlt = Color(0xFFF7F9FD);
+  static const Color lightTextPrimary = Color(0xFF111827);
+  static const Color lightTextSecondary = Color(0xFF66768F);
+  static const Color lightBorder = Color(0xFFD8E0EC);
 }
 
 class LavifyTheme {
@@ -33,27 +33,31 @@ class LavifyTheme {
         primary: LavifyColors.primary,
         secondary: LavifyColors.primaryStrong,
         surface: LavifyColors.surface,
+        outline: const Color(0xFF30415E),
       ),
       textTheme: base.textTheme.copyWith(
         headlineLarge: const TextStyle(
-          fontSize: 52,
+          fontSize: 54,
           fontWeight: FontWeight.w800,
           color: LavifyColors.textPrimary,
-          height: 1.0,
+          letterSpacing: -1.4,
+          height: 0.98,
         ),
         headlineMedium: const TextStyle(
-          fontSize: 28,
+          fontSize: 30,
           fontWeight: FontWeight.w700,
           color: LavifyColors.textPrimary,
+          letterSpacing: -0.8,
         ),
         titleLarge: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: LavifyColors.textPrimary,
+          letterSpacing: -0.4,
         ),
         bodyLarge: const TextStyle(
-          fontSize: 18,
-          height: 1.6,
+          fontSize: 17,
+          height: 1.55,
           color: LavifyColors.textSecondary,
         ),
         bodyMedium: const TextStyle(
@@ -65,14 +69,51 @@ class LavifyTheme {
       appBarTheme: const AppBarTheme(
         foregroundColor: LavifyColors.textPrimary,
         backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xF2111C31),
+        indicatorColor: const Color(0x1F5AC8FA),
+        height: 74,
+        elevation: 0,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return TextStyle(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? LavifyColors.textPrimary
+                : LavifyColors.textSecondary,
+          );
+        }),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF16263F),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: LavifyColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: LavifyColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: LavifyColors.primary, width: 1.2),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style:
             ElevatedButton.styleFrom(
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
               ),
               foregroundColor: LavifyColors.textPrimary,
               textStyle: const TextStyle(
@@ -128,27 +169,31 @@ class LavifyTheme {
         primary: LavifyColors.primaryStrong,
         secondary: LavifyColors.primary,
         surface: LavifyColors.lightSurface,
+        outline: LavifyColors.lightBorder,
       ),
       textTheme: base.textTheme.copyWith(
         headlineLarge: const TextStyle(
-          fontSize: 52,
+          fontSize: 54,
           fontWeight: FontWeight.w800,
           color: LavifyColors.lightTextPrimary,
-          height: 1.0,
+          letterSpacing: -1.4,
+          height: 0.98,
         ),
         headlineMedium: const TextStyle(
-          fontSize: 28,
+          fontSize: 30,
           fontWeight: FontWeight.w700,
           color: LavifyColors.lightTextPrimary,
+          letterSpacing: -0.8,
         ),
         titleLarge: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: LavifyColors.lightTextPrimary,
+          letterSpacing: -0.4,
         ),
         bodyLarge: const TextStyle(
-          fontSize: 18,
-          height: 1.6,
+          fontSize: 17,
+          height: 1.55,
           color: LavifyColors.lightTextSecondary,
         ),
         bodyMedium: const TextStyle(
@@ -160,14 +205,54 @@ class LavifyTheme {
       appBarTheme: const AppBarTheme(
         foregroundColor: LavifyColors.lightTextPrimary,
         backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xF6FFFFFF),
+        indicatorColor: const Color(0x123478F6),
+        height: 74,
+        elevation: 0,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return TextStyle(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? LavifyColors.lightTextPrimary
+                : LavifyColors.lightTextSecondary,
+          );
+        }),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFF7F9FD),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: LavifyColors.lightBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: LavifyColors.lightBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(
+            color: LavifyColors.primaryStrong,
+            width: 1.2,
+          ),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style:
             ElevatedButton.styleFrom(
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
               ),
               foregroundColor: Colors.white,
               textStyle: const TextStyle(
@@ -231,22 +316,22 @@ class LavifyTheme {
       : LavifyColors.textSecondary;
 
   static Color softFillColor(BuildContext context) =>
-      isLight(context) ? const Color(0xFFF1F6FD) : Colors.white.withAlpha(10);
+      isLight(context) ? const Color(0xFFF7F9FD) : Colors.white.withAlpha(10);
 
   static Color softFillStrongColor(BuildContext context) =>
-      isLight(context) ? const Color(0xFFE3EEF9) : Colors.white.withAlpha(6);
+      isLight(context) ? const Color(0xFFF1F5FB) : Colors.white.withAlpha(7);
 
   static Color overlayPanelColor(BuildContext context) =>
-      isLight(context) ? const Color(0xF7FFFFFF) : const Color(0xCC0E1A2C);
+      isLight(context) ? const Color(0xF2FFFFFF) : const Color(0xD4141E32);
 
   static Color navRailColor(BuildContext context) =>
-      isLight(context) ? const Color(0xF8FFFFFF) : const Color(0xCC0C1627);
+      isLight(context) ? const Color(0xEEFFFFFF) : const Color(0xD70D1728);
 
   static Color navRailBorderColor(BuildContext context) =>
       isLight(context) ? LavifyColors.lightBorder : const Color(0x1FFFFFFF);
 
   static Color navSelectedColor(BuildContext context) =>
-      isLight(context) ? const Color(0x1622C1FF) : const Color(0x1F2CCBFF);
+      isLight(context) ? const Color(0x143478F6) : const Color(0x235AC8FA);
 
   static Color navInactiveColor(BuildContext context) => isLight(context)
       ? LavifyColors.lightTextSecondary
@@ -270,7 +355,7 @@ class LavifyTheme {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF7FBFF), Color(0xFFEAF3FF), Color(0xFFF4F8FC)],
+          colors: [Color(0xFFF8FAFD), Color(0xFFF1F5FB), Color(0xFFE9F0F9)],
         ),
       );
     }
@@ -279,8 +364,31 @@ class LavifyTheme {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF07101D), Color(0xFF102446), Color(0xFF09111F)],
+        colors: [Color(0xFF07101C), Color(0xFF10233F), Color(0xFF0A1322)],
       ),
     );
+  }
+
+  static List<BoxShadow> panelShadow(
+    BuildContext context, {
+    bool floating = true,
+  }) {
+    if (isLight(context)) {
+      return [
+        BoxShadow(
+          color: const Color(0x120F172A),
+          blurRadius: floating ? 38 : 24,
+          offset: Offset(0, floating ? 18 : 10),
+        ),
+      ];
+    }
+
+    return [
+      BoxShadow(
+        color: const Color(0x28000000),
+        blurRadius: floating ? 34 : 22,
+        offset: Offset(0, floating ? 18 : 10),
+      ),
+    ];
   }
 }

@@ -18,6 +18,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     final iconWidget = Icon(icon ?? Icons.water_drop_rounded, size: 18);
     final labelWidget = Text(
       label,
@@ -30,15 +31,23 @@ class PrimaryButton extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isEnabled
-              ? [LavifyColors.primaryStrong, LavifyColors.primary]
-              : [Color(0xFF3C4A63), Color(0xFF55627A)],
+              ? [
+                  isLight
+                      ? const Color(0xFF4D8DFF)
+                      : LavifyColors.primaryStrong,
+                  isLight ? const Color(0xFF56C7FA) : LavifyColors.primary,
+                ]
+              : [
+                  isLight ? const Color(0xFFB7C3D4) : const Color(0xFF3C4A63),
+                  isLight ? const Color(0xFFC4CEDC) : const Color(0xFF55627A),
+                ],
         ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x3322C1FF),
-            blurRadius: 24,
-            offset: Offset(0, 10),
+            color: isLight ? const Color(0x203478F6) : const Color(0x2A5AC8FA),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -53,6 +62,9 @@ class PrimaryButton extends StatelessWidget {
             foregroundColor: isEnabled
                 ? Colors.white
                 : Colors.white.withAlpha(180),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
           ),
         ),
       ),

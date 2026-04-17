@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
 import '../services/worker_service.dart';
 import '../theme/theme.dart';
+import '../widgets/live_tracking_map.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
 import 'worker_services_page.dart';
@@ -209,10 +210,7 @@ class _HeroCard extends StatelessWidget {
 }
 
 class _AcceptedJobPanel extends StatelessWidget {
-  const _AcceptedJobPanel({
-    required this.order,
-    required this.onOpenServices,
-  });
+  const _AcceptedJobPanel({required this.order, required this.onOpenServices});
 
   final WashOrder order;
   final VoidCallback onOpenServices;
@@ -225,10 +223,10 @@ class _AcceptedJobPanel extends StatelessWidget {
     final etaLabel = order.etaMinutes > 0
         ? '${order.etaMinutes} min'
         : order.status == OrderStatus.arrived
-            ? 'En sitio'
-            : order.status == OrderStatus.inProgress
-                ? 'En proceso'
-                : 'Sin ETA';
+        ? 'En sitio'
+        : order.status == OrderStatus.inProgress
+        ? 'En proceso'
+        : 'Sin ETA';
 
     return Container(
       width: double.infinity,
@@ -259,10 +257,7 @@ class _AcceptedJobPanel extends StatelessWidget {
                     colors: [LavifyColors.primaryStrong, LavifyColors.primary],
                   ),
                 ),
-                child: const Icon(
-                  Icons.route_rounded,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.route_rounded, color: Colors.white),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -296,6 +291,15 @@ class _AcceptedJobPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                SizedBox(
+                  height: 180,
+                  child: LiveTrackingMap(
+                    order: order,
+                    compact: true,
+                    borderRadius: 20,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   order.request.packageName,
                   style: Theme.of(context).textTheme.titleLarge,
@@ -466,21 +470,14 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }
 }
 
 class _InfoPill extends StatelessWidget {
-  const _InfoPill({
-    required this.icon,
-    required this.label,
-    this.accent,
-  });
+  const _InfoPill({required this.icon, required this.label, this.accent});
 
   final IconData icon;
   final String label;
@@ -570,10 +567,7 @@ class _AgendaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Agenda visible',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('Agenda visible', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 18),
           if (visibleOrders.isEmpty)
             Text(
@@ -652,5 +646,3 @@ class _AgendaItem extends StatelessWidget {
     );
   }
 }
-
-
