@@ -116,7 +116,9 @@ class _TopBar extends StatelessWidget {
         SecondaryButton(
           label: 'Quiero trabajar',
           icon: Icons.arrow_outward_rounded,
-          onPressed: () {},
+          onPressed: () {
+            // TODO: conectar registro o onboarding de lavadores.
+          },
         ),
       ],
     );
@@ -219,7 +221,9 @@ class _HeroContent extends StatelessWidget {
             SecondaryButton(
               label: 'Ver como funciona',
               icon: Icons.play_circle_outline_rounded,
-              onPressed: () {},
+              onPressed: () {
+                // TODO: conectar scroll o navegacion a la seccion explicativa.
+              },
             ),
           ],
         ),
@@ -556,12 +560,14 @@ class _FunctionalSection extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Elige el nivel de lavado y entra directo al flujo con el paquete preseleccionado.',
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontSize: isCompact ? 15 : 16),
         ),
-        SizedBox(height: isCompact ? 16 : 20),
+        SizedBox(height: isCompact ? 12 : 16),
         Wrap(
-          spacing: isCompact ? 12 : 16,
-          runSpacing: isCompact ? 12 : 16,
+          spacing: isCompact ? 10 : 14,
+          runSpacing: isCompact ? 10 : 14,
           children: featuredPackages
               .map(
                 (package) => PackageCard(
@@ -586,34 +592,48 @@ class _FunctionalSection extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Operamos con una experiencia clara para cliente y lavador desde el primer pedido.',
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontSize: isCompact ? 15 : 16),
         ),
-        SizedBox(height: isCompact ? 16 : 20),
-        Wrap(
-          spacing: isCompact ? 12 : 14,
-          runSpacing: isCompact ? 12 : 14,
-          children: const [
-            _TrustCard(
-              icon: Icons.verified_user_rounded,
-              title: 'Lavadores verificados',
-              subtitle: 'Perfil validado y seguimiento continuo.',
-            ),
-            _TrustCard(
-              icon: Icons.lock_rounded,
-              title: 'Pagos seguros',
-              subtitle: 'Base lista para integrar checkout y backend.',
-            ),
-            _TrustCard(
-              icon: Icons.route_rounded,
-              title: 'Seguimiento en tiempo real',
-              subtitle: 'Ubicacion y progreso del servicio en una sola vista.',
-            ),
-            _TrustCard(
-              icon: Icons.support_agent_rounded,
-              title: 'Soporte',
-              subtitle: 'Canal preparado para atencion y post-servicio.',
-            ),
-          ],
+        SizedBox(height: isCompact ? 12 : 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final spacing = isCompact ? 10.0 : 14.0;
+            final compactWidth = (constraints.maxWidth - spacing) / 2;
+            final expandedWidth = (constraints.maxWidth - spacing) / 2;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                _TrustCard(
+                  width: isCompact ? compactWidth : expandedWidth,
+                  icon: Icons.verified_user_rounded,
+                  title: 'Lavadores verificados',
+                  subtitle: 'Perfil validado y seguimiento continuo.',
+                ),
+                _TrustCard(
+                  width: isCompact ? compactWidth : expandedWidth,
+                  icon: Icons.lock_rounded,
+                  title: 'Pagos seguros',
+                  subtitle: 'Checkout y backend listos para operar.',
+                ),
+                _TrustCard(
+                  width: isCompact ? compactWidth : expandedWidth,
+                  icon: Icons.route_rounded,
+                  title: 'Tracking en vivo',
+                  subtitle: 'Ubicacion y progreso en una sola vista.',
+                ),
+                _TrustCard(
+                  width: isCompact ? compactWidth : expandedWidth,
+                  icon: Icons.support_agent_rounded,
+                  title: 'Soporte',
+                  subtitle: 'Atencion antes y despues del servicio.',
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -674,11 +694,13 @@ class _SessionOverview extends StatelessWidget {
 
 class _TrustCard extends StatelessWidget {
   const _TrustCard({
+    required this.width,
     required this.icon,
     required this.title,
     required this.subtitle,
   });
 
+  final double width;
   final IconData icon;
   final String title;
   final String subtitle;
@@ -690,46 +712,69 @@ class _TrustCard extends StatelessWidget {
 
     return RepaintBoundary(
       child: Container(
-        width: isCompact ? double.infinity : 250,
-        padding: EdgeInsets.all(isCompact ? 16 : 18),
+        width: width,
+        padding: EdgeInsets.all(isCompact ? 14 : 18),
         decoration: BoxDecoration(
-          color: LavifyTheme.surfaceColor(context),
-          borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
-          border: Border.all(color: LavifyTheme.borderColor(context)),
-          boxShadow: LavifyTheme.panelShadow(context, floating: false),
+          borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [const Color(0xCC12203A), const Color(0xCC0C1527)],
+          ),
+          border: Border.all(color: LavifyColors.primary.withAlpha(34)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(28),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: isCompact ? 38 : 42,
-              height: isCompact ? 38 : 42,
+              width: isCompact ? 36 : 42,
+              height: isCompact ? 36 : 42,
               decoration: BoxDecoration(
-                color: const Color(0x1A22C1FF),
                 borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    LavifyColors.primary.withAlpha(34),
+                    Colors.white.withAlpha(8),
+                  ],
+                ),
+                border: Border.all(color: LavifyColors.primary.withAlpha(32)),
               ),
               child: Icon(
                 icon,
                 color: LavifyColors.primary,
-                size: isCompact ? 20 : 24,
+                size: isCompact ? 18 : 22,
               ),
             ),
             SizedBox(height: isCompact ? 12 : 14),
             Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontSize: isCompact ? 17 : 18),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: isCompact ? 16 : 18,
+                height: 1.05,
+              ),
             ),
             SizedBox(height: isCompact ? 6 : 8),
             Text(
               subtitle,
-              maxLines: isCompact ? 2 : null,
-              overflow: isCompact ? TextOverflow.ellipsis : null,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: isCompact ? 13 : null),
+              maxLines: isCompact ? 3 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: isCompact ? 12.5 : 13,
+                height: 1.35,
+                color: Colors.white.withAlpha(150),
+              ),
             ),
           ],
         ),

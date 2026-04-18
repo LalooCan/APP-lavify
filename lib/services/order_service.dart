@@ -12,12 +12,17 @@ import 'tracking_service.dart';
 class OrderService {
   OrderService._internal() : _repository = _buildRepository() {
     orders = ValueNotifier<List<WashOrder>>(_repository.getOrders());
-    _repository.watchOrders().listen((nextOrders) {
-      orders.value = nextOrders;
-      for (final order in nextOrders) {
-        _trackingService.syncOrder(order);
-      }
-    });
+    _repository.watchOrders().listen(
+      (nextOrders) {
+        orders.value = nextOrders;
+        for (final order in nextOrders) {
+          _trackingService.syncOrder(order);
+        }
+      },
+      onError: (error) {
+        debugPrint('Error al observar pedidos: $error');
+      },
+    );
   }
 
   static final OrderService _instance = OrderService._internal();
@@ -31,9 +36,9 @@ class OrderService {
 
   static OrderRepository _buildRepository() {
     switch (AppConfig.ordersBackendMode) {
-      case OrdersBackendMode.firestore:
+      case BackendMode.firestore:
         return FirestoreOrderRepository();
-      case OrdersBackendMode.mock:
+      case BackendMode.mock:
         return MockOrderRepository();
     }
   }
@@ -135,7 +140,9 @@ class OrderService {
   }
 
   Future<WashOrder> createOrderFromDraft(WashRequestDraft draft) async {
-    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!AppConfig.usesRemoteOrdersBackend) {
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+    }
     final session = _sessionService.currentSession.value;
     final request = draft.toRequest();
     final order = WashOrder(

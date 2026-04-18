@@ -21,6 +21,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   static final OrderService _orderService = OrderService();
 
   bool _isSubmitting = false;
+  String? _submitError;
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +112,25 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (_submitError != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0x22FF6B6B),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0x55FF6B6B)),
+                    ),
+                    child: Text(
+                      _submitError!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 PrimaryButton(
                   label: _isSubmitting
                       ? 'Confirmando pedido...'
@@ -140,6 +160,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
     setState(() {
       _isSubmitting = true;
+      _submitError = null;
     });
 
     try {
@@ -154,6 +175,19 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
           builder: (_) => OrderTrackingPage(order: order),
         ),
       );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _submitError =
+            'No se pudo confirmar el pedido. Verifica tu conexion e intenta de nuevo.';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_submitError!)));
     } finally {
       if (mounted) {
         setState(() {

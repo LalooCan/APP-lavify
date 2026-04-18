@@ -44,19 +44,22 @@ class HowItWorksSection extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Un flujo simple para pedir tu lavado como si fuera una app on-demand.',
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontSize: isCompact ? 15 : 16),
         ),
-        SizedBox(height: isCompact ? 16 : 20),
+        SizedBox(height: isCompact ? 12 : 16),
         LayoutBuilder(
           builder: (context, constraints) {
             final availableWidth = constraints.maxWidth;
-            final cardWidth = isCompact
-                ? availableWidth
-                : (availableWidth >= 920 ? (availableWidth - 32) / 3 : 280.0);
+            final spacing = isCompact ? 10.0 : 14.0;
+            final columns = isCompact ? 2 : availableWidth >= 920 ? 3 : 2;
+            final cardWidth =
+                (availableWidth - (spacing * (columns - 1))) / columns;
 
             return Wrap(
-              spacing: isCompact ? 12 : 16,
-              runSpacing: isCompact ? 12 : 16,
+              spacing: spacing,
+              runSpacing: spacing,
               children: items
                   .map(
                     (item) => _HowItWorksCard(
@@ -87,14 +90,30 @@ class _HowItWorksCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(isCompact ? 20 : 24);
+
     return RepaintBoundary(
       child: Container(
         width: width,
-        padding: EdgeInsets.all(isCompact ? 16 : 20),
+        padding: EdgeInsets.all(isCompact ? 14 : 18),
         decoration: BoxDecoration(
-          color: LavifyTheme.surfaceColor(context),
-          borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
-          border: Border.all(color: LavifyTheme.borderColor(context)),
+          borderRadius: radius,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xCC12203A),
+              Color(0xCC0C1527),
+            ],
+          ),
+          border: Border.all(color: LavifyColors.primary.withAlpha(34)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(28),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,12 +122,15 @@ class _HowItWorksCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: isCompact ? 38 : 42,
-                  height: isCompact ? 38 : 42,
+                  width: isCompact ? 34 : 40,
+                  height: isCompact ? 34 : 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-                    color: LavifyTheme.softFillColor(context),
+                    color: Colors.white.withAlpha(6),
+                    border: Border.all(
+                      color: LavifyColors.primary.withAlpha(18),
+                    ),
                   ),
                   child: Text(
                     item.step,
@@ -121,35 +143,50 @@ class _HowItWorksCard extends StatelessWidget {
                 ),
                 SizedBox(width: isCompact ? 10 : 12),
                 Container(
-                  width: isCompact ? 38 : 42,
-                  height: isCompact ? 38 : 42,
+                  width: isCompact ? 34 : 40,
+                  height: isCompact ? 34 : 40,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-                    color: const Color(0x1A22C1FF),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        LavifyColors.primary.withAlpha(34),
+                        Colors.white.withAlpha(8),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: LavifyColors.primary.withAlpha(32),
+                    ),
                   ),
                   child: Icon(
                     item.icon,
                     color: LavifyColors.primary,
-                    size: isCompact ? 20 : 24,
+                    size: isCompact ? 18 : 22,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: isCompact ? 12 : 16),
+            SizedBox(height: isCompact ? 12 : 14),
             Text(
               item.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontSize: isCompact ? 18 : null),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: isCompact ? 16 : 18,
+                height: 1.05,
+              ),
             ),
             SizedBox(height: isCompact ? 6 : 8),
             Text(
               item.description,
-              maxLines: isCompact ? 3 : null,
-              overflow: isCompact ? TextOverflow.ellipsis : null,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: isCompact ? 14 : null),
+              maxLines: isCompact ? 4 : 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: isCompact ? 12.5 : 13,
+                height: 1.35,
+                color: Colors.white.withAlpha(150),
+              ),
             ),
           ],
         ),

@@ -24,9 +24,9 @@ class TrackingService {
 
   static TrackingRepository _buildRepository() {
     switch (AppConfig.trackingBackendMode) {
-      case TrackingBackendMode.firestore:
+      case BackendMode.firestore:
         return FirestoreTrackingRepository();
-      case TrackingBackendMode.mock:
+      case BackendMode.mock:
         return MockTrackingRepository();
     }
   }

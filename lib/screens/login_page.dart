@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/session_models.dart';
 import '../services/auth_service.dart';
@@ -362,9 +362,7 @@ class _LoginCard extends StatelessWidget {
             TextFormField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: LavifyTheme.textPrimaryColor(context),
               ),
               decoration: _inputDecoration(
@@ -405,9 +403,7 @@ class _LoginCard extends StatelessWidget {
             TextFormField(
               controller: passwordController,
               obscureText: obscurePassword,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: LavifyTheme.textPrimaryColor(context),
               ),
               decoration: _inputDecoration(
@@ -493,9 +489,7 @@ class _LoginCard extends StatelessWidget {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    'o continua con',
-                  ),
+                  child: Text('o continua con'),
                 ),
                 Expanded(
                   child: Divider(color: LavifyTheme.borderColor(context)),
@@ -534,7 +528,9 @@ class _LoginCard extends StatelessWidget {
                   child: _ProviderButton(
                     label: 'Apple',
                     logo: const Icon(Icons.apple_rounded, size: 24),
-                    onPressed: () {},
+                    onPressed: () {
+                      // TODO: conectar inicio de sesion con Apple.
+                    },
                   ),
                 ),
               ],
@@ -550,7 +546,9 @@ class _LoginCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      // TODO: conectar flujo de registro de cuenta.
+                    },
                     child: const Text('Crear cuenta'),
                   ),
                 ],
@@ -722,7 +720,10 @@ InputDecoration _inputDecoration({
   return InputDecoration(
     hintText: hint,
     hintStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
-    prefixIcon: Icon(prefixIcon, color: LavifyTheme.textSecondaryColor(context)),
+    prefixIcon: Icon(
+      prefixIcon,
+      color: LavifyTheme.textSecondaryColor(context),
+    ),
     suffixIcon: suffix,
     filled: true,
     fillColor: LavifyTheme.surfaceAltColor(context),
@@ -745,4 +746,3 @@ InputDecoration _inputDecoration({
     ),
   );
 }
-
