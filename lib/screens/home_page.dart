@@ -34,42 +34,56 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: LavifyTheme.pageDecoration(context),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: verticalPadding,
-              ),
-              child: ValueListenableBuilder<UserProfile>(
-                valueListenable: _profileService.profile,
-                builder: (context, profile, _) {
-                  return ValueListenableBuilder(
-                    valueListenable: _sessionService.currentSession,
-                    builder: (context, sessionState, _) {
-                      final session = _homeService.getSessionData();
+        child: Stack(
+          children: [
+            const Positioned(
+              top: -120,
+              right: -40,
+              child: _AmbientGlow(size: 320, color: Color(0x1E6AA8FF)),
+            ),
+            const Positioned(
+              bottom: -90,
+              left: -30,
+              child: _AmbientGlow(size: 260, color: Color(0x143D7BFF)),
+            ),
+            SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalPadding,
+                  ),
+                  child: ValueListenableBuilder<UserProfile>(
+                    valueListenable: _profileService.profile,
+                    builder: (context, profile, _) {
+                      return ValueListenableBuilder(
+                        valueListenable: _sessionService.currentSession,
+                        builder: (context, sessionState, _) {
+                          final session = _homeService.getSessionData();
 
-                      return Column(
-                        children: [
-                          _TopBar(isDesktop: isDesktop),
-                          const SizedBox(height: 56),
-                          if (isDesktop)
-                            _DesktopHero(session: session)
-                          else
-                            _MobileHero(session: session),
-                          const SizedBox(height: 56),
-                          _FunctionalSection(
-                            session: session,
-                            featuredPackages: featuredPackages,
-                          ),
-                        ],
+                          return Column(
+                            children: [
+                              _TopBar(isDesktop: isDesktop),
+                              const SizedBox(height: 56),
+                              if (isDesktop)
+                                _DesktopHero(session: session)
+                              else
+                                _MobileHero(session: session),
+                              const SizedBox(height: 56),
+                              _FunctionalSection(
+                                session: session,
+                                featuredPackages: featuredPackages,
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
-                  );
-                },
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -91,7 +105,7 @@ class _TopBar extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: const LinearGradient(
-              colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+              colors: [LavifyColors.primaryStrong, LavifyColors.accent],
             ),
             boxShadow: LavifyTheme.panelShadow(context, floating: false),
           ),
@@ -177,6 +191,8 @@ class _HeroContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -188,19 +204,22 @@ class _HeroContent extends StatelessWidget {
               label: session.availabilityLabel,
               color: LavifyColors.success,
             ),
-            const _StatusChip(
+            _StatusChip(
               label: 'Lavadores verificados',
               color: LavifyColors.primary,
             ),
           ],
         ),
         const SizedBox(height: 28),
-        const SectionText(
-          title: 'Lava tu auto',
-          highlight: 'sin salir\nde casa',
-          subtitle:
-              'Solicita un lavado desde tu celular y un profesional verificado llega a donde estas en minutos. Rapido, confiable y pensado para tu rutina.',
-        ),
+        if (isLight)
+          const _MetallicHeroCopy()
+        else
+          const SectionText(
+            title: 'Lava tu auto',
+            highlight: 'sin salir\nde casa',
+            subtitle:
+                'Solicita un lavado desde tu celular y un profesional verificado llega a donde estas en minutos. Rapido, confiable y pensado para tu rutina.',
+          ),
         const SizedBox(height: 24),
         _SessionOverview(session: session),
         const SizedBox(height: 32),
@@ -279,13 +298,13 @@ class _PreviewCard extends StatelessWidget {
             : 'Servicio activo · \$${order.request.totalPrice}';
 
         return RepaintBoundary(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: LavifyTheme.overlayPanelColor(context),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: LavifyTheme.borderColor(context)),
-              boxShadow: LavifyTheme.panelShadow(context),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LavifyTheme.premiumPanelGradient(context),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
+          boxShadow: LavifyTheme.panelShadow(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,7 +329,7 @@ class _PreviewCard extends StatelessWidget {
                     const Spacer(),
                     const CircleAvatar(
                       radius: 18,
-                      backgroundColor: Color(0x3322C1FF),
+                      backgroundColor: Color(0x336AA8FF),
                       child: Icon(Icons.person, color: LavifyColors.primary),
                     ),
                   ],
@@ -647,11 +666,25 @@ class _SessionOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: LavifyTheme.overlayPanelColor(context).withAlpha(180),
+        gradient: isLight
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFFFFCF9),
+                  Color(0xFFF1EBE4),
+                ],
+              )
+            : null,
+        color: isLight
+            ? null
+            : LavifyTheme.overlayPanelColor(context).withAlpha(180),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: LavifyTheme.borderColor(context)),
         boxShadow: LavifyTheme.panelShadow(context, floating: false),
@@ -659,6 +692,21 @@ class _SessionOverview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (isLight)
+            Container(
+              width: 72,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFE4D1B1),
+                    Color(0xFFF9F3EA),
+                  ],
+                ),
+              ),
+            ),
           Text(
             'Hola, ${session.firstName}',
             style: Theme.of(context).textTheme.titleLarge,
@@ -671,23 +719,155 @@ class _SessionOverview extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.timer_outlined,
                 color: LavifyColors.primary,
                 size: 18,
               ),
               const SizedBox(width: 8),
+              if (isLight)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0x66FFF8F0),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0x88D9C9B5)),
+                  ),
+                  child: Text(
+                    'Tiempo estimado: ${session.etaLabel}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: LavifyColors.lightNavy,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  'Tiempo estimado: ${session.etaLabel}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: LavifyTheme.textPrimaryColor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetallicHeroCopy extends StatelessWidget {
+  const _MetallicHeroCopy();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFF8F3EC),
+                Color(0xFFEDE4D7),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0x88D8C8B4)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14FFFFFF),
+                blurRadius: 8,
+                spreadRadius: -2,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF5E86FF),
+                      Color(0xFF85A8FF),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
-                'Tiempo estimado: ${session.etaLabel}',
+                'Lavado premium a domicilio',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: LavifyTheme.textPrimaryColor(context),
+                  color: LavifyColors.lightNavy,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 26),
+        Text(
+          'Lava tu auto',
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+            color: LavifyColors.lightTextPrimary,
+            height: 0.92,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const _HeroGradientText('sin salir\nde casa'),
+        const SizedBox(height: 22),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Text(
+            'Solicita un lavado desde tu celular y un profesional verificado llega a donde estas en minutos. Rapido, confiable y pensado para tu rutina.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: LavifyColors.lightTextSecondary,
+              height: 1.7,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroGradientText extends StatelessWidget {
+  const _HeroGradientText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.headlineLarge?.copyWith(
+      color: Colors.white,
+      height: 0.92,
+    );
+
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) {
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF8EB5FF),
+            Color(0xFF4A72F4),
+            Color(0xFF5866F0),
+          ],
+        ).createShader(bounds);
+      },
+      child: Text(text, style: style),
     );
   }
 }
@@ -709,6 +889,7 @@ class _TrustCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isCompact = screenWidth < 600;
+    final isLight = LavifyTheme.isLight(context);
 
     return RepaintBoundary(
       child: Container(
@@ -719,12 +900,20 @@ class _TrustCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [const Color(0xCC12203A), const Color(0xCC0C1527)],
+            colors: isLight
+                ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
+                : const [Color(0xCC12203A), Color(0xCC0C1527)],
           ),
-          border: Border.all(color: LavifyColors.primary.withAlpha(34)),
+          border: Border.all(
+            color: isLight
+                ? const Color(0x88D9C9B5)
+                : LavifyColors.primary.withAlpha(34),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(28),
+              color: isLight
+                  ? const Color(0x181D2432)
+                  : Colors.black.withAlpha(28),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -743,15 +932,23 @@ class _TrustCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    LavifyColors.primary.withAlpha(34),
-                    Colors.white.withAlpha(8),
+                    isLight
+                        ? const Color(0x22D6B47B)
+                        : LavifyColors.primary.withAlpha(34),
+                    isLight ? Colors.white : Colors.white.withAlpha(8),
                   ],
                 ),
-                border: Border.all(color: LavifyColors.primary.withAlpha(32)),
+                border: Border.all(
+                  color: isLight
+                      ? const Color(0x77D8C8B4)
+                      : LavifyColors.primary.withAlpha(32),
+                ),
               ),
               child: Icon(
                 icon,
-                color: LavifyColors.primary,
+                color: isLight
+                    ? LavifyColors.lightNavy
+                    : LavifyColors.primary,
                 size: isCompact ? 18 : 22,
               ),
             ),
@@ -763,6 +960,9 @@ class _TrustCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: isCompact ? 16 : 18,
                 height: 1.05,
+                color: isLight
+                    ? LavifyColors.lightTextPrimary
+                    : LavifyColors.textPrimary,
               ),
             ),
             SizedBox(height: isCompact ? 6 : 8),
@@ -773,10 +973,33 @@ class _TrustCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontSize: isCompact ? 12.5 : 13,
                 height: 1.35,
-                color: Colors.white.withAlpha(150),
+                color: isLight
+                    ? LavifyColors.lightTextSecondary
+                    : Colors.white.withAlpha(150),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AmbientGlow extends StatelessWidget {
+  const _AmbientGlow({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [color, Colors.transparent]),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'models/session_models.dart';
 import 'screens/app_shell.dart';
 import 'screens/role_login_page.dart';
 import 'services/auth_service.dart';
+import 'services/session_service.dart';
 import 'services/theme_service.dart';
 import 'theme/theme.dart';
 
@@ -20,6 +21,7 @@ class LavifyApp extends StatelessWidget {
 
   static final ThemeService _themeService = ThemeService();
   static final AuthService _authService = AuthService();
+  static final SessionService _sessionService = SessionService();
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +29,13 @@ class LavifyApp extends StatelessWidget {
       valueListenable: _themeService.themeMode,
       builder: (context, themeMode, child) {
         return MaterialApp(
+          key: ValueKey(themeMode),
           title: 'Lavify',
           debugShowCheckedModeBanner: false,
           theme: LavifyTheme.lightTheme,
           darkTheme: LavifyTheme.darkTheme,
           themeMode: themeMode,
+          themeAnimationDuration: Duration.zero,
           routes: {'/home': (_) => const AppShell(mode: AppRole.client)},
           home: const _AuthGate(),
         );
@@ -45,30 +49,40 @@ class _AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: LavifyApp._authService.authStateChanges,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final user = snapshot.data;
-        if (user == null) {
-          return const RoleLoginPage();
-        }
-
-        return FutureBuilder<AppRole>(
-          future: LavifyApp._authService.resolveUserRole(user: user),
-          builder: (context, roleSnapshot) {
-            if (roleSnapshot.connectionState == ConnectionState.waiting) {
+    return ValueListenableBuilder<MockSession?>(
+      valueListenable: LavifyApp._sessionService.currentSession,
+      builder: (context, session, _) {
+        return StreamBuilder(
+          stream: LavifyApp._authService.authStateChanges,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                session == null) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            return AppShell(mode: roleSnapshot.data ?? AppRole.client);
+            final user = snapshot.data;
+            if (user != null) {
+              return FutureBuilder<AppRole>(
+                future: LavifyApp._authService.resolveUserRole(user: user),
+                builder: (context, roleSnapshot) {
+                  if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  return AppShell(mode: roleSnapshot.data ?? AppRole.client);
+                },
+              );
+            }
+
+            if (session != null) {
+              return AppShell(mode: session.role);
+            }
+
+            return const RoleLoginPage();
           },
         );
       },

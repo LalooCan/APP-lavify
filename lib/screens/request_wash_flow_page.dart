@@ -93,21 +93,24 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 1100;
+    final isLight = LavifyTheme.isLight(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pedir lavado')),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0A1423),
-              Color(0xFF0E1B30),
-              LavifyColors.background,
-            ],
-          ),
-        ),
+        decoration: isLight
+            ? LavifyTheme.pageDecoration(context)
+            : const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF0A1423),
+                    Color(0xFF0E1B30),
+                    LavifyColors.background,
+                  ],
+                ),
+              ),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
@@ -464,9 +467,10 @@ class _BookingDetails extends StatelessWidget {
                 onChanged: onNotesChanged,
                 maxLines: 3,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                 ),
                 decoration: _inputDecoration(
+                  context: context,
                   label: 'Notas para el lavador',
                   hint:
                       'Ej. Tocar timbre, entrar por porton azul, agua disponible.',
@@ -507,6 +511,7 @@ class _BookingSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     final package = draft.selectedPackage;
     final total = package.price + draft.travelFee;
     final canContinueToConfirmation = draft.isReadyForConfirmation;
@@ -518,16 +523,10 @@ class _BookingSummary extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: LavifyColors.surface,
+              gradient: LavifyTheme.premiumPanelGradient(context),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: LavifyColors.border),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22000000),
-                  blurRadius: 22,
-                  offset: Offset(0, 14),
-                ),
-              ],
+              border: Border.all(color: LavifyTheme.borderColor(context)),
+              boxShadow: LavifyTheme.panelShadow(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,14 +538,22 @@ class _BookingSummary extends StatelessWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        gradient: const LinearGradient(
-                          colors: [
-                            LavifyColors.primaryStrong,
-                            LavifyColors.primary,
-                          ],
+                        gradient: LinearGradient(
+                          colors: isLight
+                              ? const [
+                                  LavifyColors.lightNavy,
+                                  Color(0xFF49617F),
+                                ]
+                              : const [
+                                  LavifyColors.primaryStrong,
+                                  LavifyColors.primary,
+                                ],
                         ),
                       ),
-                      child: const Icon(Icons.local_car_wash_rounded),
+                      child: Icon(
+                        Icons.local_car_wash_rounded,
+                        color: isLight ? const Color(0xFFFFF4E6) : null,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -587,7 +594,7 @@ class _BookingSummary extends StatelessWidget {
                   value: '${draft.estimatedMinutes} min',
                 ),
                 const SizedBox(height: 18),
-                const Divider(color: LavifyColors.border),
+                Divider(color: LavifyTheme.borderColor(context)),
                 const SizedBox(height: 16),
                 _PriceLine(
                   label: package.priceLabel,
@@ -621,7 +628,10 @@ class _BookingSummary extends StatelessWidget {
                         ? 'Confirma la ubicacion del servicio para continuar.'
                         : 'Selecciona una direccion y confirma la ubicacion para continuar.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFFFC857),
+                      color: isLight
+                          ? LavifyColors.lightNavy
+                          : const Color(0xFFFFC857),
+                      fontWeight: isLight ? FontWeight.w600 : null,
                     ),
                   ),
                 ],
@@ -654,6 +664,8 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return SectionContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -666,13 +678,17 @@ class _StepCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  color: Colors.white.withAlpha(10),
-                  border: Border.all(color: LavifyColors.border),
+                  color: isLight
+                      ? const Color(0xFFFDF8F1)
+                      : Colors.white.withAlpha(10),
+                  border: Border.all(color: LavifyTheme.borderColor(context)),
                 ),
                 child: Text(
                   step,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: LavifyColors.primary,
+                    color: isLight
+                        ? LavifyColors.lightNavy
+                        : LavifyColors.primary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -729,87 +745,268 @@ class _PackageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+    final radius = BorderRadius.circular(24);
+    final selectedGradient = isLight
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              LavifyColors.lightNavyStrong,
+              Color(0xFF344868),
+            ],
+          )
+        : const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF203458),
+              Color(0xFF16233A),
+            ],
+          );
+    final baseGradient = isLight
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFFCF8),
+              Color(0xFFF4EEE6),
+            ],
+          )
+        : const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF182337),
+              Color(0xFF111A2B),
+            ],
+          );
+    final iconGradient = selected
+        ? (isLight
+              ? const LinearGradient(
+                  colors: [
+                    LavifyColors.lightGold,
+                    Color(0xFFE7C78F),
+                  ],
+                )
+              : const LinearGradient(
+                  colors: [
+                    LavifyColors.primaryStrong,
+                    LavifyColors.primary,
+                  ],
+                ))
+        : (isLight
+              ? const LinearGradient(
+                  colors: [
+                    Color(0xFFF8F0E2),
+                    Color(0xFFFDF9F3),
+                  ],
+                )
+              : LinearGradient(
+                  colors: [
+                    Colors.white.withAlpha(10),
+                    Colors.white.withAlpha(5),
+                  ],
+                ));
+    final titleColor = selected && isLight
+        ? Colors.white
+        : LavifyTheme.textPrimaryColor(context);
+    final descriptionColor = selected && isLight
+        ? Colors.white.withAlpha(182)
+        : LavifyTheme.textSecondaryColor(context);
+    final priceColor = selected && isLight
+        ? const Color(0xFFFFF3E0)
+        : isLight
+        ? LavifyColors.lightNavy
+        : LavifyColors.primary;
+    final metaColor = selected && isLight
+        ? const Color(0xFFFFE7B8)
+        : isLight
+        ? LavifyColors.lightNavy
+        : LavifyColors.primary;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: radius,
         splashFactory: NoSplash.splashFactory,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         hoverColor: Colors.transparent,
         overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
-        child: Ink(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
           width: 220,
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            color: selected ? const Color(0x331D5FFF) : LavifyColors.surfaceAlt,
+            borderRadius: radius,
+            gradient: selected ? selectedGradient : baseGradient,
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected
+                  ? (isLight ? LavifyColors.lightGold : LavifyColors.primary)
+                  : LavifyTheme.borderColor(context),
             ),
+            boxShadow: [
+              if (selected || isLight)
+                ...LavifyTheme.panelShadow(context, floating: false),
+              if (selected && isLight)
+                const BoxShadow(
+                  color: Color(0x18D6B47B),
+                  blurRadius: 24,
+                  spreadRadius: 1,
+                ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: selected
-                          ? LavifyColors.primaryStrong
-                          : Colors.white.withAlpha(10),
+                      borderRadius: BorderRadius.circular(15),
+                      gradient: iconGradient,
+                      border: Border.all(
+                        color: selected
+                            ? Colors.transparent
+                            : (isLight
+                                  ? const Color(0x66D8C8B4)
+                                  : Colors.white.withAlpha(10)),
+                      ),
                     ),
                     child: Icon(
                       package.icon,
                       color: selected
-                          ? LavifyColors.textPrimary
-                          : LavifyColors.primary,
+                          ? (isLight
+                                ? LavifyColors.lightNavyStrong
+                                : LavifyColors.textPrimary)
+                          : (isLight
+                                ? LavifyColors.lightNavy
+                                : LavifyColors.primary),
                     ),
                   ),
                   const Spacer(),
-                  if (selected)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0x1F28D17C),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Text(
-                        'Seleccionado',
-                        style: TextStyle(
-                          color: LavifyColors.success,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected && isLight
+                          ? Colors.white.withAlpha(10)
+                          : (isLight
+                                ? const Color(0x66FFF8F1)
+                                : Colors.white.withAlpha(6)),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: selected
+                            ? (isLight
+                                  ? Colors.white.withAlpha(12)
+                                  : LavifyColors.primary.withAlpha(30))
+                            : (isLight
+                                  ? const Color(0x77D8C8B4)
+                                  : LavifyColors.primary.withAlpha(28)),
                       ),
                     ),
+                    child: Text(
+                      package.priceLabel,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: metaColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               Text(
                 package.name,
                 style: Theme.of(
                   context,
-                ).textTheme.titleLarge?.copyWith(fontSize: 18),
+                ).textTheme.titleLarge?.copyWith(
+                  fontSize: 18,
+                  color: titleColor,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
-                package.formattedPrice,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: LavifyColors.primary,
+                package.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: descriptionColor,
+                  height: 1.45,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                package.description,
-                style: Theme.of(context).textTheme.bodyMedium,
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: selected && isLight
+                      ? Colors.white.withAlpha(8)
+                      : (isLight
+                            ? const Color(0x55FFF8F1)
+                            : Colors.white.withAlpha(4)),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: selected
+                        ? (isLight
+                              ? Colors.white.withAlpha(10)
+                              : LavifyColors.primary.withAlpha(24))
+                        : (isLight
+                              ? const Color(0x55D8C8B4)
+                              : Colors.white.withAlpha(8)),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        package.formattedPrice,
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              color: priceColor,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1.1,
+                            ),
+                      ),
+                    ),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? (isLight
+                                  ? const Color(0x26D6B47B)
+                                  : const Color(0x1F28D17C))
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        selected ? 'Seleccionado' : 'Tocar para elegir',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: selected
+                              ? (isLight
+                                    ? LavifyColors.lightGold
+                                    : LavifyColors.success)
+                              : LavifyTheme.textSecondaryColor(context),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -844,14 +1041,17 @@ class _LocationSelectionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return Column(
       children: [
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: LavifyColors.surfaceAlt,
+            gradient: LavifyTheme.premiumPanelGradient(context),
             borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: LavifyTheme.borderColor(context)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -860,12 +1060,16 @@ class _LocationSelectionPanel extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0x3322C1FF),
+                  color: isLight
+                      ? const Color(0x18D6B47B)
+                      : const Color(0x3322C1FF),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on_rounded,
-                  color: LavifyColors.primary,
+                  color: isLight
+                      ? LavifyColors.lightNavy
+                      : LavifyColors.primary,
                 ),
               ),
               const SizedBox(width: 14),
@@ -876,7 +1080,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                     Text(
                       'Ubicacion del servicio',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: LavifyColors.textPrimary,
+                        color: LavifyTheme.textPrimaryColor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -897,8 +1101,11 @@ class _LocationSelectionPanel extends StatelessWidget {
           onChanged: onAddressChanged,
           style: Theme.of(
             context,
-          ).textTheme.bodyLarge?.copyWith(color: LavifyColors.textPrimary),
+          ).textTheme.bodyLarge?.copyWith(
+            color: LavifyTheme.textPrimaryColor(context),
+          ),
           decoration: _inputDecoration(
+            context: context,
             label: 'Direccion del servicio',
             hint: 'Ej. Av. Paseo de la Reforma 245, Juarez, CDMX',
           ),
@@ -920,9 +1127,9 @@ class _LocationSelectionPanel extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(6),
+            gradient: LavifyTheme.premiumPanelGradient(context),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: LavifyColors.border),
+            border: Border.all(color: LavifyTheme.borderColor(context)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,7 +1139,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                   Text(
                     'Ubicacion seleccionada',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: LavifyColors.textPrimary,
+                      color: LavifyTheme.textPrimaryColor(context),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -959,7 +1166,7 @@ class _LocationSelectionPanel extends StatelessWidget {
                     ? 'Aun no hay direccion seleccionada'
                     : (locationResolution?.address ?? addressController.text),
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -974,10 +1181,12 @@ class _LocationSelectionPanel extends StatelessWidget {
                     'Toca o arrastra el pin para fijar la ubicacion exacta del servicio.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: locationMessage == null
-                      ? LavifyColors.textSecondary
+                      ? LavifyTheme.textSecondaryColor(context)
                       : isLocationConfirmed
                       ? LavifyColors.success
-                      : const Color(0xFFFFC857),
+                      : (isLight
+                            ? LavifyColors.lightNavy
+                            : const Color(0xFFFFC857)),
                 ),
               ),
             ],
@@ -1083,6 +1292,8 @@ class _SelectableSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1098,9 +1309,17 @@ class _SelectableSlot extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            color: selected ? const Color(0x331D5FFF) : LavifyColors.surfaceAlt,
+            color: selected
+                ? (isLight
+                      ? LavifyColors.lightNavyStrong
+                      : const Color(0x331D5FFF))
+                : (isLight
+                      ? LavifyColors.lightSurface
+                      : LavifyColors.surfaceAlt),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected
+                  ? (isLight ? LavifyColors.lightGold : LavifyColors.primary)
+                  : LavifyTheme.borderColor(context),
             ),
           ),
           child: Column(
@@ -1108,7 +1327,9 @@ class _SelectableSlot extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: selected && isLight
+                      ? Colors.white
+                      : LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1117,8 +1338,10 @@ class _SelectableSlot extends StatelessWidget {
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: selected
-                      ? LavifyColors.primary
-                      : LavifyColors.textSecondary,
+                      ? (isLight
+                            ? const Color(0xFFFFE3B3)
+                            : LavifyColors.primary)
+                      : LavifyTheme.textSecondaryColor(context),
                 ),
               ),
             ],
@@ -1142,6 +1365,8 @@ class _VehicleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1156,22 +1381,38 @@ class _VehicleChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             color: selected
-                ? const Color(0x331D5FFF)
-                : Colors.white.withAlpha(8),
+                ? (isLight
+                      ? LavifyColors.lightNavyStrong
+                      : const Color(0x331D5FFF))
+                : (isLight
+                      ? LavifyColors.lightSurface
+                      : Colors.white.withAlpha(8)),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected
+                  ? (isLight ? LavifyColors.lightGold : LavifyColors.primary)
+                  : LavifyTheme.borderColor(context),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(vehicle.icon, color: LavifyColors.primary, size: 18),
+              Icon(
+                vehicle.icon,
+                color: selected && isLight
+                    ? LavifyColors.lightGold
+                    : (isLight
+                          ? LavifyColors.lightNavy
+                          : LavifyColors.primary),
+                size: 18,
+              ),
               const SizedBox(width: 10),
               Text(
                 vehicle.name,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: LavifyColors.textPrimary,
+                  color: selected && isLight
+                      ? Colors.white
+                      : LavifyTheme.textPrimaryColor(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1266,7 +1507,7 @@ class _SummaryRow extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: LavifyColors.textPrimary,
+            color: LavifyTheme.textPrimaryColor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1288,9 +1529,10 @@ class _PriceLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     final color = highlight
-        ? LavifyColors.textPrimary
-        : LavifyColors.textSecondary;
+        ? LavifyTheme.textPrimaryColor(context)
+        : LavifyTheme.textSecondaryColor(context);
 
     return Row(
       children: [
@@ -1306,7 +1548,9 @@ class _PriceLine extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: highlight ? LavifyColors.primary : LavifyColors.textPrimary,
+            color: highlight
+                ? (isLight ? LavifyColors.lightNavy : LavifyColors.primary)
+                : LavifyTheme.textPrimaryColor(context),
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -1316,27 +1560,34 @@ class _PriceLine extends StatelessWidget {
 }
 
 InputDecoration _inputDecoration({
+  required BuildContext context,
   required String label,
   required String hint,
 }) {
   return InputDecoration(
     labelText: label,
     hintText: hint,
-    labelStyle: const TextStyle(color: LavifyColors.textSecondary),
-    hintStyle: const TextStyle(color: LavifyColors.textSecondary),
+    labelStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
+    hintStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
     filled: true,
-    fillColor: LavifyColors.surfaceAlt,
+    fillColor: LavifyTheme.isLight(context)
+        ? LavifyColors.lightSurfaceAlt
+        : LavifyColors.surfaceAlt,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.border),
+      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.border),
+      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.primary),
+      borderSide: BorderSide(
+        color: LavifyTheme.isLight(context)
+            ? LavifyColors.lightNavy
+            : LavifyColors.primary,
+      ),
     ),
   );
 }

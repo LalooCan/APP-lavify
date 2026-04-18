@@ -598,7 +598,7 @@ class _SettingsTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(22),
-          child: Ink(
+          child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: LavifyTheme.softFillStrongColor(context),

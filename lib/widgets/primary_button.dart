@@ -19,51 +19,68 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = LavifyTheme.isLight(context);
-    final iconWidget = Icon(icon ?? Icons.water_drop_rounded, size: 18);
-    final labelWidget = Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
     final isEnabled = onPressed != null;
 
     final button = DecoratedBox(
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isLight
+              ? const Color(0x88D8C7B2)
+              : Colors.white.withAlpha(14),
+        ),
         gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: isEnabled
               ? [
                   isLight
-                      ? const Color(0xFF4D8DFF)
+                      ? LavifyColors.lightNavy
                       : LavifyColors.primaryStrong,
-                  isLight ? const Color(0xFF56C7FA) : LavifyColors.primary,
+                  isLight ? const Color(0xFF4A6082) : LavifyColors.accent,
                 ]
               : [
-                  isLight ? const Color(0xFFB7C3D4) : const Color(0xFF3C4A63),
-                  isLight ? const Color(0xFFC4CEDC) : const Color(0xFF55627A),
+                  isLight ? const Color(0xFFB9B1A7) : const Color(0xFF2F3A4D),
+                  isLight ? const Color(0xFFD1C7BB) : const Color(0xFF445066),
                 ],
         ),
-        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: isLight ? const Color(0x203478F6) : const Color(0x2A5AC8FA),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+            color: isLight ? const Color(0x20314664) : const Color(0x306AA8FF),
+            blurRadius: isLight ? 26 : 34,
+            offset: Offset(0, isLight ? 12 : 18),
           ),
+          if (isLight)
+            const BoxShadow(
+              color: Color(0x12FFFDF9),
+              blurRadius: 10,
+              spreadRadius: -2,
+              offset: Offset(0, -1),
+            ),
         ],
       ),
-      child: RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: isLight
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x14FFFFFF), Color(0x00FFFFFF)],
+                )
+              : null,
+        ),
         child: ElevatedButton.icon(
           onPressed: onPressed,
-          icon: iconWidget,
-          label: labelWidget,
+          icon: Icon(icon ?? Icons.water_drop_rounded, size: 18),
+          label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            foregroundColor: isEnabled
-                ? Colors.white
-                : Colors.white.withAlpha(180),
+            foregroundColor: isEnabled ? Colors.white : Colors.white70,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
             ),
           ),
         ),

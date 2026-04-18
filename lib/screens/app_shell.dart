@@ -25,6 +25,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 1024;
+    final isLight = LavifyTheme.isLight(context);
 
     final pages = widget.mode == AppRole.client
         ? <Widget>[
@@ -124,11 +125,16 @@ class _AppShellState extends State<AppShell> {
                             height: 48,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  LavifyColors.primaryStrong,
-                                  LavifyColors.primary,
-                                ],
+                              gradient: LinearGradient(
+                                colors: isLight
+                                    ? const [
+                                        LavifyColors.lightNavy,
+                                        Color(0xFF4A6082),
+                                      ]
+                                    : const [
+                                        LavifyColors.primaryStrong,
+                                        LavifyColors.primary,
+                                      ],
                               ),
                               boxShadow: LavifyTheme.panelShadow(
                                 context,
@@ -206,7 +212,7 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         decoration: BoxDecoration(
-          color: LavifyTheme.navRailColor(context),
+          gradient: LavifyTheme.premiumPanelGradient(context),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: LavifyTheme.navRailBorderColor(context)),
           boxShadow: LavifyTheme.panelShadow(context, floating: false),
@@ -251,7 +257,7 @@ class _SidebarDestination extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        child: Ink(
+        child: Container(
           height: 52,
           padding: EdgeInsets.symmetric(horizontal: expanded ? 12 : 0),
           decoration: BoxDecoration(

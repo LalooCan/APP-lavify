@@ -90,6 +90,7 @@ class _HowItWorksCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     final radius = BorderRadius.circular(isCompact ? 20 : 24);
 
     return RepaintBoundary(
@@ -98,18 +99,26 @@ class _HowItWorksCard extends StatelessWidget {
         padding: EdgeInsets.all(isCompact ? 14 : 18),
         decoration: BoxDecoration(
           borderRadius: radius,
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xCC12203A),
-              Color(0xCC0C1527),
-            ],
+            colors: isLight
+                ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
+                : const [
+                    Color(0xCC12203A),
+                    Color(0xCC0C1527),
+                  ],
           ),
-          border: Border.all(color: LavifyColors.primary.withAlpha(34)),
+          border: Border.all(
+            color: isLight
+                ? const Color(0x88D9C9B5)
+                : LavifyColors.primary.withAlpha(34),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(28),
+              color: isLight
+                  ? const Color(0x181D2432)
+                  : Colors.black.withAlpha(28),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -127,15 +136,21 @@ class _HowItWorksCard extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-                    color: Colors.white.withAlpha(6),
+                    color: isLight
+                        ? const Color(0xFFFDF8F1)
+                        : Colors.white.withAlpha(6),
                     border: Border.all(
-                      color: LavifyColors.primary.withAlpha(18),
+                      color: isLight
+                          ? const Color(0x77D8C8B4)
+                          : LavifyColors.primary.withAlpha(18),
                     ),
                   ),
                   child: Text(
                     item.step,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: LavifyColors.primary,
+                      color: isLight
+                          ? LavifyColors.lightNavy
+                          : LavifyColors.primary,
                       fontWeight: FontWeight.w800,
                       fontSize: isCompact ? 13 : null,
                     ),
@@ -151,17 +166,23 @@ class _HowItWorksCard extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        LavifyColors.primary.withAlpha(34),
-                        Colors.white.withAlpha(8),
+                        isLight
+                            ? const Color(0x22D6B47B)
+                            : LavifyColors.primary.withAlpha(34),
+                        isLight ? Colors.white : Colors.white.withAlpha(8),
                       ],
                     ),
                     border: Border.all(
-                      color: LavifyColors.primary.withAlpha(32),
+                      color: isLight
+                          ? const Color(0x77D8C8B4)
+                          : LavifyColors.primary.withAlpha(32),
                     ),
                   ),
                   child: Icon(
                     item.icon,
-                    color: LavifyColors.primary,
+                    color: isLight
+                        ? LavifyColors.lightNavy
+                        : LavifyColors.primary,
                     size: isCompact ? 18 : 22,
                   ),
                 ),
@@ -175,6 +196,9 @@ class _HowItWorksCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: isCompact ? 16 : 18,
                 height: 1.05,
+                color: isLight
+                    ? LavifyColors.lightTextPrimary
+                    : LavifyColors.textPrimary,
               ),
             ),
             SizedBox(height: isCompact ? 6 : 8),
@@ -185,7 +209,9 @@ class _HowItWorksCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontSize: isCompact ? 12.5 : 13,
                 height: 1.35,
-                color: Colors.white.withAlpha(150),
+                color: isLight
+                    ? LavifyColors.lightTextSecondary
+                    : Colors.white.withAlpha(150),
               ),
             ),
           ],

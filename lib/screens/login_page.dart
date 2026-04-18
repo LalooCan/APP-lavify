@@ -43,13 +43,35 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             const Positioned(
               top: -120,
-              right: -60,
-              child: _GlowBubble(size: 280, color: Color(0x1F22C1FF)),
+              right: -20,
+              child: _GlowBubble(size: 360, color: Color(0x286AA8FF)),
+            ),
+            const Positioned(
+              top: 120,
+              left: -80,
+              child: _GlowBubble(size: 260, color: Color(0x122743FF)),
             ),
             const Positioned(
               bottom: -90,
               left: -40,
-              child: _GlowBubble(size: 240, color: Color(0x1628D17C)),
+              child: _GlowBubble(size: 280, color: Color(0x1034D39A)),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withAlpha(12),
+                        Colors.transparent,
+                        Colors.black.withAlpha(24),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
             SafeArea(
               child: Center(
@@ -151,15 +173,10 @@ class _LoginShowcase extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 24 : 34),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
+        borderRadius: BorderRadius.circular(38),
         border: Border.all(color: LavifyTheme.borderColor(context)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isLight
-              ? const [Color(0xFFFFFFFF), Color(0xFFF4F8FC)]
-              : const [Color(0xFF0A1528), Color(0xCC102446)],
-        ),
+        gradient: LavifyTheme.premiumPanelGradient(context),
+        boxShadow: LavifyTheme.panelShadow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,9 +184,13 @@ class _LoginShowcase extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0x1428D17C),
+              color: Colors.white.withAlpha(isLight ? 255 : 10),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0x2B28D17C)),
+              border: Border.all(
+                color: isLight
+                    ? const Color(0x2B28D17C)
+                    : const Color(0x266AA8FF),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -192,23 +213,81 @@ class _LoginShowcase extends StatelessWidget {
           ),
           SizedBox(height: compact ? 22 : 30),
           Text(
-            'Tu auto limpio sin romper tu rutina.',
+            'Una experiencia de lavado premium, diseñada como producto.',
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: compact ? 38 : 56,
-              height: 0.95,
+              fontSize: compact ? 36 : 58,
+              height: 0.92,
             ),
           ),
           const SizedBox(height: 16),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: Text(
-              'Inicia sesion para pedir lavados, seguir tus pedidos y guardar direcciones frecuentes desde una sola cuenta.',
+              'Inicia sesion para pedir servicios, seguir cada paso en tiempo real y mantener tu cuenta con el mismo nivel visual y operativo de una app premium.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: LavifyTheme.textSecondaryColor(context),
               ),
             ),
           ),
-          SizedBox(height: compact ? 24 : 34),
+          SizedBox(height: compact ? 26 : 36),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withAlpha(isLight ? 255 : 8),
+                  Colors.white.withAlpha(isLight ? 255 : 3),
+                ],
+              ),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      colors: [
+                        LavifyColors.primaryStrong,
+                        LavifyColors.accent,
+                      ],
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.dashboard_customize_rounded,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cuenta conectada con seguimiento y preferencias',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: LavifyTheme.textPrimaryColor(context),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Lavify concentra reservas, tracking y configuracion desde una sola superficie.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: compact ? 22 : 30),
           Wrap(
             spacing: 14,
             runSpacing: 14,
@@ -235,8 +314,15 @@ class _LoginShowcase extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: LavifyTheme.softFillStrongColor(context),
-              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withAlpha(isLight ? 255 : 7),
+                  Colors.white.withAlpha(isLight ? 255 : 2),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(30),
               border: Border.all(color: LavifyTheme.borderColor(context)),
             ),
             child: Column(
@@ -296,16 +382,10 @@ class _LoginCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: LavifyTheme.overlayPanelColor(context),
-        borderRadius: BorderRadius.circular(34),
+        gradient: LavifyTheme.premiumPanelGradient(context),
+        borderRadius: BorderRadius.circular(38),
         border: Border.all(color: LavifyTheme.borderColor(context)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 30,
-            offset: Offset(0, 18),
-          ),
-        ],
+        boxShadow: LavifyTheme.panelShadow(context),
       ),
       child: Form(
         key: formKey,
@@ -351,6 +431,20 @@ class _LoginCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 28),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(5),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: LavifyTheme.borderColor(context)),
+              ),
+              child: Text(
+                'Acceso a pedidos, tracking en vivo y direccion frecuente desde un solo panel.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(height: 24),
             Text(
               'Correo',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -394,7 +488,9 @@ class _LoginCard extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: conectar recuperacion de contrasena.
+                  },
                   child: const Text('Olvide mi contrasena'),
                 ),
               ],
@@ -578,8 +674,15 @@ class _MetricCard extends StatelessWidget {
       width: 170,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: LavifyTheme.softFillStrongColor(context),
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withAlpha(8),
+            Colors.white.withAlpha(3),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Column(
@@ -621,7 +724,12 @@ class _BenefitRow extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: const Color(0x1A22C1FF),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0x246AA8FF),
+                Color(0x0F6AA8FF),
+              ],
+            ),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: LavifyColors.primary),
@@ -661,13 +769,31 @@ class _ProviderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: logo,
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-        foregroundColor: LavifyTheme.textPrimaryColor(context),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withAlpha(7),
+            Colors.white.withAlpha(2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: logo,
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide.none,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          foregroundColor: LavifyTheme.textPrimaryColor(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+        ),
       ),
     );
   }
@@ -726,22 +852,22 @@ InputDecoration _inputDecoration({
     ),
     suffixIcon: suffix,
     filled: true,
-    fillColor: LavifyTheme.surfaceAltColor(context),
+    fillColor: Colors.white.withAlpha(LavifyTheme.isLight(context) ? 255 : 5),
     contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       borderSide: const BorderSide(color: LavifyColors.primary),
     ),
     errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       borderSide: const BorderSide(color: Color(0xFFFF6B6B)),
     ),
     focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       borderSide: const BorderSide(color: Color(0xFFFF6B6B)),
     ),
   );

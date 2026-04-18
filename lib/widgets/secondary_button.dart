@@ -18,14 +18,37 @@ class SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     final button = DecoratedBox(
       decoration: BoxDecoration(
-        color: LavifyTheme.overlayPanelColor(context).withAlpha(220),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-        boxShadow: LavifyTheme.panelShadow(context, floating: false),
+        gradient: LavifyTheme.premiumPanelGradient(context),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isLight
+              ? const Color(0x88D9C9B5)
+              : LavifyTheme.borderColor(context),
+        ),
+        boxShadow: [
+          ...LavifyTheme.panelShadow(context, floating: false),
+          if (isLight)
+            const BoxShadow(
+              color: Color(0x12FFFFFF),
+              blurRadius: 10,
+              spreadRadius: -2,
+            ),
+        ],
       ),
-      child: RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: isLight
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x22FFFFFF), Color(0x00FFFFFF)],
+                )
+              : null,
+        ),
         child: OutlinedButton.icon(
           onPressed: onPressed,
           icon: Icon(icon ?? Icons.arrow_forward_rounded, size: 18),
@@ -33,8 +56,9 @@ class SecondaryButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             side: BorderSide.none,
             backgroundColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
             ),
           ),
         ),
