@@ -1,7 +1,7 @@
 import '../models/wash_models.dart';
 
 abstract class ProfileRepository {
-  UserProfile getProfile();
-  UserProfile saveProfile(UserProfile profile);
-  UserProfile syncLoginEmail(String email);
+  Future<UserProfile?> getProfile(String uid);
+  Future<UserProfile> updateProfile(UserProfile profile);
+  Future<void> updateAddress(String uid, String address);
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/wash_models.dart';
 import 'order_repository.dart';
@@ -117,8 +118,12 @@ class FirestoreOrderRepository implements OrderRepository {
     return {
       'request': order.request.toMap(),
       'status': order.status.apiValue,
+      'clientId': order.clientId.trim().isNotEmpty
+          ? order.clientId
+          : FirebaseAuth.instance.currentUser?.uid,
       'customerEmail': order.customerEmail,
       'assignedWasherName': order.assignedWasherName,
+      'workerId': order.workerId,
       'assignedWorkerEmail': order.assignedWorkerEmail,
       'assignedVehicleLabel': order.assignedVehicleLabel,
       'createdAt': order.createdAt.toIso8601String(),
@@ -135,9 +140,11 @@ class FirestoreOrderRepository implements OrderRepository {
       id: orderId,
       request: WashRequest.fromMap(requestData),
       status: OrderStatusX.fromValue(data['status'] as String? ?? 'searching'),
+      clientId: data['clientId'] as String? ?? '',
       customerEmail: data['customerEmail'] as String? ?? '',
       assignedWasherName:
           data['assignedWasherName'] as String? ?? 'Por asignar',
+      workerId: data['workerId'] as String?,
       assignedWorkerEmail: data['assignedWorkerEmail'] as String?,
       assignedVehicleLabel: data['assignedVehicleLabel'] as String? ?? '',
       createdAt: _parseDateTime(data['createdAt']),

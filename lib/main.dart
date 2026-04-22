@@ -6,6 +6,7 @@ import 'models/session_models.dart';
 import 'screens/app_shell.dart';
 import 'screens/role_login_page.dart';
 import 'services/auth_service.dart';
+import 'services/profile_service.dart';
 import 'services/session_service.dart';
 import 'services/theme_service.dart';
 import 'theme/theme.dart';
@@ -21,6 +22,7 @@ class LavifyApp extends StatelessWidget {
 
   static final ThemeService _themeService = ThemeService();
   static final AuthService _authService = AuthService();
+  static final ProfileService _profileService = ProfileService();
   static final SessionService _sessionService = SessionService();
 
   @override
@@ -64,16 +66,25 @@ class _AuthGate extends StatelessWidget {
 
             final user = snapshot.data;
             if (user != null) {
-              return FutureBuilder<AppRole>(
-                future: LavifyApp._authService.resolveUserRole(user: user),
-                builder: (context, roleSnapshot) {
-                  if (roleSnapshot.connectionState == ConnectionState.waiting) {
+              return FutureBuilder(
+                future: LavifyApp._authService.loadOrCreateUserProfile(
+                  user: user,
+                ),
+                builder: (context, profileSnapshot) {
+                  if (profileSnapshot.connectionState ==
+                      ConnectionState.waiting) {
                     return const Scaffold(
                       body: Center(child: CircularProgressIndicator()),
                     );
                   }
 
-                  return AppShell(mode: roleSnapshot.data ?? AppRole.client);
+                  final profile = profileSnapshot.data;
+                  if (profile != null) {
+                    LavifyApp._profileService.setProfile(profile);
+                    LavifyApp._sessionService.startSessionFromProfile(profile);
+                  }
+
+                  return AppShell(mode: profile?.role ?? AppRole.client);
                 },
               );
             }

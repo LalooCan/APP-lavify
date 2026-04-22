@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/session_models.dart';
 import '../services/auth_service.dart';
@@ -207,33 +208,91 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
     });
   }
 
-  void _submitLogin() {
+  Future<void> _submitLogin() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    _profileService.syncLoginIdentity(
-      email: _emailController.text,
-      displayName: _authIntent == _AuthEntryIntent.signUp
-          ? _nameController.text
-          : null,
-    );
-    final profile = _profileService.profile.value;
-    _sessionService.startSession(
-      role: _selectedMode,
-      email: profile.email,
-      visibleName: profile.name,
-      favoriteAddress: profile.favoriteAddress,
-    );
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => AppShell(mode: _selectedMode)),
-    );
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final displayName = _authIntent == _AuthEntryIntent.signUp
+        ? _nameController.text.trim()
+        : null;
+
+    try {
+      UserCredential credential;
+      if (_authIntent == _AuthEntryIntent.signUp) {
+        credential = await _authService.createUserWithEmailAndPassword(
+          email,
+          password,
+          fallbackRole: _selectedMode,
+          displayName: displayName,
+        );
+      } else {
+        try {
+          credential = await _authService.signInWithEmailAndPassword(
+            email,
+            password,
+          );
+        } on FirebaseAuthException catch (error) {
+          if (error.code != 'user-not-found') {
+            rethrow;
+          }
+          credential = await _authService.createUserWithEmailAndPassword(
+            email,
+            password,
+            fallbackRole: _selectedMode,
+            displayName: displayName,
+          );
+        }
+      }
+
+      final user = credential.user;
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'missing-user',
+          message: 'No se pudo cargar el usuario autenticado.',
+        );
+      }
+
+      final profile = await _authService.loadOrCreateUserProfile(
+        user: user,
+        fallbackRole: _selectedMode,
+        displayName: displayName,
+      );
+      _profileService.setProfile(profile);
+      _sessionService.startSessionFromProfile(profile);
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => AppShell(mode: profile.role)),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_firebaseAuthMessage(error))),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo iniciar sesion. Intentalo de nuevo.'),
+        ),
+      );
+    }
   }
 
   Future<void> _signInWithGoogle() async {
     FocusScope.of(context).unfocus();
-    final user = await _authService.signInWithGoogle();
+    final user = await _authService.signInWithGoogle(
+      fallbackRole: _selectedMode,
+    );
     if (!mounted) {
       return;
     }
@@ -245,18 +304,40 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
       return;
     }
 
-    final email = user.email ?? '';
-    _profileService.syncLoginIdentity(email: email);
-    final profile = _profileService.profile.value;
-    _sessionService.startSession(
-      role: _selectedMode,
-      email: email.isNotEmpty ? email : profile.email,
-      visibleName: user.displayName ?? profile.name,
-      favoriteAddress: profile.favoriteAddress,
+    final profile = await _authService.loadOrCreateUserProfile(
+      user: user,
+      fallbackRole: _selectedMode,
     );
+    _profileService.setProfile(profile);
+    _sessionService.startSessionFromProfile(profile);
+    if (!mounted) {
+      return;
+    }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => AppShell(mode: _selectedMode)),
+      MaterialPageRoute<void>(builder: (_) => AppShell(mode: profile.role)),
     );
+  }
+
+  String _firebaseAuthMessage(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'El correo no tiene un formato valido.';
+      case 'user-disabled':
+        return 'Esta cuenta esta deshabilitada.';
+      case 'user-not-found':
+        return 'No existe una cuenta con ese correo.';
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Correo o contrasena incorrectos.';
+      case 'email-already-in-use':
+        return 'Ese correo ya esta registrado. Inicia sesion.';
+      case 'weak-password':
+        return 'La contrasena es demasiado debil.';
+      case 'network-request-failed':
+        return 'No hay conexion. Revisa tu internet e intentalo de nuevo.';
+      default:
+        return error.message ?? 'No se pudo autenticar la cuenta.';
+    }
   }
 }
 

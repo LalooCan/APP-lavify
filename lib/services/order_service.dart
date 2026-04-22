@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../app_config.dart';
 import '../models/session_models.dart';
@@ -144,11 +145,13 @@ class OrderService {
       await Future<void>.delayed(const Duration(milliseconds: 900));
     }
     final session = _sessionService.currentSession.value;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
     final request = draft.toRequest();
     final order = WashOrder(
       id: 'order_${DateTime.now().millisecondsSinceEpoch}',
       request: request,
       status: OrderStatus.searching,
+      clientId: firebaseUser?.uid ?? '',
       customerEmail: session?.email ?? 'cliente@lavify.app',
       assignedWasherName: 'Por asignar',
       assignedWorkerEmail: null,
@@ -156,6 +159,7 @@ class OrderService {
       createdAt: DateTime.now().toUtc(),
       etaMinutes: request.estimatedMinutes,
     );
+    // TODO: mover a Cloud Function antes de producción
     await _repository.createOrder(order);
     if (!AppConfig.usesRemoteOrdersBackend) {
       orders.value = _repository.getOrders();
@@ -213,10 +217,12 @@ class OrderService {
       return null;
     }
 
+    // TODO: mover a Cloud Function antes de producción
     return _saveOrder(
       order.copyWith(
         status: OrderStatus.assigned,
         assignedWasherName: session.visibleName,
+        workerId: FirebaseAuth.instance.currentUser?.uid,
         assignedWorkerEmail: workerEmail,
         assignedVehicleLabel: 'Unidad activa',
         etaMinutes: 18,
@@ -254,6 +260,7 @@ class OrderService {
       OrderStatus.searching => order.etaMinutes,
     };
 
+    // TODO: mover a Cloud Function antes de producción
     return _saveOrder(order.copyWith(status: nextStatus, etaMinutes: nextEta));
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/session_models.dart';
 import '../models/wash_models.dart';
+import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/session_service.dart';
 import '../services/theme_service.dart';
@@ -18,6 +19,7 @@ class ProfileHubPage extends StatelessWidget {
   static final _profileService = ProfileService();
   static final _sessionService = SessionService();
   static final _themeService = ThemeService();
+  static final _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -321,6 +323,7 @@ class ProfileHubPage extends StatelessWidget {
       return;
     }
 
+    await _authService.signOut();
     _sessionService.clearSession();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(

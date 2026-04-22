@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import '../app_config.dart';
 import '../models/wash_models.dart';
+import '../repositories/firestore_profile_repository.dart';
 import '../repositories/mock_profile_repository.dart';
 import '../repositories/profile_repository.dart';
 import 'session_service.dart';
 
 class ProfileService {
-  ProfileService._internal() : _repository = MockProfileRepository();
+  ProfileService._internal() : _repository = _buildRepository();
 
   final ProfileRepository _repository;
   static final SessionService _sessionService = SessionService();
@@ -16,11 +19,44 @@ class ProfileService {
   factory ProfileService() => _instance;
 
   late final ValueNotifier<UserProfile> profile = ValueNotifier<UserProfile>(
-    _repository.getProfile(),
+    const UserProfile(
+      name: 'Elige tu nombre',
+      email: '',
+      vehicleLabel: '',
+      favoriteAddress: '',
+      paymentMethod: '',
+    ),
   );
 
+  static ProfileRepository _buildRepository() {
+    switch (AppConfig.backendMode) {
+      case BackendMode.firestore:
+        return FirestoreProfileRepository();
+      case BackendMode.mock:
+        return MockProfileRepository();
+    }
+  }
+
+  void setProfile(UserProfile next) {
+    profile.value = next;
+    _sessionService.startSessionFromProfile(next);
+  }
+
+  Future<void> loadCurrentUserProfile() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) {
+      return;
+    }
+    final remoteProfile = await _repository.getProfile(uid);
+    if (remoteProfile == null) {
+      return;
+    }
+    setProfile(remoteProfile);
+  }
+
   void updateProfile(UserProfile next) {
-    profile.value = _repository.saveProfile(next);
+    profile.value = next;
+    _repository.updateProfile(next);
     _sessionService.updateSession(
       email: next.email,
       visibleName: next.name,
@@ -53,7 +89,7 @@ class ProfileService {
           ? resolvedName
           : currentProfile.name,
     );
-    _repository.saveProfile(profile.value);
+    _repository.updateProfile(profile.value);
     _sessionService.updateSession(
       email: profile.value.email,
       visibleName: profile.value.name,
@@ -66,9 +102,15 @@ class ProfileService {
       return;
     }
 
-    profile.value = _repository.saveProfile(
-      profile.value.copyWith(favoriteAddress: normalizedAddress),
+    final nextProfile = profile.value.copyWith(
+      favoriteAddress: normalizedAddress,
     );
+    profile.value = nextProfile;
+    if (nextProfile.uid.trim().isNotEmpty) {
+      _repository.updateAddress(nextProfile.uid, normalizedAddress);
+    } else {
+      _repository.updateProfile(nextProfile);
+    }
     _sessionService.updateSession(favoriteAddress: normalizedAddress);
   }
 

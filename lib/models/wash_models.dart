@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'session_models.dart';
+
 class WashPackage {
   const WashPackage({
     required this.id,
@@ -557,8 +559,10 @@ class WashOrder {
     required this.id,
     required this.request,
     required this.status,
+    this.clientId = '',
     required this.customerEmail,
     required this.assignedWasherName,
+    this.workerId,
     this.assignedWorkerEmail,
     required this.assignedVehicleLabel,
     required this.createdAt,
@@ -568,8 +572,10 @@ class WashOrder {
   final String id;
   final WashRequest request;
   final OrderStatus status;
+  final String clientId;
   final String customerEmail;
   final String assignedWasherName;
+  final String? workerId;
   final String? assignedWorkerEmail;
   final String assignedVehicleLabel;
   final DateTime createdAt;
@@ -580,8 +586,10 @@ class WashOrder {
       id: map['id'] as String,
       request: WashRequest.fromMap(map['request'] as Map<String, dynamic>),
       status: OrderStatusX.fromValue(map['status'] as String),
+      clientId: map['clientId'] as String? ?? '',
       customerEmail: map['customerEmail'] as String,
       assignedWasherName: map['assignedWasherName'] as String,
+      workerId: map['workerId'] as String?,
       assignedWorkerEmail: map['assignedWorkerEmail'] as String?,
       assignedVehicleLabel: map['assignedVehicleLabel'] as String,
       createdAt: DateTime.parse(map['createdAt'] as String),
@@ -591,8 +599,10 @@ class WashOrder {
 
   WashOrder copyWith({
     OrderStatus? status,
+    String? clientId,
     String? customerEmail,
     String? assignedWasherName,
+    String? workerId,
     String? assignedWorkerEmail,
     String? assignedVehicleLabel,
     int? etaMinutes,
@@ -601,8 +611,10 @@ class WashOrder {
       id: id,
       request: request,
       status: status ?? this.status,
+      clientId: clientId ?? this.clientId,
       customerEmail: customerEmail ?? this.customerEmail,
       assignedWasherName: assignedWasherName ?? this.assignedWasherName,
+      workerId: workerId ?? this.workerId,
       assignedWorkerEmail: assignedWorkerEmail ?? this.assignedWorkerEmail,
       assignedVehicleLabel: assignedVehicleLabel ?? this.assignedVehicleLabel,
       createdAt: createdAt,
@@ -630,8 +642,10 @@ class WashOrder {
       'id': id,
       'request': request.toMap(),
       'status': status.apiValue,
+      'clientId': clientId,
       'customerEmail': customerEmail,
       'assignedWasherName': assignedWasherName,
+      'workerId': workerId,
       'assignedWorkerEmail': assignedWorkerEmail,
       'assignedVehicleLabel': assignedVehicleLabel,
       'createdAt': createdAt.toIso8601String(),
@@ -731,52 +745,80 @@ extension WashOrderTrackingX on WashOrder {
 
 class UserProfile {
   const UserProfile({
+    this.uid = '',
     required this.name,
     required this.email,
+    this.role = AppRole.client,
     required this.vehicleLabel,
     required this.favoriteAddress,
     required this.paymentMethod,
+    this.photoUrl,
   });
 
+  final String uid;
   final String name;
   final String email;
+  final AppRole role;
   final String vehicleLabel;
   final String favoriteAddress;
   final String paymentMethod;
+  final String? photoUrl;
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
+    final rawRole = (map['role'] as String? ?? AppRole.client.name)
+        .trim()
+        .toLowerCase();
+
     return UserProfile(
-      name: map['name'] as String,
-      email: map['email'] as String,
-      vehicleLabel: map['vehicleLabel'] as String,
-      favoriteAddress: map['favoriteAddress'] as String,
-      paymentMethod: map['paymentMethod'] as String,
+      uid: map['uid'] as String? ?? '',
+      name:
+          map['displayName'] as String? ??
+          map['name'] as String? ??
+          'Usuario Lavify',
+      email: map['email'] as String? ?? '',
+      role: rawRole == AppRole.worker.name ? AppRole.worker : AppRole.client,
+      vehicleLabel: map['vehicleLabel'] as String? ?? '',
+      favoriteAddress:
+          map['favoriteAddress'] as String? ?? map['address'] as String? ?? '',
+      paymentMethod: map['paymentMethod'] as String? ?? '',
+      photoUrl: map['photoUrl'] as String?,
     );
   }
 
   UserProfile copyWith({
+    String? uid,
     String? name,
     String? email,
+    AppRole? role,
     String? vehicleLabel,
     String? favoriteAddress,
     String? paymentMethod,
+    String? photoUrl,
   }) {
     return UserProfile(
+      uid: uid ?? this.uid,
       name: name ?? this.name,
       email: email ?? this.email,
+      role: role ?? this.role,
       vehicleLabel: vehicleLabel ?? this.vehicleLabel,
       favoriteAddress: favoriteAddress ?? this.favoriteAddress,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'name': name,
+      'displayName': name,
       'email': email,
+      'role': role.name,
       'vehicleLabel': vehicleLabel,
       'favoriteAddress': favoriteAddress,
+      'address': favoriteAddress,
       'paymentMethod': paymentMethod,
+      'photoUrl': photoUrl,
     };
   }
 

@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfil: solo el dueño puede leer/escribir su perfil
+    match /profiles/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Pedidos: cliente ve solo los suyos, lavador ve pedidos asignados a él
+    match /orders/{orderId} {
+      allow create: if request.auth != null
+        && request.resource.data.clientId == request.auth.uid;
+      allow read: if request.auth != null
+        && (resource.data.clientId == request.auth.uid
+        || resource.data.workerId == request.auth.uid);
+      allow update: if request.auth != null
+        && (resource.data.clientId == request.auth.uid
+        || resource.data.workerId == request.auth.uid);
+    }
+
+    // Tracking: cliente y lavador del pedido pueden leer/escribir
+    match /tracking/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Lavadores disponibles: cualquier autenticado puede leer, solo el dueño escribe
+    match /workers/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

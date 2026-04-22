@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/session_models.dart';
+import '../models/wash_models.dart';
 
 class SessionService {
   SessionService._internal();
@@ -14,6 +15,7 @@ class SessionService {
   );
 
   void startSession({
+    String uid = '',
     required AppRole role,
     required String email,
     required String visibleName,
@@ -24,6 +26,16 @@ class SessionService {
       email: email.trim(),
       visibleName: visibleName.trim(),
       favoriteAddress: favoriteAddress.trim(),
+    );
+  }
+
+  void startSessionFromProfile(UserProfile profile) {
+    startSession(
+      uid: profile.uid,
+      role: profile.role,
+      email: profile.email,
+      visibleName: profile.name,
+      favoriteAddress: profile.favoriteAddress,
     );
   }
 

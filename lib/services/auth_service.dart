@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/session_models.dart';
+import '../models/wash_models.dart';
 
 class AuthService {
   static const _webClientId =
@@ -67,6 +68,41 @@ class AuthService {
     }
   }
 
+  Future<UserCredential> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) {
+    return _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+  }
+
+  Future<UserCredential> createUserWithEmailAndPassword(
+    String email,
+    String password, {
+    AppRole fallbackRole = AppRole.client,
+    String? displayName,
+  }) async {
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    final user = credential.user;
+    if (user != null) {
+      final normalizedDisplayName = displayName?.trim() ?? '';
+      if (normalizedDisplayName.isNotEmpty) {
+        await user.updateDisplayName(normalizedDisplayName);
+      }
+      await _ensureUserProfile(
+        user: user,
+        fallbackRole: fallbackRole,
+        displayName: normalizedDisplayName,
+      );
+    }
+    return credential;
+  }
+
   Future<AppRole> resolveUserRole({
     User? user,
     AppRole fallbackRole = AppRole.client,
@@ -96,6 +132,26 @@ class AuthService {
     return snapshot.data();
   }
 
+  Future<UserProfile> loadOrCreateUserProfile({
+    User? user,
+    AppRole fallbackRole = AppRole.client,
+    String? displayName,
+  }) async {
+    final current = user ?? currentUser;
+    if (current == null) {
+      throw StateError('No hay usuario autenticado.');
+    }
+
+    await _ensureUserProfile(
+      user: current,
+      fallbackRole: fallbackRole,
+      displayName: displayName,
+    );
+    final snapshot = await _profilesCollection.doc(current.uid).get();
+    final data = snapshot.data() ?? const <String, dynamic>{};
+    return UserProfile.fromMap(data);
+  }
+
   Future<void> signOut() async {
     if (!kIsWeb) {
       await _googleSignIn.signOut();
@@ -106,15 +162,21 @@ class AuthService {
   Future<void> _ensureUserProfile({
     required User user,
     required AppRole fallbackRole,
+    String? displayName,
   }) async {
     final doc = _profilesCollection.doc(user.uid);
     final snapshot = await doc.get();
     final existing = snapshot.data();
     final role = existing?['role'] as String? ?? fallbackRole.name;
+    final resolvedName =
+        displayName?.trim().isNotEmpty == true
+            ? displayName!.trim()
+            : user.displayName ?? existing?['displayName'] ?? existing?['name'];
 
     await doc.set({
       'uid': user.uid,
-      'name': user.displayName ?? existing?['name'] ?? 'Usuario Lavify',
+      'name': resolvedName ?? 'Usuario Lavify',
+      'displayName': resolvedName ?? 'Usuario Lavify',
       'email': user.email ?? existing?['email'] ?? '',
       'photoUrl': user.photoURL ?? existing?['photoUrl'],
       'role': role,

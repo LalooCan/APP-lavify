@@ -4,6 +4,7 @@ class AppConfig {
   const AppConfig._();
 
   // Cambia esta linea para mover toda la app entre mocks y Firestore.
+  // Antes de activar produccion, despliega firestore.rules con Firebase CLI.
   static const BackendMode backendMode = BackendMode.firestore;
 
   static BackendMode get ordersBackendMode => backendMode;

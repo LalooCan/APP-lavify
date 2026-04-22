@@ -2,6 +2,20 @@ import '../models/wash_models.dart';
 import 'profile_repository.dart';
 
 class MockProfileRepository implements ProfileRepository {
+  @override
+  Future<UserProfile?> getProfile(String uid) async => _profile;
+
+  @override
+  Future<UserProfile> updateProfile(UserProfile profile) async {
+    _profile = profile;
+    return _profile;
+  }
+
+  @override
+  Future<void> updateAddress(String uid, String address) async {
+    _profile = _profile.copyWith(favoriteAddress: address.trim());
+  }
+
   UserProfile _profile = const UserProfile(
     name: 'Elige tu nombre',
     email: 'cliente@lavify.app',
@@ -10,16 +24,12 @@ class MockProfileRepository implements ProfileRepository {
     paymentMethod: 'Visa terminacion 4242',
   );
 
-  @override
-  UserProfile getProfile() => _profile;
 
-  @override
   UserProfile saveProfile(UserProfile profile) {
     _profile = profile;
     return _profile;
   }
 
-  @override
   UserProfile syncLoginEmail(String email) {
     final normalizedEmail = email.trim();
     if (normalizedEmail.isEmpty) {

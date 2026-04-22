@@ -6,7 +6,7 @@ import 'tracking_repository.dart';
 class FirestoreTrackingRepository implements TrackingRepository {
   FirestoreTrackingRepository({
     FirebaseFirestore? firestore,
-    this.collectionPath = 'order_tracking',
+    this.collectionPath = 'tracking',
   }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
