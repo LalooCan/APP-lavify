@@ -41,18 +41,18 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0.7, -1.0),
-            radius: 1.2,
-            colors: [Color(0x2A3D7BFF), LavifyColors.background],
+            center: Alignment(0.75, -0.95),
+            radius: 1.18,
+            colors: [Color(0x183D7BFF), LavifyColors.background],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(maxWidth: 560),
               child: Column(
                 children: [
-                  _RequestHeader(
+                  _RequestWashHeader(
                     step: _step,
                     onClose: () => Navigator.of(context).pop(),
                   ),
@@ -61,9 +61,19 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                       duration: const Duration(milliseconds: 220),
                       switchInCurve: Curves.easeOutCubic,
                       switchOutCurve: Curves.easeOutCubic,
+                      layoutBuilder: (currentChild, previousChildren) {
+                        return Stack(
+                          alignment: Alignment.topCenter,
+                          fit: StackFit.expand,
+                          children: [
+                            ...previousChildren,
+                            ?currentChild,
+                          ],
+                        );
+                      },
                       transitionBuilder: (child, animation) {
                         final slide = Tween<Offset>(
-                          begin: const Offset(0.04, 0),
+                          begin: const Offset(0.035, 0),
                           end: Offset.zero,
                         ).animate(animation);
                         return FadeTransition(
@@ -71,7 +81,7 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                           child: SlideTransition(position: slide, child: child),
                         );
                       },
-                      child: _RequestStepBody(
+                      child: _RequestFlowBody(
                         key: ValueKey<int>(_step),
                         step: _step,
                         controller: _controller,
@@ -81,9 +91,11 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                   AnimatedBuilder(
                     animation: _controller.summaryListenable,
                     builder: (context, _) {
-                      return _RequestBottomBar(
+                      return _BottomContinueButton(
                         step: _step,
                         total: _controller.draft.totalPrice,
+                        selectedVehicleId:
+                            _controller.selectedVehicleNotifier.value.id,
                         onBack: _step == 0
                             ? null
                             : () => setState(() => _step -= 1),
@@ -136,8 +148,8 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
   }
 }
 
-class _RequestHeader extends StatelessWidget {
-  const _RequestHeader({required this.step, required this.onClose});
+class _RequestWashHeader extends StatelessWidget {
+  const _RequestWashHeader({required this.step, required this.onClose});
 
   final int step;
   final VoidCallback onClose;
@@ -145,17 +157,24 @@ class _RequestHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: LavifyColors.border)),
       ),
       child: Row(
         children: [
-          _SurfaceIconButton(icon: Icons.close_rounded, onTap: onClose),
+          _RoundIconButton(
+            icon: Icons.close_rounded,
+            onTap: onClose,
+            size: 40,
+            radius: 13,
+            iconSize: 18,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
                   'Pedir lavado',
@@ -163,44 +182,58 @@ class _RequestHeader extends StatelessWidget {
                     color: LavifyColors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
+                    height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   'Paso ${step + 1} de 3',
                   style: const TextStyle(
                     color: LavifyColors.textSecondary,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
+                    height: 1,
                   ),
                 ),
               ],
             ),
           ),
-          Row(
-            children: List.generate(3, (index) {
-              final active = index == step;
-              final filled = index <= step;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: active ? 28 : 8,
-                height: 8,
-                margin: EdgeInsets.only(left: index == 0 ? 0 : 5),
-                decoration: BoxDecoration(
-                  color: filled ? LavifyColors.primary : LavifyColors.border,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              );
-            }),
-          ),
+          _StepProgress(step: step),
         ],
       ),
     );
   }
 }
 
-class _RequestStepBody extends StatelessWidget {
-  const _RequestStepBody({
+class _StepProgress extends StatelessWidget {
+  const _StepProgress({required this.step});
+
+  final int step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        final active = index == step;
+        final filled = index <= step;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          margin: EdgeInsets.only(left: index == 0 ? 0 : 5),
+          width: active ? 28 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: filled ? LavifyColors.primary : LavifyColors.border,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _RequestFlowBody extends StatelessWidget {
+  const _RequestFlowBody({
     super.key,
     required this.step,
     required this.controller,
@@ -212,7 +245,7 @@ class _RequestStepBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 32),
       child: switch (step) {
         0 => _PackageStep(controller: controller),
         1 => _LocationVehicleStep(controller: controller),
@@ -235,22 +268,202 @@ class _PackageStep extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
+            const _RequestSectionTitle(
               title: 'Elige tu paquete',
               subtitle: 'Selecciona el nivel de limpieza que necesitas',
             ),
-            const SizedBox(height: 20),
-            for (final package in washPackages) ...[
-              _PackageTile(
-                package: package,
-                selected: package.id == selectedPackage.id,
-                onTap: () => controller.selectPackage(package),
+            const SizedBox(height: 18),
+            ...washPackages.map(
+              (package) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _PackageCard(
+                  package: package,
+                  selected: package.id == selectedPackage.id,
+                  onTap: () => controller.selectPackage(package),
+                ),
               ),
-              const SizedBox(height: 12),
-            ],
+            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _PackageCard extends StatelessWidget {
+  const _PackageCard({
+    required this.package,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final WashPackage package;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPopular = package.id == 'full-care';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: selected ? null : LavifyColors.surface,
+            gradient: selected
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0x243D7BFF), Color(0x146AA8FF)],
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? LavifyColors.primary : LavifyColors.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              if (isPopular)
+                const Positioned(top: -1, right: 16, child: _PopularBadge()),
+              Container(
+                constraints: const BoxConstraints(minHeight: 124),
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            package.name,
+                            style: const TextStyle(
+                              color: LavifyColors.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              height: 1.08,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            package.description,
+                            style: const TextStyle(
+                              color: LavifyColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.schedule_rounded,
+                                size: 13,
+                                color: LavifyColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _packageDuration(package.id),
+                                style: const TextStyle(
+                                  color: LavifyColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(top: isPopular ? 12 : 0),
+                          child: Text(
+                            package.formattedPrice,
+                            style: TextStyle(
+                              color: selected
+                                  ? LavifyColors.primary
+                                  : LavifyColors.textPrimary,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 160),
+                          opacity: selected ? 1 : 0,
+                          child: const _SelectedCheck(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PopularBadge extends StatelessWidget {
+  const _PopularBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(8)),
+      ),
+      child: const Text(
+        'MAS POPULAR',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          height: 1.2,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedCheck extends StatelessWidget {
+  const _SelectedCheck();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: const BoxDecoration(
+        color: LavifyColors.primary,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(Icons.check_rounded, size: 14, color: Colors.white),
     );
   }
 }
@@ -268,7 +481,6 @@ class _LocationVehicleStep extends StatelessWidget {
         controller.selectedVehicleNotifier,
         controller.addressNotifier,
         controller.locationMessageNotifier,
-        controller.locationResolutionNotifier,
         controller.isLocationConfirmedNotifier,
         controller.isResolvingLocationNotifier,
       ]),
@@ -281,11 +493,11 @@ class _LocationVehicleStep extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
+            const _RequestSectionTitle(
               title: 'Confirma ubicacion',
               subtitle: 'Donde esta tu auto ahora mismo',
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             _RadarLocationCard(
               address: address,
               location: controller.selectedLocationNotifier.value,
@@ -304,7 +516,7 @@ class _LocationVehicleStep extends StatelessWidget {
                 hintText: 'Direccion del servicio',
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             const _SectionLabel('Tipo de vehiculo'),
             const SizedBox(height: 12),
             GridView.builder(
@@ -315,7 +527,7 @@ class _LocationVehicleStep extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1.34,
+                childAspectRatio: 1.38,
               ),
               itemBuilder: (context, index) {
                 final vehicle = vehicleTypes[index];
@@ -326,21 +538,79 @@ class _LocationVehicleStep extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 18),
-            _InlineHint(
-              icon: controller.isLocationConfirmedNotifier.value
-                  ? Icons.verified_rounded
-                  : Icons.info_outline_rounded,
-              color: controller.isLocationConfirmedNotifier.value
-                  ? LavifyColors.success
-                  : LavifyColors.primary,
-              text:
-                  controller.locationMessageNotifier.value ??
-                  'Al continuar, la direccion queda confirmada para tu pedido.',
-            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _VehicleTile extends StatelessWidget {
+  const _VehicleTile({
+    required this.vehicle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final VehicleType vehicle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final extraFee = _vehicleExtraFee(vehicle.id);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0x1A6AA8FF) : LavifyColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? LavifyColors.primary : LavifyColors.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                vehicle.icon,
+                size: 22,
+                color: selected
+                    ? LavifyColors.primary
+                    : LavifyColors.textSecondary,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                vehicle.name.replaceAll(' mediano', ''),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected
+                      ? LavifyColors.textPrimary
+                      : LavifyColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (extraFee > 0) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '+\$$extraFee',
+                  style: const TextStyle(
+                    color: LavifyColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -361,238 +631,26 @@ class _ScheduleSummaryStep extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StepHeading(
+            const _RequestSectionTitle(
               title: 'Horario y resumen',
               subtitle: 'Confirma cuando quieres tu lavado',
             ),
-            const SizedBox(height: 18),
-            for (final slot in _preferredSchedules()) ...[
-              _ScheduleTile(
-                slot: slot,
-                selected: slot.id == selectedSchedule.id,
-                onTap: () => controller.selectSchedule(slot),
+            const SizedBox(height: 16),
+            ..._preferredSchedules().map(
+              (slot) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ScheduleTile(
+                  slot: slot,
+                  selected: slot.id == selectedSchedule.id,
+                  onTap: () => controller.selectSchedule(slot),
+                ),
               ),
-              const SizedBox(height: 10),
-            ],
-            const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 8),
             _SummaryCard(draft: draft),
           ],
         );
       },
-    );
-  }
-}
-
-class _PackageTile extends StatelessWidget {
-  const _PackageTile({
-    required this.package,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final WashPackage package;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0x171A68FF) : LavifyColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? LavifyColors.primary : LavifyColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            if (package.id == 'full-care')
-              Positioned(
-                top: -18,
-                right: 14,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 3,
-                  ),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        LavifyColors.primaryStrong,
-                        LavifyColors.primary,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'MAS POPULAR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        package.name,
-                        style: const TextStyle(
-                          color: LavifyColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        package.description,
-                        style: const TextStyle(
-                          color: LavifyColors.textSecondary,
-                          fontSize: 12,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.schedule_rounded,
-                            size: 13,
-                            color: LavifyColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _packageDuration(package.id),
-                            style: const TextStyle(
-                              color: LavifyColors.textSecondary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      package.formattedPrice,
-                      style: TextStyle(
-                        color: selected
-                            ? LavifyColors.primary
-                            : LavifyColors.textPrimary,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (selected) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          color: LavifyColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _VehicleTile extends StatelessWidget {
-  const _VehicleTile({
-    required this.vehicle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final VehicleType vehicle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final extraFee = _vehicleExtraFee(vehicle.id);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0x146AA8FF) : LavifyColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? LavifyColors.primary : LavifyColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              vehicle.icon,
-              size: 22,
-              color: selected
-                  ? LavifyColors.primary
-                  : LavifyColors.textSecondary,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              vehicle.name.replaceAll(' mediano', ''),
-              style: TextStyle(
-                color: selected
-                    ? LavifyColors.textPrimary
-                    : LavifyColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (extraFee > 0) ...[
-              const SizedBox(height: 2),
-              Text(
-                '+\$$extraFee',
-                style: const TextStyle(
-                  color: LavifyColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }
@@ -610,70 +668,72 @@ class _ScheduleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0x146AA8FF) : LavifyColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? LavifyColors.primary : LavifyColors.border,
-            width: selected ? 1.5 : 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0x1A6AA8FF) : LavifyColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? LavifyColors.primary : LavifyColors.border,
+              width: selected ? 1.5 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0x1A6AA8FF)
-                    : Colors.white.withAlpha(8),
-                borderRadius: BorderRadius.circular(11),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0x266AA8FF)
+                      : Colors.white.withAlpha(10),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  Icons.schedule_rounded,
+                  size: 18,
+                  color: selected
+                      ? LavifyColors.primary
+                      : LavifyColors.textSecondary,
+                ),
               ),
-              child: Icon(
-                Icons.schedule_rounded,
-                size: 18,
-                color: selected
-                    ? LavifyColors.primary
-                    : LavifyColors.textSecondary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _scheduleTitle(slot.id, slot.time),
-                    style: const TextStyle(
-                      color: LavifyColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _scheduleTitle(slot.id, slot.time),
+                      style: const TextStyle(
+                        color: LavifyColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _scheduleSubtitle(slot.id, slot.period),
-                    style: const TextStyle(
-                      color: LavifyColors.textSecondary,
-                      fontSize: 12,
+                    const SizedBox(height: 2),
+                    Text(
+                      _scheduleSubtitle(slot.id, slot.period),
+                      style: const TextStyle(
+                        color: LavifyColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (selected)
-              const Icon(
-                Icons.check_rounded,
-                size: 16,
-                color: LavifyColors.primary,
-              ),
-          ],
+              if (selected)
+                const Icon(
+                  Icons.check_rounded,
+                  size: 16,
+                  color: LavifyColors.primary,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -688,6 +748,8 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final extraFee = _vehicleExtraFee(draft.selectedVehicle.id);
+    final total = draft.totalPrice + extraFee;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -725,17 +787,16 @@ class _SummaryCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 78,
-                    child: Text(
-                      row.$1,
-                      style: const TextStyle(
-                        color: LavifyColors.textSecondary,
-                        fontSize: 13,
-                      ),
+                  Text(
+                    row.$1,
+                    style: const TextStyle(
+                      color: LavifyColors.textSecondary,
+                      fontSize: 13,
                     ),
                   ),
-                  Expanded(
+                  const Spacer(),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 190),
                     child: Text(
                       row.$2,
                       textAlign: TextAlign.right,
@@ -751,10 +812,10 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
+            padding: EdgeInsets.symmetric(vertical: 2),
             child: Divider(color: LavifyColors.border, height: 1),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             '${draft.selectedPackage.name} · ${draft.selectedPackage.formattedPrice}',
             style: const TextStyle(
@@ -791,7 +852,7 @@ class _SummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '\$${draft.totalPrice + extraFee}',
+                '\$$total',
                 style: const TextStyle(
                   color: LavifyColors.primary,
                   fontSize: 22,
@@ -851,6 +912,7 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
       decoration: BoxDecoration(
         color: const Color(0xFF0A1422),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: LavifyColors.border),
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -876,22 +938,27 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
           Positioned(
             right: 12,
             bottom: 12,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 210),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: LavifyColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: LavifyColors.border),
-              ),
-              child: Text(
-                widget.isResolving ? 'Resolviendo...' : address,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: LavifyColors.textPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: LavifyColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: LavifyColors.border),
+                ),
+                child: Text(
+                  widget.isResolving ? 'Resolviendo...' : address,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: LavifyColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -930,6 +997,7 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..color = const Color(0x126AA8FF)
       ..strokeWidth = 1;
+
     for (double y = 35; y < size.height; y += 35) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
@@ -941,6 +1009,7 @@ class _GridPainter extends CustomPainter {
       ..color = const Color(0x336AA8FF)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
+
     final path = Path()
       ..moveTo(size.width * 0.18, size.height * 0.78)
       ..quadraticBezierTo(
@@ -956,94 +1025,113 @@ class _GridPainter extends CustomPainter {
         size.height * 0.28,
       );
     canvas.drawPath(path, pathPaint);
+
+    final dotPaint = Paint()..color = const Color(0x886AA8FF);
+    for (int i = 0; i < 10; i++) {
+      final dx = size.width * (0.14 + (i * 0.075));
+      final dy = size.height * (0.66 - math.sin(i * 0.5) * 0.12);
+      canvas.drawCircle(Offset(dx, dy), 1.4, dotPaint);
+    }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _RequestBottomBar extends StatelessWidget {
-  const _RequestBottomBar({
+class _BottomContinueButton extends StatelessWidget {
+  const _BottomContinueButton({
     required this.step,
     required this.total,
+    required this.selectedVehicleId,
     required this.onBack,
     required this.onContinue,
   });
 
   final int step;
   final int total;
+  final String selectedVehicleId;
   final VoidCallback? onBack;
   final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
-    final extra = step == 1
-        ? _vehicleExtraFee(
-            (context
-                    .findAncestorStateOfType<_RequestWashFlowPageState>()
-                    ?._controller
-                    .selectedVehicleNotifier
-                    .value
-                    .id) ??
-                '',
-          )
-        : 0;
-    final label = step < 2 ? 'Continuar' : 'Confirmar · \$${total + extra}';
+    final extra = step == 1 ? _vehicleExtraFee(selectedVehicleId) : 0;
+    final isConfirm = step >= 2;
+    final label = isConfirm ? 'Confirmar · \$${total + extra}' : 'Continuar';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       decoration: const BoxDecoration(
+        color: LavifyColors.background,
         border: Border(top: BorderSide(color: LavifyColors.border)),
       ),
       child: Row(
         children: [
           if (onBack != null) ...[
-            _SurfaceIconButton(
+            _RoundIconButton(
               icon: Icons.arrow_back_rounded,
               onTap: onBack!,
-              large: true,
+              size: 50,
+              radius: 15,
+              iconSize: 20,
             ),
             const SizedBox(width: 12),
           ],
           Expanded(
-            child: InkWell(
-              onTap: onContinue,
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x403D7BFF),
-                      blurRadius: 20,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [LavifyColors.primaryStrong, LavifyColors.primary],
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      step < 2
-                          ? Icons.arrow_forward_rounded
-                          : Icons.check_rounded,
-                      size: 18,
-                      color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x4D3D7BFF),
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onContinue,
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    height: 50,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isConfirm) ...[
+                          const Icon(
+                            Icons.check_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            height: 1,
+                          ),
+                        ),
+                        if (!isConfirm) ...[
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1054,8 +1142,45 @@ class _RequestBottomBar extends StatelessWidget {
   }
 }
 
-class _StepHeading extends StatelessWidget {
-  const _StepHeading({required this.title, required this.subtitle});
+class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({
+    required this.icon,
+    required this.onTap,
+    this.size = 42,
+    this.radius = 15,
+    this.iconSize = 18,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final double size;
+  final double radius;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius),
+        child: Ink(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: LavifyColors.surface,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: LavifyColors.border),
+          ),
+          child: Icon(icon, size: iconSize, color: LavifyColors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+class _RequestSectionTitle extends StatelessWidget {
+  const _RequestSectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -1069,16 +1194,19 @@ class _StepHeading extends StatelessWidget {
           title,
           style: const TextStyle(
             color: LavifyColors.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            height: 1.02,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 7),
         Text(
           subtitle,
           style: const TextStyle(
-            color: LavifyColors.textSecondary,
+            color: Color(0xFF8E9BB2),
             fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.28,
           ),
         ),
       ],
@@ -1100,74 +1228,6 @@ class _SectionLabel extends StatelessWidget {
         fontSize: 11,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.6,
-      ),
-    );
-  }
-}
-
-class _InlineHint extends StatelessWidget {
-  const _InlineHint({
-    required this.icon,
-    required this.color,
-    required this.text,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SurfaceIconButton extends StatelessWidget {
-  const _SurfaceIconButton({
-    required this.icon,
-    required this.onTap,
-    this.large = false,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool large;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = large ? 50.0 : 40.0;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(large ? 15 : 13),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: LavifyColors.surface,
-          borderRadius: BorderRadius.circular(large ? 15 : 13),
-          border: Border.all(color: LavifyColors.border),
-        ),
-        child: Icon(
-          icon,
-          size: large ? 20 : 18,
-          color: LavifyColors.textPrimary,
-        ),
       ),
     );
   }
@@ -1238,7 +1298,7 @@ String _scheduleSubtitle(String scheduleId, String fallback) {
     case 'now':
       return '20-30 min de llegada';
     case 'today_630':
-      return '18:30 - 20:00';
+      return '14:00 - 17:00';
     case 'tomorrow_900':
       return '09:00 - 12:00';
     default:
