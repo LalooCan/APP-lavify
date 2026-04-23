@@ -1,13 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+
+import '../controllers/wash_request_draft_controller.dart';
 import '../models/wash_models.dart';
-import '../services/location_service.dart';
 import '../theme/theme.dart';
-import '../widgets/primary_button.dart';
-import '../widgets/secondary_button.dart';
-import '../widgets/section_text.dart';
-import '../widgets/section_container.dart';
 import 'order_confirmation_page.dart';
 
 class RequestWashFlowPage extends StatefulWidget {
@@ -20,215 +17,82 @@ class RequestWashFlowPage extends StatefulWidget {
 }
 
 class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
-  static final _locationService = LocationService();
-
-  late TextEditingController _addressController;
-  late TextEditingController _notesController;
-  late final ValueNotifier<WashPackage> _selectedPackageNotifier;
-  late final ValueNotifier<ScheduleSlot> _selectedScheduleNotifier;
-  late final ValueNotifier<VehicleType> _selectedVehicleNotifier;
-  late final ValueNotifier<ServiceLocation> _selectedLocationNotifier;
-  late final ValueNotifier<String> _addressNotifier;
-  late final ValueNotifier<String> _notesNotifier;
-  late final ValueNotifier<bool> _isLocationConfirmedNotifier;
-  late final ValueNotifier<bool> _isResolvingLocationNotifier;
-  late final ValueNotifier<String?> _locationMessageNotifier;
-  late final ValueNotifier<LocationResolution?> _locationResolutionNotifier;
-  final bool _isSubmitting = false;
-
-  WashRequestDraft get draft => WashRequestDraft(
-    selectedPackage: _selectedPackageNotifier.value,
-    address: _addressNotifier.value,
-    selectedSchedule: _selectedScheduleNotifier.value,
-    selectedVehicle: _selectedVehicleNotifier.value,
-    estimatedMinutes: 45,
-    travelFee: 20,
-    notes: _notesNotifier.value,
-    selectedLocation: _selectedLocationNotifier.value,
-    isLocationConfirmed: _isLocationConfirmedNotifier.value,
-  );
+  late final WashRequestDraftController _controller;
+  int _step = 0;
 
   @override
   void initState() {
     super.initState();
-    const initialLocation = ServiceLocation(
-      latitude: 19.432608,
-      longitude: -99.133209,
+    _controller = WashRequestDraftController(
+      initialPackage: widget.initialPackage ?? washPackages[1],
     );
-    _selectedPackageNotifier = ValueNotifier<WashPackage>(
-      widget.initialPackage ?? washPackages.last,
-    );
-    _selectedScheduleNotifier = ValueNotifier<ScheduleSlot>(scheduleSlots[1]);
-    _selectedVehicleNotifier = ValueNotifier<VehicleType>(vehicleTypes[1]);
-    _selectedLocationNotifier = ValueNotifier<ServiceLocation>(initialLocation);
-    _addressNotifier = ValueNotifier<String>('Av. Reforma 245, CDMX');
-    _notesNotifier = ValueNotifier<String>('');
-    _isLocationConfirmedNotifier = ValueNotifier<bool>(false);
-    _isResolvingLocationNotifier = ValueNotifier<bool>(false);
-    _locationMessageNotifier = ValueNotifier<String?>(null);
-    _locationResolutionNotifier = ValueNotifier<LocationResolution?>(null);
-    _addressController = TextEditingController(text: _addressNotifier.value);
-    _notesController = TextEditingController(text: _notesNotifier.value);
-    _resolveLocation(initialLocation, updateAddressField: true);
   }
 
   @override
   void dispose() {
-    _addressController.dispose();
-    _notesController.dispose();
-    _selectedPackageNotifier.dispose();
-    _selectedScheduleNotifier.dispose();
-    _selectedVehicleNotifier.dispose();
-    _selectedLocationNotifier.dispose();
-    _addressNotifier.dispose();
-    _notesNotifier.dispose();
-    _isLocationConfirmedNotifier.dispose();
-    _isResolvingLocationNotifier.dispose();
-    _locationMessageNotifier.dispose();
-    _locationResolutionNotifier.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 1100;
-    final isLight = LavifyTheme.isLight(context);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Pedir lavado')),
-      body: Container(
-        decoration: isLight
-            ? LavifyTheme.pageDecoration(context)
-            : const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF0A1423),
-                    Color(0xFF0E1B30),
-                    LavifyColors.background,
-                  ],
-                ),
-              ),
+      backgroundColor: LavifyColors.background,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0.7, -1.0),
+            radius: 1.2,
+            colors: [Color(0x2A3D7BFF), LavifyColors.background],
+          ),
+        ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isDesktop ? 56 : 20,
-              vertical: 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SectionText(
-                  title: 'Reserva tu lavado',
-                  highlight: 'en minutos',
-                  subtitle:
-                      'La seleccion del usuario ya se guarda en un draft local para luego enviarla a backend como una orden real.',
-                ),
-                const SizedBox(height: 28),
-                if (isDesktop)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 8,
-                        child: _BookingDetails(
-                          addressController: _addressController,
-                          notesController: _notesController,
-                          selectedPackageListenable: _selectedPackageNotifier,
-                          selectedScheduleListenable: _selectedScheduleNotifier,
-                          selectedVehicleListenable: _selectedVehicleNotifier,
-                          selectedLocationListenable: _selectedLocationNotifier,
-                          addressListenable: _addressNotifier,
-                          isLocationConfirmedListenable:
-                              _isLocationConfirmedNotifier,
-                          isResolvingLocationListenable:
-                              _isResolvingLocationNotifier,
-                          locationMessageListenable: _locationMessageNotifier,
-                          locationResolutionListenable:
-                              _locationResolutionNotifier,
-                          onPackageSelected: _handlePackageSelected,
-                          onScheduleSelected: _handleScheduleSelected,
-                          onVehicleSelected: _handleVehicleSelected,
-                          onAddressChanged: _handleAddressChanged,
-                          onNotesChanged: _handleNotesChanged,
-                          onLocationChanged: _handleLocationChanged,
-                          onConfirmLocation: _handleLocationConfirmation,
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 5,
-                        child: AnimatedBuilder(
-                          animation: Listenable.merge([
-                            _selectedPackageNotifier,
-                            _selectedScheduleNotifier,
-                            _selectedVehicleNotifier,
-                            _selectedLocationNotifier,
-                            _addressNotifier,
-                            _notesNotifier,
-                            _isLocationConfirmedNotifier,
-                          ]),
-                          builder: (context, _) {
-                            return _BookingSummary(
-                              draft: draft,
-                              onConfirm: _handleConfirm,
-                              isSubmitting: _isSubmitting,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _BookingDetails(
-                        addressController: _addressController,
-                        notesController: _notesController,
-                        selectedPackageListenable: _selectedPackageNotifier,
-                        selectedScheduleListenable: _selectedScheduleNotifier,
-                        selectedVehicleListenable: _selectedVehicleNotifier,
-                        selectedLocationListenable: _selectedLocationNotifier,
-                        addressListenable: _addressNotifier,
-                        isLocationConfirmedListenable:
-                            _isLocationConfirmedNotifier,
-                        isResolvingLocationListenable:
-                            _isResolvingLocationNotifier,
-                        locationMessageListenable: _locationMessageNotifier,
-                        locationResolutionListenable:
-                            _locationResolutionNotifier,
-                        onPackageSelected: _handlePackageSelected,
-                        onScheduleSelected: _handleScheduleSelected,
-                        onVehicleSelected: _handleVehicleSelected,
-                        onAddressChanged: _handleAddressChanged,
-                        onNotesChanged: _handleNotesChanged,
-                        onLocationChanged: _handleLocationChanged,
-                        onConfirmLocation: _handleLocationConfirmation,
-                      ),
-                      const SizedBox(height: 20),
-                      AnimatedBuilder(
-                        animation: Listenable.merge([
-                          _selectedPackageNotifier,
-                          _selectedScheduleNotifier,
-                          _selectedVehicleNotifier,
-                          _selectedLocationNotifier,
-                          _addressNotifier,
-                          _notesNotifier,
-                          _isLocationConfirmedNotifier,
-                        ]),
-                        builder: (context, _) {
-                          return _BookingSummary(
-                            draft: draft,
-                            onConfirm: _handleConfirm,
-                            isSubmitting: _isSubmitting,
-                          );
-                        },
-                      ),
-                    ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  _RequestHeader(
+                    step: _step,
+                    onClose: () => Navigator.of(context).pop(),
                   ),
-              ],
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeOutCubic,
+                      transitionBuilder: (child, animation) {
+                        final slide = Tween<Offset>(
+                          begin: const Offset(0.04, 0),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(position: slide, child: child),
+                        );
+                      },
+                      child: _RequestStepBody(
+                        key: ValueKey<int>(_step),
+                        step: _step,
+                        controller: _controller,
+                      ),
+                    ),
+                  ),
+                  AnimatedBuilder(
+                    animation: _controller.summaryListenable,
+                    builder: (context, _) {
+                      return _RequestBottomBar(
+                        step: _step,
+                        total: _controller.draft.totalPrice,
+                        onBack: _step == 0
+                            ? null
+                            : () => setState(() => _step -= 1),
+                        onContinue: _handleContinue,
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -236,1124 +100,438 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
     );
   }
 
-  void _handlePackageSelected(WashPackage package) {
-    _selectedPackageNotifier.value = package;
-  }
-
-  void _handleScheduleSelected(ScheduleSlot slot) {
-    _selectedScheduleNotifier.value = slot;
-  }
-
-  void _handleVehicleSelected(VehicleType vehicle) {
-    _selectedVehicleNotifier.value = vehicle;
-  }
-
-  void _handleAddressChanged(String value) {
-    _addressNotifier.value = value;
-    _isLocationConfirmedNotifier.value = false;
-    _locationResolutionNotifier.value = LocationResolution(
-      location: _selectedLocationNotifier.value,
-      address: value.trim().isEmpty
-          ? _selectedLocationNotifier.value.coordinatesLabel
-          : value,
-      source: LocationAddressSource.manual,
-      isPrecise: false,
-    );
-    _locationMessageNotifier.value = null;
-  }
-
-  void _handleNotesChanged(String value) {
-    _notesNotifier.value = value;
-  }
-
-  void _handleLocationChanged(ServiceLocation location) {
-    _selectedLocationNotifier.value = location;
-    _isLocationConfirmedNotifier.value = false;
-    _locationResolutionNotifier.value = LocationResolution(
-      location: location,
-      address: location.coordinatesLabel,
-      source: LocationAddressSource.fallback,
-      isPrecise: false,
-    );
-    _locationMessageNotifier.value = null;
-    _resolveLocation(location, updateAddressField: true);
-  }
-
-  void _handleLocationConfirmation() {
-    final resolvedAddress = _addressController.text.trim();
-    if (resolvedAddress.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Selecciona o escribe una direccion antes de confirmarla.',
-          ),
-        ),
-      );
+  void _handleContinue() {
+    if (_step == 0) {
+      setState(() => _step = 1);
       return;
     }
 
-    _addressNotifier.value = resolvedAddress;
-    _isLocationConfirmedNotifier.value = true;
-    _locationResolutionNotifier.value = LocationResolution(
-      location: _selectedLocationNotifier.value,
-      address: resolvedAddress,
-      source: LocationAddressSource.manual,
-      isPrecise: _locationResolutionNotifier.value?.isPrecise ?? false,
-    );
-    _locationMessageNotifier.value =
-        'Ubicacion confirmada y lista para enviarse al backend.';
-  }
-
-  void _handleConfirm() {
-    if (_isSubmitting) {
+    if (_step == 1) {
+      final error = _controller.confirmLocation();
+      if (error != null) {
+        _showMessage(error);
+        return;
+      }
+      setState(() => _step = 2);
       return;
     }
 
-    final trimmedAddress = draft.address.trim();
-    if (trimmedAddress.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Agrega una direccion antes de confirmar el lavado.'),
-        ),
-      );
-      return;
-    }
-
-    if (!draft.isLocationConfirmed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Confirma la ubicacion en el mapa antes de continuar.'),
-        ),
-      );
+    final validationMessage = _controller.draft.validationMessage;
+    if (validationMessage != null) {
+      _showMessage(validationMessage);
       return;
     }
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => OrderConfirmationPage(draft: draft),
+        builder: (_) => OrderConfirmationPage(draft: _controller.draft),
       ),
     );
   }
 
-  Future<void> _resolveLocation(
-    ServiceLocation location, {
-    required bool updateAddressField,
-  }) async {
-    _isResolvingLocationNotifier.value = true;
-
-    final resolution = await _locationService.reverseGeocode(location);
-
-    if (!mounted || _selectedLocationNotifier.value != location) {
-      return;
-    }
-
-    _isResolvingLocationNotifier.value = false;
-    _locationResolutionNotifier.value = resolution;
-    final resolvedAddress = resolution.address.trim();
-    if (updateAddressField && resolvedAddress.isNotEmpty) {
-      _addressController.value = _addressController.value.copyWith(
-        text: resolvedAddress,
-        selection: TextSelection.collapsed(offset: resolvedAddress.length),
-        composing: TextRange.empty,
-      );
-      _addressNotifier.value = resolvedAddress;
-    }
-    _locationMessageNotifier.value = resolution.hasError
-        ? resolution.errorMessage
-        : null;
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
-class _BookingDetails extends StatelessWidget {
-  const _BookingDetails({
-    required this.addressController,
-    required this.notesController,
-    required this.selectedPackageListenable,
-    required this.selectedScheduleListenable,
-    required this.selectedVehicleListenable,
-    required this.selectedLocationListenable,
-    required this.addressListenable,
-    required this.isLocationConfirmedListenable,
-    required this.isResolvingLocationListenable,
-    required this.locationMessageListenable,
-    required this.locationResolutionListenable,
-    required this.onPackageSelected,
-    required this.onScheduleSelected,
-    required this.onVehicleSelected,
-    required this.onAddressChanged,
-    required this.onNotesChanged,
-    required this.onLocationChanged,
-    required this.onConfirmLocation,
-  });
+class _RequestHeader extends StatelessWidget {
+  const _RequestHeader({required this.step, required this.onClose});
 
-  final TextEditingController addressController;
-  final TextEditingController notesController;
-  final ValueNotifier<WashPackage> selectedPackageListenable;
-  final ValueNotifier<ScheduleSlot> selectedScheduleListenable;
-  final ValueNotifier<VehicleType> selectedVehicleListenable;
-  final ValueNotifier<ServiceLocation> selectedLocationListenable;
-  final ValueNotifier<String> addressListenable;
-  final ValueNotifier<bool> isLocationConfirmedListenable;
-  final ValueNotifier<bool> isResolvingLocationListenable;
-  final ValueNotifier<String?> locationMessageListenable;
-  final ValueNotifier<LocationResolution?> locationResolutionListenable;
-  final ValueChanged<WashPackage> onPackageSelected;
-  final ValueChanged<ScheduleSlot> onScheduleSelected;
-  final ValueChanged<VehicleType> onVehicleSelected;
-  final ValueChanged<String> onAddressChanged;
-  final ValueChanged<String> onNotesChanged;
-  final ValueChanged<ServiceLocation> onLocationChanged;
-  final VoidCallback onConfirmLocation;
+  final int step;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _StepCard(
-          step: '01',
-          title: 'Elige tu paquete',
-          child: ValueListenableBuilder<WashPackage>(
-            valueListenable: selectedPackageListenable,
-            builder: (context, selectedPackage, _) {
-              return _PackageSelector(
-                selectedPackage: selectedPackage,
-                onPackageSelected: onPackageSelected,
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 18),
-        _StepCard(
-          step: '02',
-          title: 'Confirma la ubicacion y tu vehiculo',
-          child: Column(
-            children: [
-              AnimatedBuilder(
-                animation: Listenable.merge([
-                  selectedLocationListenable,
-                  addressListenable,
-                  isLocationConfirmedListenable,
-                  isResolvingLocationListenable,
-                  locationMessageListenable,
-                  locationResolutionListenable,
-                ]),
-                builder: (context, _) {
-                  return _LocationSelectionPanel(
-                    addressController: addressController,
-                    onAddressChanged: onAddressChanged,
-                    selectedLocation: selectedLocationListenable.value,
-                    onLocationChanged: onLocationChanged,
-                    onConfirmLocation: onConfirmLocation,
-                    isResolvingLocation: isResolvingLocationListenable.value,
-                    locationMessage: locationMessageListenable.value,
-                    locationResolution: locationResolutionListenable.value,
-                    isLocationConfirmed: isLocationConfirmedListenable.value,
-                  );
-                },
-              ),
-              const SizedBox(height: 18),
-              ValueListenableBuilder<VehicleType>(
-                valueListenable: selectedVehicleListenable,
-                builder: (context, selectedVehicle, _) {
-                  return _VehicleSelectionSection(
-                    selectedVehicle: selectedVehicle,
-                    onVehicleSelected: onVehicleSelected,
-                  );
-                },
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: notesController,
-                onChanged: onNotesChanged,
-                maxLines: 3,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyTheme.textPrimaryColor(context),
-                ),
-                decoration: _inputDecoration(
-                  context: context,
-                  label: 'Notas para el lavador',
-                  hint:
-                      'Ej. Tocar timbre, entrar por porton azul, agua disponible.',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        _StepCard(
-          step: '03',
-          title: 'Selecciona horario',
-          child: ValueListenableBuilder<ScheduleSlot>(
-            valueListenable: selectedScheduleListenable,
-            builder: (context, selectedSchedule, _) {
-              return _ScheduleSection(
-                selectedSchedule: selectedSchedule,
-                onScheduleSelected: onScheduleSelected,
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BookingSummary extends StatelessWidget {
-  const _BookingSummary({
-    required this.draft,
-    required this.onConfirm,
-    required this.isSubmitting,
-  });
-
-  final WashRequestDraft draft;
-  final VoidCallback onConfirm;
-  final bool isSubmitting;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-    final package = draft.selectedPackage;
-    final total = package.price + draft.travelFee;
-    final canContinueToConfirmation = draft.isReadyForConfirmation;
-
-    return RepaintBoundary(
-      child: Column(
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: LavifyColors.border)),
+      ),
+      child: Row(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: LavifyTheme.premiumPanelGradient(context),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: LavifyTheme.borderColor(context)),
-              boxShadow: LavifyTheme.panelShadow(context),
-            ),
+          _SurfaceIconButton(icon: Icons.close_rounded, onTap: onClose),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        gradient: LinearGradient(
-                          colors: isLight
-                              ? const [
-                                  LavifyColors.lightNavy,
-                                  Color(0xFF49617F),
-                                ]
-                              : const [
-                                  LavifyColors.primaryStrong,
-                                  LavifyColors.primary,
-                                ],
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.local_car_wash_rounded,
-                        color: isLight ? const Color(0xFFFFF4E6) : null,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        'Resumen del pedido',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _SummaryRow(label: 'Paquete', value: package.summary),
-                const SizedBox(height: 10),
-                _SummaryRow(label: 'Direccion', value: draft.address),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  label: 'Coordenadas',
-                  value:
-                      '${draft.selectedLocation.latitude.toStringAsFixed(6)}, ${draft.selectedLocation.longitude.toStringAsFixed(6)}',
-                ),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  label: 'Vehiculo',
-                  value: draft.selectedVehicle.name,
-                ),
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  label: 'Horario',
-                  value: draft.selectedSchedule.label,
-                ),
-                if (draft.notes.trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _SummaryRow(label: 'Notas', value: draft.notes.trim()),
-                ],
-                const SizedBox(height: 10),
-                _SummaryRow(
-                  label: 'Tiempo estimado',
-                  value: '${draft.estimatedMinutes} min',
-                ),
-                const SizedBox(height: 18),
-                Divider(color: LavifyTheme.borderColor(context)),
-                const SizedBox(height: 16),
-                _PriceLine(
-                  label: package.priceLabel,
-                  value: package.formattedPrice,
-                  highlight: false,
-                ),
-                const SizedBox(height: 10),
-                _PriceLine(
-                  label: 'Tarifa por desplazamiento',
-                  value: '\$${draft.travelFee}',
-                  highlight: false,
-                ),
-                const SizedBox(height: 10),
-                _PriceLine(
-                  label: 'Total estimado',
-                  value: '\$$total',
-                  highlight: true,
-                ),
-                const SizedBox(height: 22),
-                PrimaryButton(
-                  label: isSubmitting
-                      ? 'Preparando resumen...'
-                      : 'Continuar a confirmacion - \$$total',
-                  onPressed: canContinueToConfirmation ? onConfirm : null,
-                  isExpanded: true,
-                ),
-                if (!canContinueToConfirmation) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    draft.hasValidAddress
-                        ? 'Confirma la ubicacion del servicio para continuar.'
-                        : 'Selecciona una direccion y confirma la ubicacion para continuar.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isLight
-                          ? LavifyColors.lightNavy
-                          : const Color(0xFFFFC857),
-                      fontWeight: isLight ? FontWeight.w600 : null,
-                    ),
+                const Text(
+                  'Pedir lavado',
+                  style: TextStyle(
+                    color: LavifyColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-                const SizedBox(height: 14),
-                SecondaryButton(
-                  label: 'Volver al inicio',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icons.arrow_back_rounded,
-                  isExpanded: true,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Paso ${step + 1} de 3',
+                  style: const TextStyle(
+                    color: LavifyColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepCard extends StatelessWidget {
-  const _StepCard({
-    required this.step,
-    required this.title,
-    required this.child,
-  });
-
-  final String step;
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-
-    return SectionContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
           Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
+            children: List.generate(3, (index) {
+              final active = index == step;
+              final filled = index <= step;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: active ? 28 : 8,
+                height: 8,
+                margin: EdgeInsets.only(left: index == 0 ? 0 : 5),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: isLight
-                      ? const Color(0xFFFDF8F1)
-                      : Colors.white.withAlpha(10),
-                  border: Border.all(color: LavifyTheme.borderColor(context)),
+                  color: filled ? LavifyColors.primary : LavifyColors.border,
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(
-                  step,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isLight
-                        ? LavifyColors.lightNavy
-                        : LavifyColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-            ],
+              );
+            }),
           ),
-          const SizedBox(height: 20),
-          child,
         ],
       ),
     );
   }
 }
 
-class _PackageSelector extends StatelessWidget {
-  const _PackageSelector({
-    required this.selectedPackage,
-    required this.onPackageSelected,
+class _RequestStepBody extends StatelessWidget {
+  const _RequestStepBody({
+    super.key,
+    required this.step,
+    required this.controller,
   });
 
-  final WashPackage selectedPackage;
-  final ValueChanged<WashPackage> onPackageSelected;
+  final int step;
+  final WashRequestDraftController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 14,
-      runSpacing: 14,
-      children: washPackages
-          .map(
-            (package) => _PackageCard(
-              package: package,
-              selected: package.id == selectedPackage.id,
-              onTap: () => onPackageSelected(package),
-            ),
-          )
-          .toList(),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 120),
+      child: switch (step) {
+        0 => _PackageStep(controller: controller),
+        1 => _LocationVehicleStep(controller: controller),
+        _ => _ScheduleSummaryStep(controller: controller),
+      },
     );
   }
 }
 
-class _PackageCard extends StatelessWidget {
-  const _PackageCard({
+class _PackageStep extends StatelessWidget {
+  const _PackageStep({required this.controller});
+
+  final WashRequestDraftController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<WashPackage>(
+      valueListenable: controller.selectedPackageNotifier,
+      builder: (context, selectedPackage, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _StepHeading(
+              title: 'Elige tu paquete',
+              subtitle: 'Selecciona el nivel de limpieza que necesitas',
+            ),
+            const SizedBox(height: 20),
+            for (final package in washPackages) ...[
+              _PackageTile(
+                package: package,
+                selected: package.id == selectedPackage.id,
+                onTap: () => controller.selectPackage(package),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LocationVehicleStep extends StatelessWidget {
+  const _LocationVehicleStep({required this.controller});
+
+  final WashRequestDraftController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        controller.selectedLocationNotifier,
+        controller.selectedVehicleNotifier,
+        controller.addressNotifier,
+        controller.locationMessageNotifier,
+        controller.locationResolutionNotifier,
+        controller.isLocationConfirmedNotifier,
+        controller.isResolvingLocationNotifier,
+      ]),
+      builder: (context, _) {
+        final selectedVehicle = controller.selectedVehicleNotifier.value;
+        final address = controller.addressController.text.trim().isEmpty
+            ? controller.addressNotifier.value
+            : controller.addressController.text.trim();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _StepHeading(
+              title: 'Confirma ubicacion',
+              subtitle: 'Donde esta tu auto ahora mismo',
+            ),
+            const SizedBox(height: 18),
+            _RadarLocationCard(
+              address: address,
+              location: controller.selectedLocationNotifier.value,
+              isResolving: controller.isResolvingLocationNotifier.value,
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller.addressController,
+              onChanged: controller.updateAddress,
+              style: const TextStyle(
+                color: LavifyColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: _flowInputDecoration(
+                hintText: 'Direccion del servicio',
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _SectionLabel('Tipo de vehiculo'),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: vehicleTypes.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.34,
+              ),
+              itemBuilder: (context, index) {
+                final vehicle = vehicleTypes[index];
+                return _VehicleTile(
+                  vehicle: vehicle,
+                  selected: vehicle.id == selectedVehicle.id,
+                  onTap: () => controller.selectVehicle(vehicle),
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            _InlineHint(
+              icon: controller.isLocationConfirmedNotifier.value
+                  ? Icons.verified_rounded
+                  : Icons.info_outline_rounded,
+              color: controller.isLocationConfirmedNotifier.value
+                  ? LavifyColors.success
+                  : LavifyColors.primary,
+              text:
+                  controller.locationMessageNotifier.value ??
+                  'Al continuar, la direccion queda confirmada para tu pedido.',
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ScheduleSummaryStep extends StatelessWidget {
+  const _ScheduleSummaryStep({required this.controller});
+
+  final WashRequestDraftController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller.summaryListenable,
+      builder: (context, _) {
+        final selectedSchedule = controller.selectedScheduleNotifier.value;
+        final draft = controller.draft;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _StepHeading(
+              title: 'Horario y resumen',
+              subtitle: 'Confirma cuando quieres tu lavado',
+            ),
+            const SizedBox(height: 18),
+            for (final slot in _preferredSchedules()) ...[
+              _ScheduleTile(
+                slot: slot,
+                selected: slot.id == selectedSchedule.id,
+                onTap: () => controller.selectSchedule(slot),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 12),
+            _SummaryCard(draft: draft),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PackageTile extends StatelessWidget {
+  const _PackageTile({
     required this.package,
-    required this.onTap,
     required this.selected,
+    required this.onTap,
   });
 
   final WashPackage package;
-  final VoidCallback onTap;
   final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-    final radius = BorderRadius.circular(24);
-    final selectedGradient = isLight
-        ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              LavifyColors.lightNavyStrong,
-              Color(0xFF344868),
-            ],
-          )
-        : const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF203458),
-              Color(0xFF16233A),
-            ],
-          );
-    final baseGradient = isLight
-        ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFFCF8),
-              Color(0xFFF4EEE6),
-            ],
-          )
-        : const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF182337),
-              Color(0xFF111A2B),
-            ],
-          );
-    final iconGradient = selected
-        ? (isLight
-              ? const LinearGradient(
-                  colors: [
-                    LavifyColors.lightGold,
-                    Color(0xFFE7C78F),
-                  ],
-                )
-              : const LinearGradient(
-                  colors: [
-                    LavifyColors.primaryStrong,
-                    LavifyColors.primary,
-                  ],
-                ))
-        : (isLight
-              ? const LinearGradient(
-                  colors: [
-                    Color(0xFFF8F0E2),
-                    Color(0xFFFDF9F3),
-                  ],
-                )
-              : LinearGradient(
-                  colors: [
-                    Colors.white.withAlpha(10),
-                    Colors.white.withAlpha(5),
-                  ],
-                ));
-    final titleColor = selected && isLight
-        ? Colors.white
-        : LavifyTheme.textPrimaryColor(context);
-    final descriptionColor = selected && isLight
-        ? Colors.white.withAlpha(182)
-        : LavifyTheme.textSecondaryColor(context);
-    final priceColor = selected && isLight
-        ? const Color(0xFFFFF3E0)
-        : isLight
-        ? LavifyColors.lightNavy
-        : LavifyColors.primary;
-    final metaColor = selected && isLight
-        ? const Color(0xFFFFE7B8)
-        : isLight
-        ? LavifyColors.lightNavy
-        : LavifyColors.primary;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        splashFactory: NoSplash.splashFactory,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          width: 220,
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            gradient: selected ? selectedGradient : baseGradient,
-            border: Border.all(
-              color: selected
-                  ? (isLight ? LavifyColors.lightGold : LavifyColors.primary)
-                  : LavifyTheme.borderColor(context),
-            ),
-            boxShadow: [
-              if (selected || isLight)
-                ...LavifyTheme.panelShadow(context, floating: false),
-              if (selected && isLight)
-                const BoxShadow(
-                  color: Color(0x18D6B47B),
-                  blurRadius: 24,
-                  spreadRadius: 1,
-                ),
-            ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0x171A68FF) : LavifyColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? LavifyColors.primary : LavifyColors.border,
+            width: selected ? 1.5 : 1,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      gradient: iconGradient,
-                      border: Border.all(
-                        color: selected
-                            ? Colors.transparent
-                            : (isLight
-                                  ? const Color(0x66D8C8B4)
-                                  : Colors.white.withAlpha(10)),
-                      ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            if (package.id == 'full-care')
+              Positioned(
+                top: -18,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        LavifyColors.primaryStrong,
+                        LavifyColors.primary,
+                      ],
                     ),
-                    child: Icon(
-                      package.icon,
-                      color: selected
-                          ? (isLight
-                                ? LavifyColors.lightNavyStrong
-                                : LavifyColors.textPrimary)
-                          : (isLight
-                                ? LavifyColors.lightNavy
-                                : LavifyColors.primary),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(8),
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected && isLight
-                          ? Colors.white.withAlpha(10)
-                          : (isLight
-                                ? const Color(0x66FFF8F1)
-                                : Colors.white.withAlpha(6)),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: selected
-                            ? (isLight
-                                  ? Colors.white.withAlpha(12)
-                                  : LavifyColors.primary.withAlpha(30))
-                            : (isLight
-                                  ? const Color(0x77D8C8B4)
-                                  : LavifyColors.primary.withAlpha(28)),
-                      ),
-                    ),
-                    child: Text(
-                      package.priceLabel,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: metaColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  child: const Text(
+                    'MAS POPULAR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                package.name,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(
-                  fontSize: 18,
-                  color: titleColor,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                package.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: descriptionColor,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: selected && isLight
-                      ? Colors.white.withAlpha(8)
-                      : (isLight
-                            ? const Color(0x55FFF8F1)
-                            : Colors.white.withAlpha(4)),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: selected
-                        ? (isLight
-                              ? Colors.white.withAlpha(10)
-                              : LavifyColors.primary.withAlpha(24))
-                        : (isLight
-                              ? const Color(0x55D8C8B4)
-                              : Colors.white.withAlpha(8)),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        package.formattedPrice,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              color: priceColor,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1.1,
-                            ),
-                      ),
-                    ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? (isLight
-                                  ? const Color(0x26D6B47B)
-                                  : const Color(0x1F28D17C))
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        selected ? 'Seleccionado' : 'Tocar para elegir',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: selected
-                              ? (isLight
-                                    ? LavifyColors.lightGold
-                                    : LavifyColors.success)
-                              : LavifyTheme.textSecondaryColor(context),
-                          fontWeight: FontWeight.w700,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        package.name,
+                        style: const TextStyle(
+                          color: LavifyColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 5),
+                      Text(
+                        package.description,
+                        style: const TextStyle(
+                          color: LavifyColors.textSecondary,
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.schedule_rounded,
+                            size: 13,
+                            color: LavifyColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _packageDuration(package.id),
+                            style: const TextStyle(
+                              color: LavifyColors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LocationSelectionPanel extends StatelessWidget {
-  const _LocationSelectionPanel({
-    required this.addressController,
-    required this.onAddressChanged,
-    required this.selectedLocation,
-    required this.onLocationChanged,
-    required this.onConfirmLocation,
-    required this.isResolvingLocation,
-    required this.locationMessage,
-    required this.locationResolution,
-    required this.isLocationConfirmed,
-  });
-
-  final TextEditingController addressController;
-  final ValueChanged<String> onAddressChanged;
-  final ServiceLocation selectedLocation;
-  final ValueChanged<ServiceLocation> onLocationChanged;
-  final VoidCallback onConfirmLocation;
-  final bool isResolvingLocation;
-  final String? locationMessage;
-  final LocationResolution? locationResolution;
-  final bool isLocationConfirmed;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: LavifyTheme.premiumPanelGradient(context),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: LavifyTheme.borderColor(context)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: isLight
-                      ? const Color(0x18D6B47B)
-                      : const Color(0x3322C1FF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  Icons.location_on_rounded,
-                  color: isLight
-                      ? LavifyColors.lightNavy
-                      : LavifyColors.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Ubicacion del servicio',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: LavifyTheme.textPrimaryColor(context),
-                        fontWeight: FontWeight.w700,
+                      package.formattedPrice,
+                      style: TextStyle(
+                        color: selected
+                            ? LavifyColors.primary
+                            : LavifyColors.textPrimary,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Edita la direccion real del servicio para dejar el pedido listo para backend.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    if (selected) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: const BoxDecoration(
+                          color: LavifyColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        TextField(
-          controller: addressController,
-          onChanged: onAddressChanged,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(
-            color: LavifyTheme.textPrimaryColor(context),
-          ),
-          decoration: _inputDecoration(
-            context: context,
-            label: 'Direccion del servicio',
-            hint: 'Ej. Av. Paseo de la Reforma 245, Juarez, CDMX',
-          ),
-        ),
-        const SizedBox(height: 14),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: SizedBox(
-            height: 280,
-            width: double.infinity,
-            child: _ServiceLocationMap(
-              selectedLocation: selectedLocation,
-              onLocationChanged: onLocationChanged,
+              ],
             ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LavifyTheme.premiumPanelGradient(context),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: LavifyTheme.borderColor(context)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'Ubicacion seleccionada',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: LavifyTheme.textPrimaryColor(context),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (isResolvingLocation)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else if (isLocationConfirmed)
-                    const Icon(
-                      Icons.verified_rounded,
-                      color: LavifyColors.success,
-                      size: 18,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                (locationResolution?.address ?? addressController.text)
-                        .trim()
-                        .isEmpty
-                    ? 'Aun no hay direccion seleccionada'
-                    : (locationResolution?.address ?? addressController.text),
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: LavifyTheme.textPrimaryColor(context),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Coordenadas: ${selectedLocation.coordinatesLabel}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                locationMessage ??
-                    'Toca o arrastra el pin para fijar la ubicacion exacta del servicio.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: locationMessage == null
-                      ? LavifyTheme.textSecondaryColor(context)
-                      : isLocationConfirmed
-                      ? LavifyColors.success
-                      : (isLight
-                            ? LavifyColors.lightNavy
-                            : const Color(0xFFFFC857)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        PrimaryButton(
-          label: isResolvingLocation
-              ? 'Resolviendo direccion...'
-              : isLocationConfirmed
-              ? 'Ubicacion confirmada'
-              : 'Confirmar ubicacion',
-          onPressed: isResolvingLocation ? null : onConfirmLocation,
-          isExpanded: true,
-        ),
-      ],
-    );
-  }
-}
-
-class _VehicleSelectionSection extends StatelessWidget {
-  const _VehicleSelectionSection({
-    required this.selectedVehicle,
-    required this.onVehicleSelected,
-  });
-
-  final VehicleType selectedVehicle;
-  final ValueChanged<VehicleType> onVehicleSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Tipo de vehiculo',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: LavifyColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: vehicleTypes
-              .map(
-                (vehicle) => _VehicleChip(
-                  vehicle: vehicle,
-                  selected: vehicle.id == selectedVehicle.id,
-                  onTap: () => onVehicleSelected(vehicle),
-                ),
-              )
-              .toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _ScheduleSection extends StatelessWidget {
-  const _ScheduleSection({
-    required this.selectedSchedule,
-    required this.onScheduleSelected,
-  });
-
-  final ScheduleSlot selectedSchedule;
-  final ValueChanged<ScheduleSlot> onScheduleSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: scheduleSlots
-          .map(
-            (slot) => _SelectableSlot(
-              title: slot.time,
-              subtitle: slot.period,
-              selected: slot.id == selectedSchedule.id,
-              onTap: () => onScheduleSelected(slot),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-class _SelectableSlot extends StatelessWidget {
-  const _SelectableSlot({
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        splashFactory: NoSplash.splashFactory,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
-        child: Ink(
-          width: 150,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            color: selected
-                ? (isLight
-                      ? LavifyColors.lightNavyStrong
-                      : const Color(0x331D5FFF))
-                : (isLight
-                      ? LavifyColors.lightSurface
-                      : LavifyColors.surfaceAlt),
-            border: Border.all(
-              color: selected
-                  ? (isLight ? LavifyColors.lightGold : LavifyColors.primary)
-                  : LavifyTheme.borderColor(context),
-            ),
-          ),
-          child: Column(
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: selected && isLight
-                      ? Colors.white
-                      : LavifyTheme.textPrimaryColor(context),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: selected
-                      ? (isLight
-                            ? const Color(0xFFFFE3B3)
-                            : LavifyColors.primary)
-                      : LavifyTheme.textSecondaryColor(context),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _VehicleChip extends StatelessWidget {
-  const _VehicleChip({
+class _VehicleTile extends StatelessWidget {
+  const _VehicleTile({
     required this.vehicle,
     required this.selected,
     required this.onTap,
@@ -1365,229 +543,716 @@ class _VehicleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        splashFactory: NoSplash.splashFactory,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        overlayColor: const WidgetStatePropertyAll(Color(0x1222C1FF)),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: selected
-                ? (isLight
-                      ? LavifyColors.lightNavyStrong
-                      : const Color(0x331D5FFF))
-                : (isLight
-                      ? LavifyColors.lightSurface
-                      : Colors.white.withAlpha(8)),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: selected
-                  ? (isLight ? LavifyColors.lightGold : LavifyColors.primary)
-                  : LavifyTheme.borderColor(context),
-            ),
+    final extraFee = _vehicleExtraFee(vehicle.id);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0x146AA8FF) : LavifyColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? LavifyColors.primary : LavifyColors.border,
+            width: selected ? 1.5 : 1,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                vehicle.icon,
-                color: selected && isLight
-                    ? LavifyColors.lightGold
-                    : (isLight
-                          ? LavifyColors.lightNavy
-                          : LavifyColors.primary),
-                size: 18,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              vehicle.icon,
+              size: 22,
+              color: selected
+                  ? LavifyColors.primary
+                  : LavifyColors.textSecondary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              vehicle.name.replaceAll(' mediano', ''),
+              style: TextStyle(
+                color: selected
+                    ? LavifyColors.textPrimary
+                    : LavifyColors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 10),
+            ),
+            if (extraFee > 0) ...[
+              const SizedBox(height: 2),
               Text(
-                vehicle.name,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: selected && isLight
-                      ? Colors.white
-                      : LavifyTheme.textPrimaryColor(context),
-                  fontWeight: FontWeight.w600,
+                '+\$$extraFee',
+                style: const TextStyle(
+                  color: LavifyColors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ServiceLocationMap extends StatefulWidget {
-  const _ServiceLocationMap({
-    required this.selectedLocation,
-    required this.onLocationChanged,
+class _ScheduleTile extends StatelessWidget {
+  const _ScheduleTile({
+    required this.slot,
+    required this.selected,
+    required this.onTap,
   });
 
-  final ServiceLocation selectedLocation;
-  final ValueChanged<ServiceLocation> onLocationChanged;
-
-  @override
-  State<_ServiceLocationMap> createState() => _ServiceLocationMapState();
-}
-
-class _ServiceLocationMapState extends State<_ServiceLocationMap> {
-  GoogleMapController? _mapController;
+  final ScheduleSlot slot;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final latLng = widget.selectedLocation.toLatLng();
-
-    return RepaintBoundary(
-      child: GoogleMap(
-        initialCameraPosition: CameraPosition(target: latLng, zoom: 14),
-        myLocationButtonEnabled: false,
-        zoomControlsEnabled: false,
-        mapToolbarEnabled: false,
-        onMapCreated: (controller) {
-          _mapController = controller;
-        },
-        onTap: (position) {
-          widget.onLocationChanged(
-            ServiceLocation(
-              latitude: position.latitude,
-              longitude: position.longitude,
-            ),
-          );
-        },
-        markers: {
-          Marker(
-            markerId: const MarkerId('service_location'),
-            position: latLng,
-            draggable: true,
-            onDragEnd: (position) {
-              widget.onLocationChanged(
-                ServiceLocation(
-                  latitude: position.latitude,
-                  longitude: position.longitude,
-                ),
-              );
-            },
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0x146AA8FF) : LavifyColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? LavifyColors.primary : LavifyColors.border,
+            width: selected ? 1.5 : 1,
           ),
-        },
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: selected
+                    ? const Color(0x1A6AA8FF)
+                    : Colors.white.withAlpha(8),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                Icons.schedule_rounded,
+                size: 18,
+                color: selected
+                    ? LavifyColors.primary
+                    : LavifyColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _scheduleTitle(slot.id, slot.time),
+                    style: const TextStyle(
+                      color: LavifyColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _scheduleSubtitle(slot.id, slot.period),
+                    style: const TextStyle(
+                      color: LavifyColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                size: 16,
+                color: LavifyColors.primary,
+              ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.draft});
+
+  final WashRequestDraft draft;
 
   @override
-  void didUpdateWidget(covariant _ServiceLocationMap oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedLocation != widget.selectedLocation) {
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLng(widget.selectedLocation.toLatLng()),
-      );
-    }
+  Widget build(BuildContext context) {
+    final extraFee = _vehicleExtraFee(draft.selectedVehicle.id);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: LavifyColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: LavifyColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Resumen del pedido',
+            style: TextStyle(
+              color: LavifyColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...[
+            ('Paquete', draft.selectedPackage.name),
+            ('Vehiculo', draft.selectedVehicle.name.replaceAll(' mediano', '')),
+            (
+              'Horario',
+              _scheduleTitle(
+                draft.selectedSchedule.id,
+                draft.selectedSchedule.time,
+              ),
+            ),
+            ('Direccion', draft.address),
+          ].map(
+            (row) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 78,
+                    child: Text(
+                      row.$1,
+                      style: const TextStyle(
+                        color: LavifyColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      row.$2,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: LavifyColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Divider(color: LavifyColors.border, height: 1),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${draft.selectedPackage.name} · ${draft.selectedPackage.formattedPrice}',
+            style: const TextStyle(
+              color: LavifyColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Desplazamiento · \$20',
+            style: TextStyle(color: LavifyColors.textSecondary, fontSize: 12),
+          ),
+          if (extraFee > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              '${draft.selectedVehicle.name.replaceAll(' mediano', '')} extra · +\$$extraFee',
+              style: const TextStyle(
+                color: LavifyColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Total',
+                  style: TextStyle(
+                    color: LavifyColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '\$${draft.totalPrice + extraFee}',
+                style: const TextStyle(
+                  color: LavifyColors.primary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.value});
+class _RadarLocationCard extends StatefulWidget {
+  const _RadarLocationCard({
+    required this.address,
+    required this.location,
+    required this.isResolving,
+  });
 
-  final String label;
-  final String value;
+  final String address;
+  final ServiceLocation location;
+  final bool isResolving;
+
+  @override
+  State<_RadarLocationCard> createState() => _RadarLocationCardState();
+}
+
+class _RadarLocationCardState extends State<_RadarLocationCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final address = widget.address.trim().isEmpty
+        ? 'Av. Reforma 245'
+        : widget.address.trim();
+    return Container(
+      height: 176,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1422),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  _PulseRing(progress: _controller.value),
+                  _PulseRing(progress: (_controller.value + 0.35) % 1),
+                ],
+              );
+            },
+          ),
+          const Icon(
+            Icons.location_on_rounded,
+            size: 36,
+            color: LavifyColors.primary,
+          ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 210),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: LavifyColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: LavifyColors.border),
+              ),
+              child: Text(
+                widget.isResolving ? 'Resolviendo...' : address,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: LavifyColors.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PulseRing extends StatelessWidget {
+  const _PulseRing({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = 70 + (progress * 90);
+    return Opacity(
+      opacity: (1 - progress) * 0.45,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0x446AA8FF)),
+        ),
+      ),
+    );
+  }
+}
+
+class _GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x126AA8FF)
+      ..strokeWidth = 1;
+    for (double y = 35; y < size.height; y += 35) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+    for (double x = 45; x < size.width; x += 45) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+
+    final pathPaint = Paint()
+      ..color = const Color(0x336AA8FF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final path = Path()
+      ..moveTo(size.width * 0.18, size.height * 0.78)
+      ..quadraticBezierTo(
+        size.width * 0.38,
+        size.height * 0.55,
+        size.width * 0.58,
+        size.height * 0.48,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.76,
+        size.height * 0.40,
+        size.width * 0.84,
+        size.height * 0.28,
+      );
+    canvas.drawPath(path, pathPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _RequestBottomBar extends StatelessWidget {
+  const _RequestBottomBar({
+    required this.step,
+    required this.total,
+    required this.onBack,
+    required this.onContinue,
+  });
+
+  final int step;
+  final int total;
+  final VoidCallback? onBack;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final extra = step == 1
+        ? _vehicleExtraFee(
+            (context
+                    .findAncestorStateOfType<_RequestWashFlowPageState>()
+                    ?._controller
+                    .selectedVehicleNotifier
+                    .value
+                    .id) ??
+                '',
+          )
+        : 0;
+    final label = step < 2 ? 'Continuar' : 'Confirmar · \$${total + extra}';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: LavifyColors.border)),
+      ),
+      child: Row(
+        children: [
+          if (onBack != null) ...[
+            _SurfaceIconButton(
+              icon: Icons.arrow_back_rounded,
+              onTap: onBack!,
+              large: true,
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: InkWell(
+              onTap: onContinue,
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x403D7BFF),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      step < 2
+                          ? Icons.arrow_forward_rounded
+                          : Icons.check_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepHeading extends StatelessWidget {
+  const _StepHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.bodyMedium),
-        const SizedBox(height: 4),
         Text(
-          value,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: LavifyTheme.textPrimaryColor(context),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PriceLine extends StatelessWidget {
-  const _PriceLine({
-    required this.label,
-    required this.value,
-    required this.highlight,
-  });
-
-  final String label;
-  final String value;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-    final color = highlight
-        ? LavifyTheme.textPrimaryColor(context)
-        : LavifyTheme.textSecondaryColor(context);
-
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: color,
-              fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: highlight
-                ? (isLight ? LavifyColors.lightNavy : LavifyColors.primary)
-                : LavifyTheme.textPrimaryColor(context),
+          title,
+          style: const TextStyle(
+            color: LavifyColors.textPrimary,
+            fontSize: 22,
             fontWeight: FontWeight.w800,
           ),
         ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: LavifyColors.textSecondary,
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }
 }
 
-InputDecoration _inputDecoration({
-  required BuildContext context,
-  required String label,
-  required String hint,
-}) {
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: LavifyColors.textSecondary,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+}
+
+class _InlineHint extends StatelessWidget {
+  const _InlineHint({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SurfaceIconButton extends StatelessWidget {
+  const _SurfaceIconButton({
+    required this.icon,
+    required this.onTap,
+    this.large = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = large ? 50.0 : 40.0;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(large ? 15 : 13),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: LavifyColors.surface,
+          borderRadius: BorderRadius.circular(large ? 15 : 13),
+          border: Border.all(color: LavifyColors.border),
+        ),
+        child: Icon(
+          icon,
+          size: large ? 20 : 18,
+          color: LavifyColors.textPrimary,
+        ),
+      ),
+    );
+  }
+}
+
+InputDecoration _flowInputDecoration({required String hintText}) {
   return InputDecoration(
-    labelText: label,
-    hintText: hint,
-    labelStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
-    hintStyle: TextStyle(color: LavifyTheme.textSecondaryColor(context)),
+    hintText: hintText,
+    hintStyle: const TextStyle(color: Color(0xFF4A5A72), fontSize: 14),
     filled: true,
-    fillColor: LavifyTheme.isLight(context)
-        ? LavifyColors.lightSurfaceAlt
-        : LavifyColors.surfaceAlt,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
-    ),
+    fillColor: LavifyColors.surface,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: LavifyColors.border),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide(
-        color: LavifyTheme.isLight(context)
-            ? LavifyColors.lightNavy
-            : LavifyColors.primary,
-      ),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: LavifyColors.primary),
+    ),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: LavifyColors.border),
     ),
   );
+}
+
+List<ScheduleSlot> _preferredSchedules() {
+  const preferred = ['now', 'today_630', 'tomorrow_900'];
+  return preferred
+      .map(
+        (id) => scheduleSlots.firstWhere(
+          (slot) => slot.id == id,
+          orElse: () => scheduleSlots.first,
+        ),
+      )
+      .toList(growable: false);
+}
+
+String _packageDuration(String packageId) {
+  switch (packageId) {
+    case 'express':
+      return '30-45 min';
+    case 'full-care':
+      return '60-90 min';
+    case 'premium':
+      return '90-120 min';
+    default:
+      return '45 min';
+  }
+}
+
+String _scheduleTitle(String scheduleId, String fallback) {
+  switch (scheduleId) {
+    case 'now':
+      return 'Ahora mismo';
+    case 'today_630':
+      return 'Hoy por la tarde';
+    case 'tomorrow_900':
+      return 'Manana por la manana';
+    default:
+      return fallback;
+  }
+}
+
+String _scheduleSubtitle(String scheduleId, String fallback) {
+  switch (scheduleId) {
+    case 'now':
+      return '20-30 min de llegada';
+    case 'today_630':
+      return '18:30 - 20:00';
+    case 'tomorrow_900':
+      return '09:00 - 12:00';
+    default:
+      return fallback;
+  }
+}
+
+int _vehicleExtraFee(String vehicleId) {
+  switch (vehicleId) {
+    case 'suv':
+      return 30;
+    case 'truck':
+      return 50;
+    default:
+      return 0;
+  }
 }

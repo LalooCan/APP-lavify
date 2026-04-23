@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../models/session_models.dart';
 import '../models/wash_models.dart';
 
 class SessionService {

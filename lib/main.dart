@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
-import 'models/session_models.dart';
 import 'models/wash_models.dart';
 import 'screens/app_shell.dart';
 import 'screens/role_login_page.dart';
@@ -78,6 +77,7 @@ class _AuthGateState extends State<_AuthGate> {
   void _clearProfileFuture() {
     _profileUid = null;
     _profileFuture = null;
+    LavifyApp._profileService.clearCurrentUser();
   }
 
   @override

@@ -26,7 +26,7 @@ class FirestoreProfileRepository implements ProfileRepository {
     if (data == null) {
       return null;
     }
-    return UserProfile.fromMap(data);
+    return UserProfile.fromMap({...data, 'uid': uid});
   }
 
   @override
@@ -44,10 +44,28 @@ class FirestoreProfileRepository implements ProfileRepository {
 
   @override
   Future<void> updateAddress(String uid, String address) {
+    if (uid.trim().isEmpty) {
+      throw ArgumentError('El perfil necesita uid para guardarse en Firestore.');
+    }
+    final normalized = address.trim();
     return _profilesCollection.doc(uid).set({
-      'favoriteAddress': address.trim(),
-      'address': address.trim(),
+      'favoriteAddress': normalized,
+      'address': normalized,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  @override
+  Stream<UserProfile?> watchProfile(String uid) {
+    if (uid.trim().isEmpty) {
+      return Stream<UserProfile?>.value(null);
+    }
+    return _profilesCollection.doc(uid).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (data == null) {
+        return null;
+      }
+      return UserProfile.fromMap({...data, 'uid': uid});
+    });
   }
 }

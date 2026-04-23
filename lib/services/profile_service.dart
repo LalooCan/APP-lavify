@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -28,6 +30,9 @@ class ProfileService {
     ),
   );
 
+  StreamSubscription<UserProfile?>? _profileSubscription;
+  String? _subscribedUid;
+
   static ProfileRepository _buildRepository() {
     switch (AppConfig.backendMode) {
       case BackendMode.firestore:
@@ -40,6 +45,10 @@ class ProfileService {
   void setProfile(UserProfile next) {
     profile.value = next;
     _sessionService.startSessionFromProfile(next);
+    final uid = next.uid.trim();
+    if (uid.isNotEmpty) {
+      _subscribeToProfile(uid);
+    }
   }
 
   Future<void> loadCurrentUserProfile() async {
@@ -48,27 +57,77 @@ class ProfileService {
       return;
     }
     final remoteProfile = await _repository.getProfile(uid);
-    if (remoteProfile == null) {
-      return;
+    if (remoteProfile != null) {
+      setProfile(remoteProfile);
+    } else {
+      _subscribeToProfile(uid);
     }
-    setProfile(remoteProfile);
   }
 
-  void updateProfile(UserProfile next) {
-    profile.value = next;
-    _repository.updateProfile(next);
-    _sessionService.updateSession(
-      email: next.email,
-      visibleName: next.name,
-      favoriteAddress: next.favoriteAddress,
+  // Mantiene el notifier en sincronia con Firestore: cualquier cambio en
+  // el documento (otra sesion, otro dispositivo, backend) se refleja aqui.
+  void _subscribeToProfile(String uid) {
+    if (_subscribedUid == uid && _profileSubscription != null) {
+      return;
+    }
+    _profileSubscription?.cancel();
+    _subscribedUid = uid;
+    _profileSubscription = _repository.watchProfile(uid).listen(
+      (remoteProfile) {
+        if (remoteProfile == null) {
+          return;
+        }
+        profile.value = remoteProfile;
+        _sessionService.updateSession(
+          email: remoteProfile.email,
+          visibleName: remoteProfile.name,
+          favoriteAddress: remoteProfile.favoriteAddress,
+        );
+      },
+      onError: (Object error, StackTrace stack) {
+        debugPrint('ProfileService.watchProfile error: $error');
+      },
     );
+  }
+
+  Future<void> clearCurrentUser() async {
+    await _profileSubscription?.cancel();
+    _profileSubscription = null;
+    _subscribedUid = null;
+  }
+
+  Future<void> updateProfile(UserProfile next) async {
+    profile.value = next;
+    if (next.uid.trim().isEmpty) {
+      _sessionService.updateSession(
+        email: next.email,
+        visibleName: next.name,
+        favoriteAddress: next.favoriteAddress,
+      );
+      return;
+    }
+    try {
+      final saved = await _repository.updateProfile(next);
+      profile.value = saved;
+      _sessionService.updateSession(
+        email: saved.email,
+        visibleName: saved.name,
+        favoriteAddress: saved.favoriteAddress,
+      );
+    } catch (error, stack) {
+      debugPrint('ProfileService.updateProfile error: $error\n$stack');
+      rethrow;
+    }
   }
 
   void syncLoginEmail(String email) {
     syncLoginIdentity(email: email);
   }
 
-  void syncLoginIdentity({required String email, String? displayName}) {
+  Future<void> syncLoginIdentity({
+    required String email,
+    String? displayName,
+  }) async {
     final normalizedEmail = email.trim();
     final normalizedDisplayName = displayName?.trim() ?? '';
     if (normalizedEmail.isEmpty && normalizedDisplayName.isEmpty) {
@@ -83,20 +142,34 @@ class ProfileService {
         ? normalizedDisplayName
         : _deriveNameFromEmail(normalizedEmail);
 
-    profile.value = currentProfile.copyWith(
+    final nextProfile = currentProfile.copyWith(
       email: normalizedEmail.isEmpty ? currentProfile.email : normalizedEmail,
       name: shouldReplaceName && resolvedName.isNotEmpty
           ? resolvedName
           : currentProfile.name,
     );
-    _repository.updateProfile(profile.value);
-    _sessionService.updateSession(
-      email: profile.value.email,
-      visibleName: profile.value.name,
-    );
+    profile.value = nextProfile;
+
+    if (nextProfile.uid.trim().isEmpty) {
+      _sessionService.updateSession(
+        email: nextProfile.email,
+        visibleName: nextProfile.name,
+      );
+      return;
+    }
+
+    try {
+      await _repository.updateProfile(nextProfile);
+      _sessionService.updateSession(
+        email: nextProfile.email,
+        visibleName: nextProfile.name,
+      );
+    } catch (error, stack) {
+      debugPrint('ProfileService.syncLoginIdentity error: $error\n$stack');
+    }
   }
 
-  void syncFavoriteAddress(String address) {
+  Future<void> syncFavoriteAddress(String address) async {
     final normalizedAddress = address.trim();
     if (normalizedAddress.isEmpty) {
       return;
@@ -106,12 +179,17 @@ class ProfileService {
       favoriteAddress: normalizedAddress,
     );
     profile.value = nextProfile;
-    if (nextProfile.uid.trim().isNotEmpty) {
-      _repository.updateAddress(nextProfile.uid, normalizedAddress);
-    } else {
-      _repository.updateProfile(nextProfile);
-    }
     _sessionService.updateSession(favoriteAddress: normalizedAddress);
+
+    if (nextProfile.uid.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      await _repository.updateAddress(nextProfile.uid, normalizedAddress);
+    } catch (error, stack) {
+      debugPrint('ProfileService.syncFavoriteAddress error: $error\n$stack');
+    }
   }
 
   String resolveGreetingName() {

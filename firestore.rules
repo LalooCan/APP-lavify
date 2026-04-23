@@ -2,32 +2,105 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Perfil: solo el dueño puede leer/escribir su perfil
+    // ---------- helpers ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerUid(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function orderDoc(orderId) {
+      return get(/databases/$(database)/documents/orders/$(orderId)).data;
+    }
+
+    function isOrderClient(orderId) {
+      return isSignedIn() && orderDoc(orderId).clientId == request.auth.uid;
+    }
+
+    function isOrderWorker(orderId) {
+      return isSignedIn() && orderDoc(orderId).workerId == request.auth.uid;
+    }
+
+    // Campos sensibles que solo backend o lavador pueden mutar.
+    function clientPreservesProtectedFields() {
+      return request.resource.data.clientId == resource.data.clientId
+        && request.resource.data.workerId == resource.data.workerId
+        && request.resource.data.assignedWasherName == resource.data.assignedWasherName
+        && request.resource.data.assignedWorkerEmail == resource.data.assignedWorkerEmail
+        && request.resource.data.assignedVehicleLabel == resource.data.assignedVehicleLabel
+        && request.resource.data.etaMinutes == resource.data.etaMinutes
+        && request.resource.data.request.servicePrice == resource.data.request.servicePrice
+        && request.resource.data.request.travelFee == resource.data.request.travelFee
+        && request.resource.data.request.totalPrice == resource.data.request.totalPrice
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // El lavador no puede cambiar quien es el cliente, ni la fecha, ni precios.
+    function workerPreservesProtectedFields() {
+      return request.resource.data.clientId == resource.data.clientId
+        && request.resource.data.customerEmail == resource.data.customerEmail
+        && request.resource.data.request.servicePrice == resource.data.request.servicePrice
+        && request.resource.data.request.travelFee == resource.data.request.travelFee
+        && request.resource.data.request.totalPrice == resource.data.request.totalPrice
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // El lavador solo puede tomar el pedido si aun no esta asignado.
+    function workerClaimsUnassignedOrder() {
+      return resource.data.workerId == null
+        && request.resource.data.workerId == request.auth.uid;
+    }
+
+    // ---------- profiles ----------
     match /profiles/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isOwnerUid(uid);
     }
 
-    // Pedidos: cliente ve solo los suyos, lavador ve pedidos asignados a él
+    // ---------- orders ----------
     match /orders/{orderId} {
-      allow create: if request.auth != null
-        && request.resource.data.clientId == request.auth.uid;
-      allow read: if request.auth != null
+      // Cliente crea solo con su propio uid, sin worker asignado y en estado inicial.
+      allow create: if isSignedIn()
+        && request.resource.data.clientId == request.auth.uid
+        && request.resource.data.workerId == null
+        && request.resource.data.status == 'searching';
+
+      allow read: if isSignedIn()
         && (resource.data.clientId == request.auth.uid
-        || resource.data.workerId == request.auth.uid);
-      allow update: if request.auth != null
-        && (resource.data.clientId == request.auth.uid
-        || resource.data.workerId == request.auth.uid);
+          || resource.data.workerId == request.auth.uid);
+
+      // Cliente puede actualizar campos no sensibles (notas, direccion, etc.)
+      // pero no puede cambiar quien lo atiende, precios ni asignacion.
+      allow update: if isSignedIn()
+        && resource.data.clientId == request.auth.uid
+        && clientPreservesProtectedFields();
+
+      // Lavador puede tomar pedido sin asignar, o avanzar el suyo.
+      // No puede tocar precios ni cambiar de cliente.
+      allow update: if isSignedIn()
+        && (workerClaimsUnassignedOrder() || resource.data.workerId == request.auth.uid)
+        && workerPreservesProtectedFields();
+
+      // No se permite borrar pedidos desde cliente.
+      allow delete: if false;
     }
 
-    // Tracking: cliente y lavador del pedido pueden leer/escribir
+    // ---------- tracking ----------
+    // Solo cliente o lavador del pedido pueden leer/escribir su tracking.
     match /tracking/{orderId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isOrderClient(orderId) || isOrderWorker(orderId);
     }
 
-    // Lavadores disponibles: cualquier autenticado puede leer, solo el dueño escribe
+    // ---------- workers ----------
     match /workers/{uid} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isSignedIn();
+      allow write: if isOwnerUid(uid);
+    }
+
+    // ---------- default deny ----------
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

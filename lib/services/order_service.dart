@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../app_config.dart';
-import '../models/session_models.dart';
 import '../models/wash_models.dart';
 import '../repositories/firestore_order_repository.dart';
 import '../repositories/mock_order_repository.dart';

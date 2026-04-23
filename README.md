@@ -87,8 +87,10 @@ La app inicializa Firebase en `lib/main.dart` usando `lib/firebase_options.dart`
   Guarda nombre, email, foto, rol y metadatos del usuario autenticado.
 - `orders`
   Guarda pedidos serializados desde `WashOrder` y `WashRequest`.
-- `order_tracking`
-  Guarda snapshots de tracking en vivo por pedido.
+- `tracking`
+  Guarda snapshots de tracking en vivo por pedido. Documento por `orderId`.
+- `workers`
+  Estado y disponibilidad de lavadores. Documento por `uid`.
 
 ## Cambiar entre mock y Firestore
 
@@ -136,7 +138,7 @@ Este repo no usa aun un sistema formal de variables de entorno dentro de Flutter
 - configuracion Firebase valida en `firebase_options.dart`
 - Google Sign-In configurado en Firebase Auth
 - SHA keys y configuracion Android/iOS cuando aplique
-- reglas de Firestore compatibles con `profiles`, `orders` y `order_tracking`
+- reglas de Firestore compatibles con `profiles`, `orders`, `tracking` y `workers`
 
 ## Estado actual del proyecto
 
@@ -149,12 +151,11 @@ Este repo no usa aun un sistema formal de variables de entorno dentro de Flutter
 
 ## Pendientes recomendados
 
-- correr `dart analyze`
-- correr `flutter test`
-- validar imports rotos despues de eliminar flujo legacy
 - completar placeholders marcados con `TODO`
-- endurecer `ProfileService` para que toda la lectura de perfil venga de Firestore
-- validar reglas, indices y permisos de Firestore
+- mover `assignWorker`, `updateOrderStatus` y `processPayment` a Cloud Functions (ver `functions_contract.md`)
+- partir en widgets las pantallas grandes (`request_wash_flow_page.dart`, `role_login_page.dart`, `home_page.dart`)
+- mover API key de Google Maps y otros secretos a `--dart-define`
+- validar indices y permisos de Firestore en consola
 
 ## Desarrollo
 

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../models/session_models.dart';
 import '../models/wash_models.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/session_service.dart';
 import '../services/theme_service.dart';
 import '../theme/theme.dart';
-import '../widgets/primary_button.dart';
-import '../widgets/secondary_button.dart';
 import 'role_login_page.dart';
 
 class ProfileHubPage extends StatelessWidget {
@@ -24,175 +21,118 @@ class ProfileHubPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 920;
-    final isWorker = mode == AppRole.worker;
+    final isDesktop = width >= 900;
 
     return Scaffold(
-      body: Container(
+      backgroundColor: LavifyColors.background,
+      body: DecoratedBox(
         decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(isDesktop ? 32 : 24),
-            child: ValueListenableBuilder<UserProfile>(
-              valueListenable: _profileService.profile,
-              builder: (context, profile, _) {
-                return SingleChildScrollView(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: isDesktop ? 1160 : 720,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 760),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Configuracion',
-                                  style: Theme.of(context).textTheme.headlineMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  isWorker
-                                      ? 'Administra tu cuenta operativa, tus datos frecuentes y la seguridad de tu sesion.'
-                                      : 'Administra tu cuenta, tus datos frecuentes y la seguridad de tu sesion.',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: isDesktop ? 28 : 24),
-                          if (isDesktop)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 5,
-                                  child: _AccountSummaryCard(
-                                    profile: profile,
-                                    mode: mode,
-                                    onEditProfile: () =>
-                                        _showEditProfileDialog(context, profile),
-                                    onLogout: () => _handleLogout(context),
-                                  ),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(
-                                  flex: 7,
-                                  child: _SettingsPanel(
-                                    profile: profile,
-                                    isLightMode: _themeService.isLightMode,
-                                    onEditProfile: () =>
-                                        _showEditProfileDialog(context, profile),
-                                    onEditVehicle: () =>
-                                        _showSingleFieldDialog(
-                                          context,
-                                          title: 'Vehiculo principal',
-                                          label: 'Vehiculo principal',
-                                          initialValue: profile.vehicleLabel,
-                                          onSave: (value) {
-                                            _profileService.updateProfile(
-                                              profile.copyWith(
-                                                vehicleLabel: value,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                    onEditAddress: () =>
-                                        _showSingleFieldDialog(
-                                          context,
-                                          title: 'Direccion favorita',
-                                          label: 'Direccion favorita',
-                                          initialValue: profile.favoriteAddress,
-                                          onSave: (value) {
-                                            _profileService.updateProfile(
-                                              profile.copyWith(
-                                                favoriteAddress: value,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                    onEditPayment: () =>
-                                        _showSingleFieldDialog(
-                                          context,
-                                          title: 'Metodo de pago',
-                                          label: 'Metodo de pago',
-                                          initialValue: profile.paymentMethod,
-                                          onSave: (value) {
-                                            _profileService.updateProfile(
-                                              profile.copyWith(
-                                                paymentMethod: value,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                    onLogout: () => _handleLogout(context),
-                                    onToggleTheme: _themeService.toggleBrightness,
-                                  ),
-                                ),
-                              ],
-                            )
-                          else ...[
-                            _AccountSummaryCard(
-                              profile: profile,
-                              mode: mode,
-                              onEditProfile: () =>
-                                  _showEditProfileDialog(context, profile),
-                              onLogout: () => _handleLogout(context),
-                            ),
-                            const SizedBox(height: 20),
-                            _SettingsPanel(
-                              profile: profile,
-                              isLightMode: _themeService.isLightMode,
-                              onEditProfile: () =>
-                                  _showEditProfileDialog(context, profile),
-                              onEditVehicle: () => _showSingleFieldDialog(
-                                context,
-                                title: 'Vehiculo principal',
-                                label: 'Vehiculo principal',
-                                initialValue: profile.vehicleLabel,
-                                onSave: (value) {
-                                  _profileService.updateProfile(
-                                    profile.copyWith(vehicleLabel: value),
-                                  );
-                                },
-                              ),
-                              onEditAddress: () => _showSingleFieldDialog(
-                                context,
-                                title: 'Direccion favorita',
-                                label: 'Direccion favorita',
-                                initialValue: profile.favoriteAddress,
-                                onSave: (value) {
-                                  _profileService.updateProfile(
-                                    profile.copyWith(favoriteAddress: value),
-                                  );
-                                },
-                              ),
-                              onEditPayment: () => _showSingleFieldDialog(
-                                context,
-                                title: 'Metodo de pago',
-                                label: 'Metodo de pago',
-                                initialValue: profile.paymentMethod,
-                                onSave: (value) {
-                                  _profileService.updateProfile(
-                                    profile.copyWith(paymentMethod: value),
-                                  );
-                                },
-                              ),
-                              onLogout: () => _handleLogout(context),
-                              onToggleTheme: _themeService.toggleBrightness,
-                            ),
-                          ],
-                        ],
-                      ),
+          child: ValueListenableBuilder<UserProfile>(
+            valueListenable: _profileService.profile,
+            builder: (context, profile, _) {
+              final stats = _statsForProfile(profile, mode);
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  isDesktop ? 32 : 20,
+                  isDesktop ? 20 : 16,
+                  isDesktop ? 32 : 20,
+                  120,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isDesktop ? 980 : 420,
                     ),
+                    child: isDesktop
+                        ? _DesktopProfileLayout(
+                            profile: profile,
+                            stats: stats,
+                            isLightMode: _themeService.isLightMode,
+                            onEditProfile: () =>
+                                _showEditProfileDialog(context, profile),
+                            onEditVehicle: () => _showSingleFieldDialog(
+                              context,
+                              title: 'Vehiculo principal',
+                              label: 'Vehiculo principal',
+                              initialValue: profile.vehicleLabel,
+                              onSave: (value) {
+                                _profileService.updateProfile(
+                                  profile.copyWith(vehicleLabel: value),
+                                );
+                              },
+                            ),
+                            onEditAddress: () => _showSingleFieldDialog(
+                              context,
+                              title: 'Direccion favorita',
+                              label: 'Direccion favorita',
+                              initialValue: profile.favoriteAddress,
+                              onSave: (value) {
+                                _profileService.updateProfile(
+                                  profile.copyWith(favoriteAddress: value),
+                                );
+                              },
+                            ),
+                            onEditPayment: () => _showSingleFieldDialog(
+                              context,
+                              title: 'Metodo de pago',
+                              label: 'Metodo de pago',
+                              initialValue: profile.paymentMethod,
+                              onSave: (value) {
+                                _profileService.updateProfile(
+                                  profile.copyWith(paymentMethod: value),
+                                );
+                              },
+                            ),
+                            onToggleTheme: _themeService.toggleBrightness,
+                            onLogout: () => _handleLogout(context),
+                          )
+                        : _MobileProfileLayout(
+                            profile: profile,
+                            stats: stats,
+                            isLightMode: _themeService.isLightMode,
+                            onEditProfile: () =>
+                                _showEditProfileDialog(context, profile),
+                            onEditVehicle: () => _showSingleFieldDialog(
+                              context,
+                              title: 'Vehiculo principal',
+                              label: 'Vehiculo principal',
+                              initialValue: profile.vehicleLabel,
+                              onSave: (value) {
+                                _profileService.updateProfile(
+                                  profile.copyWith(vehicleLabel: value),
+                                );
+                              },
+                            ),
+                            onEditAddress: () => _showSingleFieldDialog(
+                              context,
+                              title: 'Direccion favorita',
+                              label: 'Direccion favorita',
+                              initialValue: profile.favoriteAddress,
+                              onSave: (value) {
+                                _profileService.updateProfile(
+                                  profile.copyWith(favoriteAddress: value),
+                                );
+                              },
+                            ),
+                            onEditPayment: () => _showSingleFieldDialog(
+                              context,
+                              title: 'Metodo de pago',
+                              label: 'Metodo de pago',
+                              initialValue: profile.paymentMethod,
+                              onSave: (value) {
+                                _profileService.updateProfile(
+                                  profile.copyWith(paymentMethod: value),
+                                );
+                              },
+                            ),
+                            onToggleTheme: _themeService.toggleBrightness,
+                            onLogout: () => _handleLogout(context),
+                          ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -325,335 +265,439 @@ class ProfileHubPage extends StatelessWidget {
 
     await _authService.signOut();
     _sessionService.clearSession();
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => RoleLoginPage(initialMode: mode),
-      ),
+      MaterialPageRoute<void>(builder: (_) => RoleLoginPage(initialMode: mode)),
       (route) => false,
     );
   }
 }
 
-class _AccountSummaryCard extends StatelessWidget {
-  const _AccountSummaryCard({
+class _MobileProfileLayout extends StatelessWidget {
+  const _MobileProfileLayout({
     required this.profile,
-    required this.mode,
-    required this.onEditProfile,
-    required this.onLogout,
-  });
-
-  final UserProfile profile;
-  final AppRole mode;
-  final VoidCallback onEditProfile;
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    final isWorker = mode == AppRole.worker;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: LavifyTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
-                  color: const Color(0x3322C1FF),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: LavifyColors.primary,
-                  size: 34,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile.name.trim().isEmpty
-                          ? 'Elige tu nombre'
-                          : profile.name,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      profile.email,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          const _AccountBadgeRow(),
-          const SizedBox(height: 24),
-          _ProfileHighlight(
-            label: 'Correo de acceso',
-            value: profile.email,
-          ),
-          _ProfileHighlight(
-            label: 'Nombre de usuario',
-            value: profile.name.trim().isEmpty
-                ? 'Pendiente por elegir'
-                : profile.name,
-          ),
-          _ProfileHighlight(
-            label: 'Tipo de cuenta',
-            value: isWorker ? 'Trabajador' : 'Cliente',
-          ),
-          const SizedBox(height: 10),
-          PrimaryButton(
-            label: 'Editar cuenta',
-            onPressed: onEditProfile,
-            isExpanded: true,
-          ),
-          const SizedBox(height: 12),
-          SecondaryButton(
-            label: 'Cerrar sesion',
-            icon: Icons.logout_rounded,
-            onPressed: onLogout,
-            isExpanded: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsPanel extends StatelessWidget {
-  const _SettingsPanel({
-    required this.profile,
+    required this.stats,
     required this.isLightMode,
     required this.onEditProfile,
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
-    required this.onLogout,
     required this.onToggleTheme,
+    required this.onLogout,
   });
 
   final UserProfile profile;
+  final List<_ProfileStat> stats;
   final bool isLightMode;
   final VoidCallback onEditProfile;
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
-  final VoidCallback onLogout;
   final ValueChanged<bool> onToggleTheme;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
+    final accountItems = [
+      _ProfileMenuItem(
+        icon: Icons.person_outline_rounded,
+        title: 'Informacion personal',
+        value: 'Editar',
+        onTap: onEditProfile,
+      ),
+      _ProfileMenuItem(
+        icon: Icons.lock_outline_rounded,
+        title: 'Contrasena',
+        value: 'Cambiar',
+        onTap: () {},
+      ),
+      _ProfileMenuItem(
+        icon: Icons.notifications_none_rounded,
+        title: 'Notificaciones',
+        value: 'Activadas',
+        onTap: () {},
+      ),
+    ];
+    final dataItems = [
+      _ProfileMenuItem(
+        icon: Icons.directions_car_outlined,
+        title: 'Vehiculo principal',
+        value: _fallbackValue(profile.vehicleLabel, 'Sedan · Gris'),
+        onTap: onEditVehicle,
+      ),
+      _ProfileMenuItem(
+        icon: Icons.location_on_outlined,
+        title: 'Direccion favorita',
+        value: _fallbackValue(profile.favoriteAddress, 'Av. Reforma 245'),
+        onTap: onEditAddress,
+      ),
+      _ProfileMenuItem(
+        icon: Icons.smartphone_rounded,
+        title: 'Metodo de pago',
+        value: _fallbackValue(profile.paymentMethod, 'Visa ···4242'),
+        onTap: onEditPayment,
+      ),
+    ];
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SettingsSection(
-          title: 'Cuenta',
-          subtitle: 'Datos visibles de tu perfil y acceso principal.',
-          children: [
-            _SettingsTile(
-              icon: Icons.badge_rounded,
-              title: 'Nombre de usuario',
-              subtitle: profile.name,
-              onTap: onEditProfile,
-            ),
-            _SettingsTile(
-              icon: Icons.alternate_email_rounded,
-              title: 'Correo de acceso',
-              subtitle: profile.email,
-              onTap: onEditProfile,
-            ),
-          ],
+        const SizedBox(height: 8),
+        _ProfileHero(profile: profile),
+        const SizedBox(height: 22),
+        Row(
+          children: stats
+              .map(
+                (stat) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: stat == stats.last ? 0 : 10,
+                    ),
+                    child: _StatCard(stat: stat),
+                  ),
+                ),
+              )
+              .toList(),
         ),
-        const SizedBox(height: 18),
-        _SettingsSection(
-          title: 'Preferencias',
-          subtitle: 'Informacion rapida para pedir tus lavados.',
-          children: [
-            _SettingsTile(
-              icon: Icons.directions_car_filled_rounded,
-              title: 'Vehiculo principal',
-              subtitle: profile.vehicleLabel,
-              onTap: onEditVehicle,
-            ),
-            _SettingsTile(
-              icon: Icons.home_rounded,
-              title: 'Direccion favorita',
-              subtitle: profile.favoriteAddress,
-              onTap: onEditAddress,
-            ),
-            _SettingsTile(
-              icon: Icons.credit_card_rounded,
-              title: 'Metodo de pago',
-              subtitle: profile.paymentMethod,
-              onTap: onEditPayment,
-            ),
-          ],
+        const SizedBox(height: 24),
+        _ProfileSection(title: 'Mi cuenta', items: accountItems),
+        const SizedBox(height: 22),
+        _ProfileSection(title: 'Mis datos', items: dataItems),
+        const SizedBox(height: 22),
+        _ThemePreferenceTile(
+          isLightMode: isLightMode,
+          onChanged: onToggleTheme,
         ),
-        const SizedBox(height: 18),
-        _SettingsSection(
-          title: 'Apariencia',
-          subtitle: 'Personaliza como se ve la app en tu dispositivo.',
-          children: [
-            _ThemeModeTile(
-              isLightMode: isLightMode,
-              onChanged: onToggleTheme,
-            ),
-          ],
+        const SizedBox(height: 22),
+        _DangerButton(label: 'Cerrar sesion', onTap: onLogout),
+      ],
+    );
+  }
+}
+
+class _DesktopProfileLayout extends StatelessWidget {
+  const _DesktopProfileLayout({
+    required this.profile,
+    required this.stats,
+    required this.isLightMode,
+    required this.onEditProfile,
+    required this.onEditVehicle,
+    required this.onEditAddress,
+    required this.onEditPayment,
+    required this.onToggleTheme,
+    required this.onLogout,
+  });
+
+  final UserProfile profile;
+  final List<_ProfileStat> stats;
+  final bool isLightMode;
+  final VoidCallback onEditProfile;
+  final VoidCallback onEditVehicle;
+  final VoidCallback onEditAddress;
+  final VoidCallback onEditPayment;
+  final ValueChanged<bool> onToggleTheme;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ProfileHero(profile: profile),
+              const SizedBox(height: 20),
+              Row(
+                children: stats
+                    .map(
+                      (stat) => Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: stat == stats.last ? 0 : 10,
+                          ),
+                          child: _StatCard(stat: stat),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 20),
+              _ThemePreferenceTile(
+                isLightMode: isLightMode,
+                onChanged: onToggleTheme,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 18),
-        _SettingsSection(
-          title: 'Seguridad',
-          subtitle: 'Control de sesion y acceso a tu cuenta.',
-          children: [
-            _SettingsTile(
-              icon: Icons.password_rounded,
-              title: 'Contrasena',
-              subtitle: 'Disponible cuando conectemos autenticacion real',
-              onTap: () {},
-            ),
-            _SettingsTile(
-              icon: Icons.logout_rounded,
-              title: 'Cerrar sesion',
-              subtitle: 'Salir y volver a la pantalla de acceso',
-              onTap: onLogout,
-              danger: true,
-            ),
-          ],
+        const SizedBox(width: 24),
+        Expanded(
+          flex: 7,
+          child: Column(
+            children: [
+              _ProfileSection(
+                title: 'Mi cuenta',
+                items: [
+                  _ProfileMenuItem(
+                    icon: Icons.person_outline_rounded,
+                    title: 'Informacion personal',
+                    value: 'Editar',
+                    onTap: onEditProfile,
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.lock_outline_rounded,
+                    title: 'Contrasena',
+                    value: 'Cambiar',
+                    onTap: () {},
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Notificaciones',
+                    value: 'Activadas',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _ProfileSection(
+                title: 'Mis datos',
+                items: [
+                  _ProfileMenuItem(
+                    icon: Icons.directions_car_outlined,
+                    title: 'Vehiculo principal',
+                    value: _fallbackValue(profile.vehicleLabel, 'Sedan · Gris'),
+                    onTap: onEditVehicle,
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.location_on_outlined,
+                    title: 'Direccion favorita',
+                    value: _fallbackValue(
+                      profile.favoriteAddress,
+                      'Av. Reforma 245',
+                    ),
+                    onTap: onEditAddress,
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.smartphone_rounded,
+                    title: 'Metodo de pago',
+                    value: _fallbackValue(
+                      profile.paymentMethod,
+                      'Visa ···4242',
+                    ),
+                    onTap: onEditPayment,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _DangerButton(label: 'Cerrar sesion', onTap: onLogout),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _SettingsSection extends StatelessWidget {
-  const _SettingsSection({
-    required this.title,
-    required this.subtitle,
-    required this.children,
-  });
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({required this.profile});
 
-  final String title;
-  final String subtitle;
-  final List<Widget> children;
+  final UserProfile profile;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: LavifyTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
+      padding: const EdgeInsets.fromLTRB(4, 12, 4, 22),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: LavifyColors.border)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 6),
-          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 18),
-          ...children,
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0x4D3D7BFF), Color(0x2D6AA8FF)],
+              ),
+              border: Border.all(color: const Color(0x476AA8FF), width: 2),
+            ),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: LavifyColors.primary,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.name.trim().isEmpty ? 'Usuario Lavify' : profile.name,
+                  style: const TextStyle(
+                    color: LavifyColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  profile.email.isEmpty ? 'cliente@lavify.app' : profile.email,
+                  style: const TextStyle(
+                    color: LavifyColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: const [
+                    Icon(
+                      Icons.star_rounded,
+                      size: 12,
+                      color: Color(0xFFFFC857),
+                    ),
+                    SizedBox(width: 5),
+                    Text(
+                      '4.9',
+                      style: TextStyle(
+                        color: LavifyColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(width: 5),
+                    Text(
+                      '· 3 lavados completados',
+                      style: TextStyle(
+                        color: LavifyColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.danger = false,
-  });
+class _ProfileSection extends StatelessWidget {
+  const _ProfileSection({required this.title, required this.items});
 
-  final IconData icon;
   final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final bool danger;
+  final List<_ProfileMenuItem> items;
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = danger
-        ? const Color(0xFFFF8A80)
-        : LavifyColors.primary;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: LavifyTheme.softFillStrongColor(context),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: LavifyTheme.borderColor(context)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: Color.alphaBlend(
-                      accentColor.withAlpha(28),
-                      LavifyTheme.surfaceAltColor(context),
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: accentColor),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: LavifyTheme.textPrimaryColor(context),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: danger ? accentColor : LavifyColors.textSecondary,
-                ),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            color: LavifyColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.7,
           ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: LavifyColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: LavifyColors.border),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                _ProfileRow(item: items[i]),
+                if (i < items.length - 1)
+                  const Divider(
+                    color: LavifyColors.border,
+                    height: 1,
+                    indent: 18,
+                    endIndent: 18,
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileRow extends StatelessWidget {
+  const _ProfileRow({required this.item});
+
+  final _ProfileMenuItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: item.onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0x146AA8FF),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(item.icon, size: 16, color: LavifyColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.title,
+                style: const TextStyle(
+                  color: LavifyColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Flexible(
+              child: Text(
+                item.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: LavifyColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              size: 14,
+              color: LavifyColors.textSecondary,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ThemeModeTile extends StatelessWidget {
-  const _ThemeModeTile({
+class _ThemePreferenceTile extends StatelessWidget {
+  const _ThemePreferenceTile({
     required this.isLightMode,
     required this.onChanged,
   });
@@ -664,169 +708,115 @@ class _ThemeModeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: LavifyTheme.softFillStrongColor(context),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
+        color: LavifyColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: LavifyColors.border),
       ),
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-              color: const Color(0x1A22C1FF),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0x146AA8FF),
+              borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(
               isLightMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              size: 16,
               color: LavifyColors.primary,
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Modo claro',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyTheme.textPrimaryColor(context),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isLightMode
-                      ? 'La app usa una apariencia clara.'
-                      : 'Activa una apariencia mas luminosa.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Modo claro',
+              style: TextStyle(
+                color: LavifyColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          Switch(
-            value: isLightMode,
-            onChanged: onChanged,
-          ),
+          Switch(value: isLightMode, onChanged: onChanged),
         ],
       ),
     );
   }
 }
 
-class _AccountBadgeRow extends StatelessWidget {
-  const _AccountBadgeRow();
+class _DangerButton extends StatelessWidget {
+  const _DangerButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: const [
-        _InfoBadge(
-          icon: Icons.verified_user_rounded,
-          label: 'Cuenta activa',
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        decoration: BoxDecoration(
+          color: const Color(0x14FF5050),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x30FF5050)),
         ),
-        _InfoBadge(
-          icon: Icons.tune_rounded,
-          label: 'Preferencias editables',
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFFFF6B6B),
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-      ],
+      ),
     );
   }
 }
 
-class _InfoBadge extends StatelessWidget {
-  const _InfoBadge({required this.icon, required this.label});
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.stat});
 
-  final IconData icon;
-  final String label;
+  final _ProfileStat stat;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       decoration: BoxDecoration(
-        color: LavifyTheme.softFillStrongColor(context),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
+        color: LavifyColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: LavifyColors.border),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: LavifyColors.primary),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: LavifyTheme.textPrimaryColor(context),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileHighlight extends StatelessWidget {
-  const _ProfileHighlight({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 4),
           Text(
-            value,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: LavifyTheme.textPrimaryColor(context),
+            stat.value,
+            style: TextStyle(
+              color: stat.highlight
+                  ? LavifyColors.success
+                  : LavifyColors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            stat.label,
+            style: const TextStyle(
+              color: LavifyColors.textSecondary,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ReadOnlyProfileField extends StatelessWidget {
-  const _ReadOnlyProfileField({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: LavifyTheme.surfaceAltColor(context),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
-        ),
-      ),
-      child: Text(
-        value,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: LavifyTheme.textPrimaryColor(context),
-          fontWeight: FontWeight.w600,
-        ),
       ),
     );
   }
@@ -842,27 +832,68 @@ class _ProfileField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: LavifyTheme.textPrimaryColor(context),
-        fontWeight: FontWeight.w600,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: LavifyTheme.surfaceAltColor(context),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: LavifyColors.primary),
-        ),
-      ),
+      decoration: InputDecoration(labelText: label),
     );
   }
+}
+
+class _ReadOnlyProfileField extends StatelessWidget {
+  const _ReadOnlyProfileField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      enabled: false,
+      controller: TextEditingController(text: value),
+      decoration: InputDecoration(labelText: label),
+    );
+  }
+}
+
+class _ProfileMenuItem {
+  const _ProfileMenuItem({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final VoidCallback onTap;
+}
+
+class _ProfileStat {
+  const _ProfileStat({
+    required this.value,
+    required this.label,
+    this.highlight = false,
+  });
+
+  final String value;
+  final String label;
+  final bool highlight;
+}
+
+List<_ProfileStat> _statsForProfile(UserProfile profile, AppRole mode) {
+  if (mode == AppRole.worker) {
+    return const [
+      _ProfileStat(value: '128', label: 'Lavados'),
+      _ProfileStat(value: '\$8,450', label: 'Total', highlight: true),
+      _ProfileStat(value: '4.9', label: 'Rating'),
+    ];
+  }
+  return const [
+    _ProfileStat(value: '3', label: 'Lavados'),
+    _ProfileStat(value: '\$487', label: 'Total', highlight: true),
+    _ProfileStat(value: '4.9', label: 'Rating'),
+  ];
+}
+
+String _fallbackValue(String value, String fallback) {
+  return value.trim().isEmpty ? fallback : value.trim();
 }
