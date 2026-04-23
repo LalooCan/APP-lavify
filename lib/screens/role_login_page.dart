@@ -3,11 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/session_models.dart';
 import '../services/auth_service.dart';
-import '../services/profile_service.dart';
-import '../services/session_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
-import 'app_shell.dart';
 
 class RoleLoginPage extends StatefulWidget {
   const RoleLoginPage({super.key, this.initialMode = AppRole.client});
@@ -22,8 +19,6 @@ enum _AuthEntryIntent { signUp, signIn }
 
 class _RoleLoginPageState extends State<RoleLoginPage> {
   static final _authService = AuthService();
-  static final _profileService = ProfileService();
-  static final _sessionService = SessionService();
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -32,6 +27,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
   bool _obscurePassword = true;
   bool _rememberSession = true;
   bool _showAuthForm = false;
+  bool _isSubmitting = false;
   _AuthEntryIntent _authIntent = _AuthEntryIntent.signUp;
   late AppRole _selectedMode;
 
@@ -107,6 +103,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                         passwordController: _passwordController,
                                         obscurePassword: _obscurePassword,
                                         rememberSession: _rememberSession,
+                                        isSubmitting: _isSubmitting,
                                         onModeChanged: _setMode,
                                         onTogglePassword: _togglePassword,
                                         onRememberChanged: _setRememberSession,
@@ -129,6 +126,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                       passwordController: _passwordController,
                                       obscurePassword: _obscurePassword,
                                       rememberSession: _rememberSession,
+                                      isSubmitting: _isSubmitting,
                                       onModeChanged: _setMode,
                                       onTogglePassword: _togglePassword,
                                       onRememberChanged: _setRememberSession,
@@ -209,6 +207,9 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
   }
 
   Future<void> _submitLogin() async {
+    if (_isSubmitting) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) {
       return;
@@ -220,59 +221,31 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
         ? _nameController.text.trim()
         : null;
 
+    setState(() {
+      _isSubmitting = true;
+    });
+
     try {
-      UserCredential credential;
       if (_authIntent == _AuthEntryIntent.signUp) {
-        credential = await _authService.createUserWithEmailAndPassword(
+        await _authService.createUserWithEmailAndPassword(
           email,
           password,
           fallbackRole: _selectedMode,
           displayName: displayName,
         );
       } else {
-        try {
-          credential = await _authService.signInWithEmailAndPassword(
-            email,
-            password,
-          );
-        } on FirebaseAuthException catch (error) {
-          if (error.code != 'user-not-found') {
-            rethrow;
-          }
-          credential = await _authService.createUserWithEmailAndPassword(
-            email,
-            password,
-            fallbackRole: _selectedMode,
-            displayName: displayName,
-          );
-        }
-      }
-
-      final user = credential.user;
-      if (user == null) {
-        throw FirebaseAuthException(
-          code: 'missing-user',
-          message: 'No se pudo cargar el usuario autenticado.',
+        await _authService.signInWithEmailAndPassword(
+          email,
+          password,
         );
       }
-
-      final profile = await _authService.loadOrCreateUserProfile(
-        user: user,
-        fallbackRole: _selectedMode,
-        displayName: displayName,
-      );
-      _profileService.setProfile(profile);
-      _sessionService.startSessionFromProfile(profile);
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => AppShell(mode: profile.role)),
-      );
     } on FirebaseAuthException catch (error) {
       if (!mounted) {
         return;
       }
+      setState(() {
+        _isSubmitting = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_firebaseAuthMessage(error))),
       );
@@ -280,6 +253,9 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
       if (!mounted) {
         return;
       }
+      setState(() {
+        _isSubmitting = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No se pudo iniciar sesion. Intentalo de nuevo.'),
@@ -289,33 +265,41 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
   }
 
   Future<void> _signInWithGoogle() async {
-    FocusScope.of(context).unfocus();
-    final user = await _authService.signInWithGoogle(
-      fallbackRole: _selectedMode,
-    );
-    if (!mounted) {
+    if (_isSubmitting) {
       return;
     }
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isSubmitting = true;
+    });
 
-    if (user == null) {
+    try {
+      final user = await _authService.signInWithGoogle(
+        fallbackRole: _selectedMode,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      if (user == null) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo iniciar sesion con Google')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSubmitting = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo iniciar sesion con Google')),
       );
-      return;
     }
-
-    final profile = await _authService.loadOrCreateUserProfile(
-      user: user,
-      fallbackRole: _selectedMode,
-    );
-    _profileService.setProfile(profile);
-    _sessionService.startSessionFromProfile(profile);
-    if (!mounted) {
-      return;
-    }
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => AppShell(mode: profile.role)),
-    );
   }
 
   String _firebaseAuthMessage(FirebaseAuthException error) {
@@ -589,6 +573,7 @@ class _LoginCard extends StatelessWidget {
     required this.passwordController,
     required this.obscurePassword,
     required this.rememberSession,
+    required this.isSubmitting,
     required this.onModeChanged,
     required this.onTogglePassword,
     required this.onRememberChanged,
@@ -606,6 +591,7 @@ class _LoginCard extends StatelessWidget {
   final TextEditingController passwordController;
   final bool obscurePassword;
   final bool rememberSession;
+  final bool isSubmitting;
   final ValueChanged<AppRole> onModeChanged;
   final VoidCallback onTogglePassword;
   final ValueChanged<bool?> onRememberChanged;
@@ -633,7 +619,7 @@ class _LoginCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextButton.icon(
-              onPressed: onBack,
+              onPressed: isSubmitting ? null : onBack,
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
               label: const Text('Volver'),
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -649,7 +635,7 @@ class _LoginCard extends StatelessWidget {
             const SizedBox(height: 12),
             _RoleSelector(
               selectedMode: selectedMode,
-              onModeChanged: onModeChanged,
+              onModeChanged: isSubmitting ? (_) {} : onModeChanged,
             ),
             const SizedBox(height: 24),
             Text(
@@ -761,7 +747,7 @@ class _LoginCard extends StatelessWidget {
                 hint: 'Escribe tu contrasena',
                 prefixIcon: Icons.lock_outline_rounded,
                 suffix: IconButton(
-                  onPressed: onTogglePassword,
+                  onPressed: isSubmitting ? null : onTogglePassword,
                   icon: Icon(
                     obscurePassword
                         ? Icons.visibility_outlined
@@ -785,7 +771,7 @@ class _LoginCard extends StatelessWidget {
                     children: [
                       Checkbox(
                         value: rememberSession,
-                        onChanged: onRememberChanged,
+                        onChanged: isSubmitting ? null : onRememberChanged,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -823,23 +809,29 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             PrimaryButton(
-              label: isSignUp
+              label: isSubmitting
+                  ? isSignUp
+                        ? 'Creando cuenta...'
+                        : 'Verificando...'
+                  : isSignUp
                   ? isClient
                         ? 'Crear cuenta como cliente'
                         : 'Crear cuenta como trabajador'
                   : isClient
                   ? 'Entrar como cliente'
                   : 'Entrar como trabajador',
-              icon: Icons.login_rounded,
+              icon: isSubmitting
+                  ? Icons.hourglass_top_rounded
+                  : Icons.login_rounded,
               isExpanded: true,
-              onPressed: onLogin,
+              onPressed: isSubmitting ? null : onLogin,
             ),
             const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: onGoogleLogin,
+                    onPressed: isSubmitting ? null : () => onGoogleLogin(),
                     icon: const Text(
                       'G',
                       style: TextStyle(
@@ -854,7 +846,7 @@ class _LoginCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: isSubmitting ? null : () {},
                     icon: const Icon(
                       Icons.apple_rounded,
                       color: Colors.black54,
@@ -880,7 +872,7 @@ class _LoginCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   TextButton(
-                    onPressed: () {
+                    onPressed: isSubmitting ? null : () {
                       if (isSignUp) {
                         onSwitchToSignIn();
                         return;

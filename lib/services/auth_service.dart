@@ -60,7 +60,7 @@ class AuthService {
         return null;
       }
 
-      await _ensureUserProfile(user: user, fallbackRole: fallbackRole);
+      await loadOrCreateUserProfile(user: user, fallbackRole: fallbackRole);
       return user;
     } catch (e) {
       debugPrint('Error Google Sign-In: $e');
@@ -94,7 +94,7 @@ class AuthService {
       if (normalizedDisplayName.isNotEmpty) {
         await user.updateDisplayName(normalizedDisplayName);
       }
-      await _ensureUserProfile(
+      await _createUserProfile(
         user: user,
         fallbackRole: fallbackRole,
         displayName: normalizedDisplayName,
@@ -142,14 +142,34 @@ class AuthService {
       throw StateError('No hay usuario autenticado.');
     }
 
-    await _ensureUserProfile(
+    final doc = _profilesCollection.doc(current.uid);
+    final snapshot = await doc.get();
+    final data = snapshot.data();
+
+    if (data == null) {
+      return _createUserProfile(
+        user: current,
+        fallbackRole: fallbackRole,
+        displayName: displayName,
+      );
+    }
+
+    final updates = _profileUpdatesForExisting(
+      existing: data,
       user: current,
       fallbackRole: fallbackRole,
       displayName: displayName,
     );
-    final snapshot = await _profilesCollection.doc(current.uid).get();
-    final data = snapshot.data() ?? const <String, dynamic>{};
-    return UserProfile.fromMap(data);
+    if (updates.isEmpty) {
+      return UserProfile.fromMap(data);
+    }
+
+    await doc.set({
+      ...updates,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return UserProfile.fromMap({...data, ...updates});
   }
 
   Future<void> signOut() async {
@@ -159,29 +179,126 @@ class AuthService {
     await _auth.signOut();
   }
 
-  Future<void> _ensureUserProfile({
+  Future<UserProfile> _createUserProfile({
     required User user,
     required AppRole fallbackRole,
     String? displayName,
   }) async {
     final doc = _profilesCollection.doc(user.uid);
-    final snapshot = await doc.get();
-    final existing = snapshot.data();
-    final role = existing?['role'] as String? ?? fallbackRole.name;
-    final resolvedName =
-        displayName?.trim().isNotEmpty == true
-            ? displayName!.trim()
-            : user.displayName ?? existing?['displayName'] ?? existing?['name'];
+    final profileData = _newProfileData(
+      user: user,
+      fallbackRole: fallbackRole,
+      displayName: displayName,
+    );
 
     await doc.set({
-      'uid': user.uid,
-      'name': resolvedName ?? 'Usuario Lavify',
-      'displayName': resolvedName ?? 'Usuario Lavify',
-      'email': user.email ?? existing?['email'] ?? '',
-      'photoUrl': user.photoURL ?? existing?['photoUrl'],
-      'role': role,
+      ...profileData,
       'updatedAt': FieldValue.serverTimestamp(),
-      if (!snapshot.exists) 'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    return UserProfile.fromMap(profileData);
+  }
+
+  Map<String, dynamic> _newProfileData({
+    required User user,
+    required AppRole fallbackRole,
+    String? displayName,
+  }) {
+    final resolvedName = _resolveProfileName(
+      user: user,
+      displayName: displayName,
+    );
+
+    return {
+      'uid': user.uid,
+      'name': resolvedName,
+      'displayName': resolvedName,
+      'email': user.email?.trim() ?? '',
+      'photoUrl': user.photoURL,
+      'role': fallbackRole.name,
+    };
+  }
+
+  Map<String, dynamic> _profileUpdatesForExisting({
+    required Map<String, dynamic> existing,
+    required User user,
+    required AppRole fallbackRole,
+    String? displayName,
+  }) {
+    final updates = <String, dynamic>{};
+    final explicitDisplayName = displayName?.trim() ?? '';
+    final existingName = _stringValue(existing, 'name');
+    final existingDisplayName = _stringValue(existing, 'displayName');
+    final email = user.email?.trim() ?? '';
+    final photoUrl = user.photoURL?.trim() ?? '';
+
+    if (_stringValue(existing, 'uid') != user.uid) {
+      updates['uid'] = user.uid;
+    }
+    if (email.isNotEmpty && _stringValue(existing, 'email') != email) {
+      updates['email'] = email;
+    }
+    if (_stringValue(existing, 'role').isEmpty) {
+      updates['role'] = fallbackRole.name;
+    }
+    if (photoUrl.isNotEmpty && _stringValue(existing, 'photoUrl') != photoUrl) {
+      updates['photoUrl'] = photoUrl;
+    }
+
+    if (explicitDisplayName.isNotEmpty) {
+      if (existingName != explicitDisplayName) {
+        updates['name'] = explicitDisplayName;
+      }
+      if (existingDisplayName != explicitDisplayName) {
+        updates['displayName'] = explicitDisplayName;
+      }
+      return updates;
+    }
+
+    if (existingName.isEmpty && existingDisplayName.isEmpty) {
+      final resolvedName = _resolveProfileName(user: user, existing: existing);
+      updates['name'] = resolvedName;
+      updates['displayName'] = resolvedName;
+    } else if (existingName.isEmpty) {
+      updates['name'] = existingDisplayName;
+    } else if (existingDisplayName.isEmpty) {
+      updates['displayName'] = existingName;
+    }
+
+    return updates;
+  }
+
+  String _resolveProfileName({
+    required User user,
+    Map<String, dynamic>? existing,
+    String? displayName,
+  }) {
+    final explicitDisplayName = displayName?.trim() ?? '';
+    if (explicitDisplayName.isNotEmpty) {
+      return explicitDisplayName;
+    }
+
+    final authDisplayName = user.displayName?.trim() ?? '';
+    if (authDisplayName.isNotEmpty) {
+      return authDisplayName;
+    }
+
+    final storedDisplayName = _stringValue(existing, 'displayName');
+    if (storedDisplayName.isNotEmpty) {
+      return storedDisplayName;
+    }
+
+    final storedName = _stringValue(existing, 'name');
+    if (storedName.isNotEmpty) {
+      return storedName;
+    }
+
+    return 'Usuario Lavify';
+  }
+
+  String _stringValue(Map<String, dynamic>? data, String key) {
+    final value = data?[key];
+    return value is String ? value.trim() : '';
   }
 }

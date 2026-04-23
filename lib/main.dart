@@ -1,8 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'models/session_models.dart';
+import 'models/wash_models.dart';
 import 'screens/app_shell.dart';
 import 'screens/role_login_page.dart';
 import 'services/auth_service.dart';
@@ -46,8 +48,37 @@ class LavifyApp extends StatelessWidget {
   }
 }
 
-class _AuthGate extends StatelessWidget {
+class _AuthGate extends StatefulWidget {
   const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  String? _profileUid;
+  Future<UserProfile>? _profileFuture;
+
+  Future<UserProfile> _profileFor(User user) {
+    if (_profileUid != user.uid || _profileFuture == null) {
+      _profileUid = user.uid;
+      _profileFuture = _loadAndStoreProfile(user);
+    }
+    return _profileFuture!;
+  }
+
+  Future<UserProfile> _loadAndStoreProfile(User user) async {
+    final profile = await LavifyApp._authService.loadOrCreateUserProfile(
+      user: user,
+    );
+    LavifyApp._profileService.setProfile(profile);
+    return profile;
+  }
+
+  void _clearProfileFuture() {
+    _profileUid = null;
+    _profileFuture = null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,10 +97,8 @@ class _AuthGate extends StatelessWidget {
 
             final user = snapshot.data;
             if (user != null) {
-              return FutureBuilder(
-                future: LavifyApp._authService.loadOrCreateUserProfile(
-                  user: user,
-                ),
+              return FutureBuilder<UserProfile>(
+                future: _profileFor(user),
                 builder: (context, profileSnapshot) {
                   if (profileSnapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -79,16 +108,12 @@ class _AuthGate extends StatelessWidget {
                   }
 
                   final profile = profileSnapshot.data;
-                  if (profile != null) {
-                    LavifyApp._profileService.setProfile(profile);
-                    LavifyApp._sessionService.startSessionFromProfile(profile);
-                  }
-
                   return AppShell(mode: profile?.role ?? AppRole.client);
                 },
               );
             }
 
+            _clearProfileFuture();
             if (session != null) {
               return AppShell(mode: session.role);
             }
