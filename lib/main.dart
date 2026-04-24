@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'app_config.dart';
 import 'firebase_options.dart';
 import 'models/wash_models.dart';
 import 'screens/app_shell.dart';
@@ -114,7 +115,7 @@ class _AuthGateState extends State<_AuthGate> {
             }
 
             _clearProfileFuture();
-            if (session != null) {
+            if (session != null && AppConfig.backendMode == BackendMode.mock) {
               return AppShell(mode: session.role);
             }
 

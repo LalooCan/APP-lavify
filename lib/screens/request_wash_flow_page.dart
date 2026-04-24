@@ -65,10 +65,7 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                         return Stack(
                           alignment: Alignment.topCenter,
                           fit: StackFit.expand,
-                          children: [
-                            ...previousChildren,
-                            ?currentChild,
-                          ],
+                          children: [...previousChildren, ?currentChild],
                         );
                       },
                       transitionBuilder: (child, animation) {
@@ -94,8 +91,6 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
                       return _BottomContinueButton(
                         step: _step,
                         total: _controller.draft.totalPrice,
-                        selectedVehicleId:
-                            _controller.selectedVehicleNotifier.value.id,
                         onBack: _step == 0
                             ? null
                             : () => setState(() => _step -= 1),
@@ -503,31 +498,31 @@ class _LocationVehicleStep extends StatelessWidget {
               location: controller.selectedLocationNotifier.value,
               isResolving: controller.isResolvingLocationNotifier.value,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             TextField(
               controller: controller.addressController,
               onChanged: controller.updateAddress,
               style: const TextStyle(
                 color: LavifyColors.textPrimary,
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
               decoration: _flowInputDecoration(
                 hintText: 'Direccion del servicio',
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 26),
             const _SectionLabel('Tipo de vehiculo'),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: vehicleTypes.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1.38,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.25,
               ),
               itemBuilder: (context, index) {
                 final vehicle = vehicleTypes[index];
@@ -558,17 +553,17 @@ class _VehicleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final extraFee = _vehicleExtraFee(vehicle.id);
+    final extraFee = vehicle.extraFee;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: selected ? const Color(0x1A6AA8FF) : LavifyColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: selected ? LavifyColors.primary : LavifyColors.border,
               width: selected ? 1.5 : 1,
@@ -579,12 +574,12 @@ class _VehicleTile extends StatelessWidget {
             children: [
               Icon(
                 vehicle.icon,
-                size: 22,
+                size: 26,
                 color: selected
                     ? LavifyColors.primary
                     : LavifyColors.textSecondary,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 vehicle.name.replaceAll(' mediano', ''),
                 textAlign: TextAlign.center,
@@ -592,17 +587,17 @@ class _VehicleTile extends StatelessWidget {
                   color: selected
                       ? LavifyColors.textPrimary
                       : LavifyColors.textSecondary,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               if (extraFee > 0) ...[
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   '+\$$extraFee',
                   style: const TextStyle(
                     color: LavifyColors.primary,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -635,10 +630,10 @@ class _ScheduleSummaryStep extends StatelessWidget {
               title: 'Horario y resumen',
               subtitle: 'Confirma cuando quieres tu lavado',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             ..._preferredSchedules().map(
               (slot) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: _ScheduleTile(
                   slot: slot,
                   selected: slot.id == selectedSchedule.id,
@@ -646,7 +641,7 @@ class _ScheduleSummaryStep extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _SummaryCard(draft: draft),
           ],
         );
@@ -672,12 +667,12 @@ class _ScheduleTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           decoration: BoxDecoration(
             color: selected ? const Color(0x1A6AA8FF) : LavifyColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: selected ? LavifyColors.primary : LavifyColors.border,
               width: selected ? 1.5 : 1,
@@ -686,23 +681,23 @@ class _ScheduleTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: selected
                       ? const Color(0x266AA8FF)
                       : Colors.white.withAlpha(10),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(13),
                 ),
                 child: Icon(
                   Icons.schedule_rounded,
-                  size: 18,
+                  size: 20,
                   color: selected
                       ? LavifyColors.primary
                       : LavifyColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,16 +706,16 @@ class _ScheduleTile extends StatelessWidget {
                       _scheduleTitle(slot.id, slot.time),
                       style: const TextStyle(
                         color: LavifyColors.textPrimary,
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       _scheduleSubtitle(slot.id, slot.period),
                       style: const TextStyle(
                         color: LavifyColors.textSecondary,
-                        fontSize: 12,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -729,7 +724,7 @@ class _ScheduleTile extends StatelessWidget {
               if (selected)
                 const Icon(
                   Icons.check_rounded,
-                  size: 16,
+                  size: 18,
                   color: LavifyColors.primary,
                 ),
             ],
@@ -747,15 +742,16 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final extraFee = _vehicleExtraFee(draft.selectedVehicle.id);
-    final total = draft.totalPrice + extraFee;
+    final extraFee = draft.vehicleExtraFee;
+    final total = draft.totalPrice;
 
+    const sep = '\u00B7';
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: LavifyColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: LavifyColors.border),
       ),
       child: Column(
@@ -765,11 +761,11 @@ class _SummaryCard extends StatelessWidget {
             'Resumen del pedido',
             style: TextStyle(
               color: LavifyColors.textPrimary,
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           ...[
             ('Paquete', draft.selectedPackage.name),
             ('Vehiculo', draft.selectedVehicle.name.replaceAll(' mediano', '')),
@@ -783,7 +779,7 @@ class _SummaryCard extends StatelessWidget {
             ('Direccion', draft.address),
           ].map(
             (row) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -791,18 +787,18 @@ class _SummaryCard extends StatelessWidget {
                     row.$1,
                     style: const TextStyle(
                       color: LavifyColors.textSecondary,
-                      fontSize: 13,
+                      fontSize: 14,
                     ),
                   ),
                   const Spacer(),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 190),
+                    constraints: const BoxConstraints(maxWidth: 220),
                     child: Text(
                       row.$2,
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         color: LavifyColors.textPrimary,
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -812,33 +808,36 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2),
+            padding: EdgeInsets.symmetric(vertical: 4),
             child: Divider(color: LavifyColors.border, height: 1),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
-            '${draft.selectedPackage.name} · ${draft.selectedPackage.formattedPrice}',
+            '${draft.selectedPackage.name} $sep ${draft.selectedPackage.formattedPrice}',
             style: const TextStyle(
               color: LavifyColors.textSecondary,
-              fontSize: 12,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Desplazamiento · \$20',
-            style: TextStyle(color: LavifyColors.textSecondary, fontSize: 12),
+          Text(
+            'Desplazamiento $sep \$20',
+            style: const TextStyle(
+              color: LavifyColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
           if (extraFee > 0) ...[
             const SizedBox(height: 6),
             Text(
-              '${draft.selectedVehicle.name.replaceAll(' mediano', '')} extra · +\$$extraFee',
+              '${draft.selectedVehicle.name.replaceAll(' mediano', '')} extra $sep +\$$extraFee',
               style: const TextStyle(
                 color: LavifyColors.textSecondary,
-                fontSize: 12,
+                fontSize: 13,
               ),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Row(
             children: [
               const Expanded(
@@ -846,7 +845,7 @@ class _SummaryCard extends StatelessWidget {
                   'Total',
                   style: TextStyle(
                     color: LavifyColors.textPrimary,
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -855,8 +854,9 @@ class _SummaryCard extends StatelessWidget {
                 '\$$total',
                 style: const TextStyle(
                   color: LavifyColors.primary,
-                  fontSize: 22,
+                  fontSize: 26,
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
                 ),
               ),
             ],
@@ -907,11 +907,11 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
         ? 'Av. Reforma 245'
         : widget.address.trim();
     return Container(
-      height: 176,
+      height: 210,
       width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF0A1422),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: LavifyColors.border),
       ),
       child: Stack(
@@ -932,22 +932,22 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
           ),
           const Icon(
             Icons.location_on_rounded,
-            size: 36,
+            size: 42,
             color: LavifyColors.primary,
           ),
           Positioned(
-            right: 12,
-            bottom: 12,
+            right: 14,
+            bottom: 14,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 220),
+              constraints: const BoxConstraints(maxWidth: 260),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
+                  horizontal: 14,
+                  vertical: 9,
                 ),
                 decoration: BoxDecoration(
                   color: LavifyColors.surface,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: LavifyColors.border),
                 ),
                 child: Text(
@@ -956,7 +956,7 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: LavifyColors.textPrimary,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1042,25 +1042,23 @@ class _BottomContinueButton extends StatelessWidget {
   const _BottomContinueButton({
     required this.step,
     required this.total,
-    required this.selectedVehicleId,
     required this.onBack,
     required this.onContinue,
   });
 
   final int step;
   final int total;
-  final String selectedVehicleId;
   final VoidCallback? onBack;
   final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
-    final extra = step == 1 ? _vehicleExtraFee(selectedVehicleId) : 0;
     final isConfirm = step >= 2;
-    final label = isConfirm ? 'Confirmar · \$${total + extra}' : 'Continuar';
+    const sep = '\u00B7';
+    final label = isConfirm ? 'Confirmar $sep \$$total' : 'Continuar';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
       decoration: const BoxDecoration(
         color: LavifyColors.background,
         border: Border(top: BorderSide(color: LavifyColors.border)),
@@ -1071,9 +1069,9 @@ class _BottomContinueButton extends StatelessWidget {
             _RoundIconButton(
               icon: Icons.arrow_back_rounded,
               onTap: onBack!,
-              size: 50,
-              radius: 15,
-              iconSize: 20,
+              size: 58,
+              radius: 18,
+              iconSize: 22,
             ),
             const SizedBox(width: 12),
           ],
@@ -1085,12 +1083,12 @@ class _BottomContinueButton extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: [LavifyColors.primaryStrong, LavifyColors.primary],
                 ),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x4D3D7BFF),
-                    blurRadius: 24,
-                    offset: Offset(0, 8),
+                    blurRadius: 28,
+                    offset: Offset(0, 10),
                   ),
                 ],
               ),
@@ -1098,16 +1096,16 @@ class _BottomContinueButton extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: onContinue,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                   child: SizedBox(
-                    height: 50,
+                    height: 58,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (isConfirm) ...[
                           const Icon(
                             Icons.check_rounded,
-                            size: 18,
+                            size: 20,
                             color: Colors.white,
                           ),
                           const SizedBox(width: 8),
@@ -1116,8 +1114,8 @@ class _BottomContinueButton extends StatelessWidget {
                           label,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
                             height: 1,
                           ),
                         ),
@@ -1125,7 +1123,7 @@ class _BottomContinueButton extends StatelessWidget {
                           const SizedBox(width: 8),
                           const Icon(
                             Icons.arrow_forward_rounded,
-                            size: 18,
+                            size: 20,
                             color: Colors.white,
                           ),
                         ],
@@ -1194,19 +1192,20 @@ class _RequestSectionTitle extends StatelessWidget {
           title,
           style: const TextStyle(
             color: LavifyColors.textPrimary,
-            fontSize: 24,
+            fontSize: 26,
             fontWeight: FontWeight.w900,
             height: 1.02,
+            letterSpacing: -0.4,
           ),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 8),
         Text(
           subtitle,
           style: const TextStyle(
-            color: Color(0xFF8E9BB2),
-            fontSize: 13,
+            color: LavifyColors.textSecondary,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
-            height: 1.28,
+            height: 1.35,
           ),
         ),
       ],
@@ -1236,20 +1235,20 @@ class _SectionLabel extends StatelessWidget {
 InputDecoration _flowInputDecoration({required String hintText}) {
   return InputDecoration(
     hintText: hintText,
-    hintStyle: const TextStyle(color: Color(0xFF4A5A72), fontSize: 14),
+    hintStyle: const TextStyle(color: Color(0xFF4A5A72), fontSize: 15),
     filled: true,
     fillColor: LavifyColors.surface,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       borderSide: const BorderSide(color: LavifyColors.border),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       borderSide: const BorderSide(color: LavifyColors.primary),
     ),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       borderSide: const BorderSide(color: LavifyColors.border),
     ),
   );
@@ -1298,21 +1297,10 @@ String _scheduleSubtitle(String scheduleId, String fallback) {
     case 'now':
       return '20-30 min de llegada';
     case 'today_630':
-      return '14:00 - 17:00';
+      return '18:30 - 20:00';
     case 'tomorrow_900':
       return '09:00 - 12:00';
     default:
       return fallback;
-  }
-}
-
-int _vehicleExtraFee(String vehicleId) {
-  switch (vehicleId) {
-    case 'suv':
-      return 30;
-    case 'truck':
-      return 50;
-    default:
-      return 0;
   }
 }

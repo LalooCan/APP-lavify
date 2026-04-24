@@ -62,11 +62,17 @@ class ScheduleSlot {
 }
 
 class VehicleType {
-  const VehicleType({required this.id, required this.name, required this.icon});
+  const VehicleType({
+    required this.id,
+    required this.name,
+    required this.icon,
+    this.extraFee = 0,
+  });
 
   final String id;
   final String name;
   final IconData icon;
+  final int extraFee;
 }
 
 const List<WashPackage> washPackages = [
@@ -119,5 +125,19 @@ const List<VehicleType> vehicleTypes = [
     name: 'Sedan mediano',
     icon: Icons.drive_eta_rounded,
   ),
-  VehicleType(id: 'suv', name: 'SUV', icon: Icons.airport_shuttle_rounded),
+  VehicleType(
+    id: 'suv',
+    name: 'SUV',
+    icon: Icons.airport_shuttle_rounded,
+    extraFee: 30,
+  ),
 ];
+
+int vehicleExtraFeeFor(String vehicleId) {
+  for (final vehicle in vehicleTypes) {
+    if (vehicle.id == vehicleId) {
+      return vehicle.extraFee;
+    }
+  }
+  return 0;
+}

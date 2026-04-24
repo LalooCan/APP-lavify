@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -8,6 +10,15 @@ import '../repositories/mock_order_repository.dart';
 import '../repositories/order_repository.dart';
 import 'session_service.dart';
 import 'tracking_service.dart';
+
+class OrderSubmissionException implements Exception {
+  const OrderSubmissionException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class OrderService {
   OrderService._internal() : _repository = _buildRepository() {
@@ -145,13 +156,21 @@ class OrderService {
     }
     final session = _sessionService.currentSession.value;
     final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (AppConfig.usesRemoteOrdersBackend && firebaseUser == null) {
+      throw const OrderSubmissionException(
+        'Inicia sesion nuevamente para confirmar tu pedido.',
+      );
+    }
     final request = draft.toRequest();
+    final customerEmail = session?.email.trim().isNotEmpty == true
+        ? session!.email.trim()
+        : firebaseUser?.email?.trim() ?? 'cliente@lavify.app';
     final order = WashOrder(
       id: 'order_${DateTime.now().millisecondsSinceEpoch}',
       request: request,
       status: OrderStatus.searching,
       clientId: firebaseUser?.uid ?? '',
-      customerEmail: session?.email ?? 'cliente@lavify.app',
+      customerEmail: customerEmail,
       assignedWasherName: 'Por asignar',
       assignedWorkerEmail: null,
       assignedVehicleLabel: request.vehicleTypeName,
@@ -159,8 +178,26 @@ class OrderService {
       etaMinutes: request.estimatedMinutes,
     );
     // TODO: mover a Cloud Function antes de producción
-    await _repository.createOrder(order);
-    if (!AppConfig.usesRemoteOrdersBackend) {
+    if (AppConfig.usesRemoteOrdersBackend) {
+      _storeOptimisticOrder(order);
+      unawaited(
+        _repository
+            .createOrder(order)
+            .timeout(
+              const Duration(seconds: 12),
+              onTimeout: () {
+                throw const OrderSubmissionException(
+                  'Firestore tardo demasiado en confirmar el pedido.',
+                );
+              },
+            )
+            .catchError((Object error, StackTrace stack) {
+              debugPrint('Error al guardar pedido remoto: $error\n$stack');
+              return order;
+            }),
+      );
+    } else {
+      await _repository.createOrder(order);
       orders.value = _repository.getOrders();
     }
     _trackingService.syncOrder(order);
@@ -297,6 +334,13 @@ class OrderService {
 
   WashOrder? _findById(String orderId) {
     return getOrderById(orderId);
+  }
+
+  void _storeOptimisticOrder(WashOrder order) {
+    orders.value = <WashOrder>[
+      order,
+      ...orders.value.where((item) => item.id != order.id),
+    ];
   }
 
   WashOrder _saveOrder(WashOrder order) {

@@ -72,8 +72,10 @@ class WashRequestDraft {
   bool get hasValidPackage => selectedPackage.id.trim().isNotEmpty;
   bool get hasValidAddress => address.trim().isNotEmpty;
   bool get hasValidLocation => isLocationConfirmed;
-  bool get hasValidPricing => selectedPackage.price >= 0 && travelFee >= 0;
-  int get totalPrice => selectedPackage.price + travelFee;
+  bool get hasValidPricing =>
+      selectedPackage.price >= 0 && travelFee >= 0 && vehicleExtraFee >= 0;
+  int get vehicleExtraFee => selectedVehicle.extraFee;
+  int get totalPrice => selectedPackage.price + travelFee + vehicleExtraFee;
   bool get isReadyForConfirmation =>
       hasValidPackage && hasValidAddress && hasValidLocation && hasValidPricing;
 
@@ -108,6 +110,9 @@ class WashRequestDraft {
         id: map['vehicleTypeId'] as String,
         name: map['vehicleTypeName'] as String,
         icon: Icons.directions_car_filled_rounded,
+        extraFee:
+            (map['vehicleExtraFee'] as num?)?.toInt() ??
+            vehicleExtraFeeFor(map['vehicleTypeId'] as String),
       ),
       estimatedMinutes: map['estimatedMinutes'] as int,
       travelFee: map['travelFee'] as int,
@@ -179,6 +184,7 @@ class WashRequestDraft {
       'schedulePeriod': selectedSchedule.period,
       'vehicleTypeId': selectedVehicle.id,
       'vehicleTypeName': selectedVehicle.name,
+      'vehicleExtraFee': vehicleExtraFee,
       'estimatedMinutes': estimatedMinutes,
       'travelFee': travelFee,
       'totalPrice': totalPrice,

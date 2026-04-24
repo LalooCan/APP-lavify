@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
+import '../repositories/firestore_order_repository.dart';
 import '../services/order_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
@@ -175,14 +176,24 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
           builder: (_) => OrderTrackingPage(order: order),
         ),
       );
-    } catch (error) {
+    } catch (error, stack) {
       if (!mounted) {
         return;
       }
 
+      debugPrint('Error al confirmar pedido: $error\n$stack');
+      final message = switch (error) {
+        OrderSubmissionException(:final message) => message,
+        FirestoreOrderRepositoryException(:final code)
+            when code == 'permission-denied' =>
+          'No tienes permisos para confirmar este pedido. Cierra sesion e inicia de nuevo.',
+        FirestoreOrderRepositoryException(:final message) => message,
+        _ =>
+          'No se pudo confirmar el pedido. Verifica tu conexion e intenta de nuevo.',
+      };
+
       setState(() {
-        _submitError =
-            'No se pudo confirmar el pedido. Verifica tu conexion e intenta de nuevo.';
+        _submitError = message;
       });
 
       ScaffoldMessenger.of(

@@ -21,17 +21,25 @@ VehicleType _sampleVehicle() => const VehicleType(
       icon: Icons.directions_car_filled_rounded,
     );
 
+VehicleType _suvVehicle() => const VehicleType(
+      id: 'suv',
+      name: 'SUV',
+      icon: Icons.airport_shuttle_rounded,
+      extraFee: 30,
+    );
+
 WashRequestDraft _draft({
   String address = 'Av. Reforma 245',
   bool locationConfirmed = true,
   int travelFee = 30,
   int packagePrice = 149,
+  VehicleType? vehicle,
 }) {
   return WashRequestDraft(
     selectedPackage: _samplePackage(price: packagePrice),
     address: address,
     selectedSchedule: _sampleSlot(),
-    selectedVehicle: _sampleVehicle(),
+    selectedVehicle: vehicle ?? _sampleVehicle(),
     estimatedMinutes: 30,
     travelFee: travelFee,
     notes: '',
@@ -44,6 +52,14 @@ void main() {
   group('WashRequestDraft', () {
     test('totalPrice suma paquete y travel fee', () {
       expect(_draft(packagePrice: 149, travelFee: 30).totalPrice, 179);
+    });
+
+    test('totalPrice incluye extra por vehiculo', () {
+      expect(
+        _draft(packagePrice: 149, travelFee: 20, vehicle: _suvVehicle())
+            .totalPrice,
+        199,
+      );
     });
 
     test('isReadyForConfirmation true cuando todos los campos son validos', () {

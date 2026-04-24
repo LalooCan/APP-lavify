@@ -48,6 +48,7 @@ class ProfileHubPage extends StatelessWidget {
                         ? _DesktopProfileLayout(
                             profile: profile,
                             stats: stats,
+                            mode: mode,
                             isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
@@ -90,6 +91,7 @@ class ProfileHubPage extends StatelessWidget {
                         : _MobileProfileLayout(
                             profile: profile,
                             stats: stats,
+                            mode: mode,
                             isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
@@ -149,8 +151,23 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: LavifyTheme.surfaceColor(context),
-          title: const Text('Editar perfil'),
+          backgroundColor: const Color(0xFF121B2A),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: const BorderSide(color: LavifyColors.border),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          title: const Text(
+            'Editar perfil',
+            style: TextStyle(
+              color: LavifyColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           content: SizedBox(
             width: 420,
             child: SingleChildScrollView(
@@ -169,7 +186,11 @@ class ProfileHubPage extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     'El correo se toma del login. El nombre de usuario si lo eliges tu.',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: const TextStyle(
+                      color: Color(0xFF98A5BB),
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
                   ),
                 ],
               ),
@@ -178,9 +199,24 @@ class ProfileHubPage extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: LavifyColors.primary,
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               child: const Text('Cancelar'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: LavifyColors.primary,
+                foregroundColor: LavifyColors.textPrimary,
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               onPressed: () {
                 final nextName = nameController.text.trim();
                 _profileService.updateProfile(
@@ -211,8 +247,23 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: LavifyTheme.surfaceColor(dialogContext),
-          title: Text(title),
+          backgroundColor: const Color(0xFF121B2A),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: const BorderSide(color: LavifyColors.border),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: LavifyColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           content: SizedBox(
             width: 420,
             child: _ProfileField(controller: controller, label: label),
@@ -220,9 +271,24 @@ class ProfileHubPage extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: LavifyColors.primary,
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               child: const Text('Cancelar'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: LavifyColors.primary,
+                foregroundColor: LavifyColors.textPrimary,
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               onPressed: () {
                 onSave(controller.text.trim());
                 Navigator.of(dialogContext).pop();
@@ -240,17 +306,41 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: LavifyTheme.surfaceColor(dialogContext),
-          title: const Text('Cerrar sesion'),
+          backgroundColor: const Color(0xFF121B2A),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: const BorderSide(color: LavifyColors.border),
+          ),
+          title: const Text(
+            'Cerrar sesion',
+            style: TextStyle(
+              color: LavifyColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           content: const Text(
             'Vas a salir de tu cuenta actual y regresar a la pantalla de login.',
+            style: TextStyle(
+              color: Color(0xFF98A5BB),
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: TextButton.styleFrom(
+                foregroundColor: LavifyColors.primary,
+              ),
               child: const Text('Cancelar'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFDB5C5C),
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Salir'),
             ),
@@ -279,6 +369,7 @@ class _MobileProfileLayout extends StatelessWidget {
   const _MobileProfileLayout({
     required this.profile,
     required this.stats,
+    required this.mode,
     required this.isLightMode,
     required this.onEditProfile,
     required this.onEditVehicle,
@@ -290,6 +381,7 @@ class _MobileProfileLayout extends StatelessWidget {
 
   final UserProfile profile;
   final List<_ProfileStat> stats;
+  final AppRole mode;
   final bool isLightMode;
   final VoidCallback onEditProfile;
   final VoidCallback onEditVehicle;
@@ -330,11 +422,11 @@ class _MobileProfileLayout extends StatelessWidget {
       _ProfileMenuItem(
         icon: Icons.location_on_outlined,
         title: 'Direccion favorita',
-        value: _fallbackValue(profile.favoriteAddress, 'Av. Reforma 245'),
+        value: _displayAddress(profile.favoriteAddress, 'Av. Reforma 245'),
         onTap: onEditAddress,
       ),
       _ProfileMenuItem(
-        icon: Icons.smartphone_rounded,
+        icon: Icons.credit_card_rounded,
         title: 'Metodo de pago',
         value: _fallbackValue(profile.paymentMethod, 'Visa ···4242'),
         onTap: onEditPayment,
@@ -345,7 +437,7 @@ class _MobileProfileLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        _ProfileHero(profile: profile),
+        _ProfileHero(profile: profile, mode: mode),
         const SizedBox(height: 22),
         Row(
           children: stats
@@ -381,6 +473,7 @@ class _DesktopProfileLayout extends StatelessWidget {
   const _DesktopProfileLayout({
     required this.profile,
     required this.stats,
+    required this.mode,
     required this.isLightMode,
     required this.onEditProfile,
     required this.onEditVehicle,
@@ -392,6 +485,7 @@ class _DesktopProfileLayout extends StatelessWidget {
 
   final UserProfile profile;
   final List<_ProfileStat> stats;
+  final AppRole mode;
   final bool isLightMode;
   final VoidCallback onEditProfile;
   final VoidCallback onEditVehicle;
@@ -410,7 +504,7 @@ class _DesktopProfileLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ProfileHero(profile: profile),
+              _ProfileHero(profile: profile, mode: mode),
               const SizedBox(height: 20),
               Row(
                 children: stats
@@ -475,14 +569,14 @@ class _DesktopProfileLayout extends StatelessWidget {
                   _ProfileMenuItem(
                     icon: Icons.location_on_outlined,
                     title: 'Direccion favorita',
-                    value: _fallbackValue(
+                    value: _displayAddress(
                       profile.favoriteAddress,
                       'Av. Reforma 245',
                     ),
                     onTap: onEditAddress,
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.smartphone_rounded,
+                    icon: Icons.credit_card_rounded,
                     title: 'Metodo de pago',
                     value: _fallbackValue(
                       profile.paymentMethod,
@@ -503,12 +597,14 @@ class _DesktopProfileLayout extends StatelessWidget {
 }
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.profile});
+  const _ProfileHero({required this.profile, required this.mode});
 
   final UserProfile profile;
+  final AppRole mode;
 
   @override
   Widget build(BuildContext context) {
+    final isWorker = mode == AppRole.worker;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(4, 12, 4, 22),
@@ -544,6 +640,7 @@ class _ProfileHero extends StatelessWidget {
                     color: LavifyColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -555,32 +652,41 @@ class _ProfileHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Row(
-                  children: const [
-                    Icon(
-                      Icons.star_rounded,
-                      size: 12,
-                      color: Color(0xFFFFC857),
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      '4.9',
-                      style: TextStyle(
-                        color: LavifyColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                if (isWorker)
+                  Row(
+                    children: const [
+                      Icon(
+                        Icons.star_rounded,
+                        size: 12,
+                        color: Color(0xFFFFC857),
                       ),
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      '· 3 lavados completados',
-                      style: TextStyle(
-                        color: LavifyColors.textSecondary,
-                        fontSize: 12,
+                      SizedBox(width: 5),
+                      Text(
+                        '4.9',
+                        style: TextStyle(
+                          color: LavifyColors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                      SizedBox(width: 5),
+                      Text(
+                        '· 128 lavados completados',
+                        style: TextStyle(
+                          color: LavifyColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  const Text(
+                    '3 lavados solicitados',
+                    style: TextStyle(
+                      color: LavifyColors.textSecondary,
+                      fontSize: 12,
                     ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
@@ -622,12 +728,7 @@ class _ProfileSection extends StatelessWidget {
               for (var i = 0; i < items.length; i++) ...[
                 _ProfileRow(item: items[i]),
                 if (i < items.length - 1)
-                  const Divider(
-                    color: LavifyColors.border,
-                    height: 1,
-                    indent: 18,
-                    endIndent: 18,
-                  ),
+                  const Divider(color: LavifyColors.border, height: 1),
               ],
             ],
           ),
@@ -832,7 +933,46 @@ class _ProfileField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      decoration: InputDecoration(labelText: label),
+      style: const TextStyle(
+        color: LavifyColors.textPrimary,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(
+          color: Color(0xFF9BA8BE),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        floatingLabelStyle: const TextStyle(
+          color: LavifyColors.primary,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
+        hintStyle: const TextStyle(
+          color: Color(0xFF7E8BA1),
+          fontSize: 14,
+        ),
+        filled: true,
+        fillColor: const Color(0xFF141F30),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Color(0xFF304158)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: LavifyColors.primary, width: 1.3),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Color(0xFF304158)),
+        ),
+      ),
     );
   }
 }
@@ -845,10 +985,36 @@ class _ReadOnlyProfileField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      enabled: false,
-      controller: TextEditingController(text: value),
-      decoration: InputDecoration(labelText: label),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF9BA8BE),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141F30),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF304158)),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFFC3CEE0),
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -889,11 +1055,24 @@ List<_ProfileStat> _statsForProfile(UserProfile profile, AppRole mode) {
   }
   return const [
     _ProfileStat(value: '3', label: 'Lavados'),
-    _ProfileStat(value: '\$487', label: 'Total', highlight: true),
-    _ProfileStat(value: '4.9', label: 'Rating'),
+    _ProfileStat(value: '\$487', label: 'Total gastado', highlight: true),
   ];
 }
 
 String _fallbackValue(String value, String fallback) {
   return value.trim().isEmpty ? fallback : value.trim();
 }
+
+final RegExp _coordPattern = RegExp(
+  r'^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$',
+);
+
+String _displayAddress(String value, String fallback) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty || _coordPattern.hasMatch(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+}
+
+
