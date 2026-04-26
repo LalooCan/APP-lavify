@@ -4,10 +4,21 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/wash_models.dart';
+import 'notification_service.dart';
 
 class AuthService {
   static const _webClientId =
       '66350788000-vrkk9hflkn0m4e6gha4d7q3bbslaaae8.apps.googleusercontent.com';
+
+  // Almacena el rol elegido antes de que Firebase dispare el auth state change,
+  // evitando que _AuthGate cree el perfil con el rol equivocado (race condition).
+  static AppRole? _pendingRegistrationRole;
+
+  static AppRole? consumePendingRegistrationRole() {
+    final role = _pendingRegistrationRole;
+    _pendingRegistrationRole = null;
+    return role;
+  }
 
   AuthService({
     FirebaseAuth? auth,
@@ -32,6 +43,7 @@ class AuthService {
   Future<User?> signInWithGoogle({
     AppRole fallbackRole = AppRole.client,
   }) async {
+    _pendingRegistrationRole = fallbackRole;
     try {
       UserCredential userCredential;
 
@@ -39,10 +51,17 @@ class AuthService {
         final provider = GoogleAuthProvider();
         provider.addScope('email');
         provider.addScope('profile');
-        userCredential = await _auth.signInWithPopup(provider);
+        try {
+          userCredential = await _auth.signInWithPopup(provider);
+        } catch (e) {
+          _pendingRegistrationRole = null;
+          debugPrint('Error Google Sign-In (web popup): $e');
+          return null;
+        }
       } else {
         final googleUser = await _googleSignIn.signIn();
         if (googleUser == null) {
+          _pendingRegistrationRole = null;
           return null;
         }
 
@@ -51,17 +70,27 @@ class AuthService {
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        userCredential = await _auth.signInWithCredential(credential);
+        try {
+          userCredential = await _auth.signInWithCredential(credential);
+        } catch (e) {
+          _pendingRegistrationRole = null;
+          debugPrint('Error Google Sign-In (credential): $e');
+          return null;
+        }
       }
 
       final user = userCredential.user;
       if (user == null) {
+        _pendingRegistrationRole = null;
         return null;
       }
 
       await loadOrCreateUserProfile(user: user, fallbackRole: fallbackRole);
+      await NotificationService().refreshCurrentToken();
       return user;
     } catch (e) {
+      // loadOrCreateUserProfile falló — el auth state ya disparó,
+      // _AuthGate puede consumir el pending role si aún no lo hizo.
       debugPrint('Error Google Sign-In: $e');
       return null;
     }
@@ -70,11 +99,13 @@ class AuthService {
   Future<UserCredential> signInWithEmailAndPassword(
     String email,
     String password,
-  ) {
-    return _auth.signInWithEmailAndPassword(
+  ) async {
+    final credential = await _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+    await NotificationService().refreshCurrentToken();
+    return credential;
   }
 
   Future<UserCredential> createUserWithEmailAndPassword(
@@ -83,10 +114,19 @@ class AuthService {
     AppRole fallbackRole = AppRole.client,
     String? displayName,
   }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
+    _pendingRegistrationRole = fallbackRole;
+    final UserCredential credential;
+    try {
+      credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      // A partir de aquí el auth state ya disparó — no limpiar _pendingRegistrationRole.
+    } catch (e) {
+      // Firebase Auth falló: ningún usuario creado, ningún auth state disparado.
+      _pendingRegistrationRole = null;
+      rethrow;
+    }
     final user = credential.user;
     if (user != null) {
       final normalizedDisplayName = displayName?.trim() ?? '';
@@ -98,6 +138,7 @@ class AuthService {
         fallbackRole: fallbackRole,
         displayName: normalizedDisplayName,
       );
+      await NotificationService().refreshCurrentToken();
     }
     return credential;
   }
@@ -171,7 +212,12 @@ class AuthService {
     return UserProfile.fromMap({...data, ...updates});
   }
 
+  Future<void> sendPasswordResetEmail(String email) {
+    return _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
   Future<void> signOut() async {
+    await NotificationService().clearToken();
     if (!kIsWeb) {
       await _googleSignIn.signOut();
     }

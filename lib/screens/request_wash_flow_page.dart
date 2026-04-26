@@ -36,14 +36,17 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     return Scaffold(
-      backgroundColor: LavifyColors.background,
+      backgroundColor: _flowBackgroundColor(context),
       body: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0.75, -0.95),
             radius: 1.18,
-            colors: [Color(0x183D7BFF), LavifyColors.background],
+            colors: isLight
+                ? const [Color(0x24D6B47B), LavifyColors.lightBackground]
+                : const [Color(0x183D7BFF), LavifyColors.background],
           ),
         ),
         child: SafeArea(
@@ -153,8 +156,8 @@ class _RequestWashHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: LavifyColors.border)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _flowBorderColor(context))),
       ),
       child: Row(
         children: [
@@ -171,10 +174,10 @@ class _RequestWashHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Pedir lavado',
                   style: TextStyle(
-                    color: LavifyColors.textPrimary,
+                    color: _flowTextPrimaryColor(context),
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     height: 1.1,
@@ -183,8 +186,8 @@ class _RequestWashHeader extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Paso ${step + 1} de 3',
-                  style: const TextStyle(
-                    color: LavifyColors.textSecondary,
+                  style: TextStyle(
+                    color: _flowTextSecondaryColor(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1,
@@ -218,7 +221,9 @@ class _StepProgress extends StatelessWidget {
           width: active ? 28 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: filled ? LavifyColors.primary : LavifyColors.border,
+            color: filled
+                ? _flowAccentColor(context)
+                : _flowBorderColor(context),
             borderRadius: BorderRadius.circular(999),
           ),
         );
@@ -299,6 +304,9 @@ class _PackageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPopular = package.id == 'full-care';
+    final textPrimary = _flowTextPrimaryColor(context);
+    final textSecondary = _flowTextSecondaryColor(context);
+    final accent = _flowAccentColor(context);
 
     return Material(
       color: Colors.transparent,
@@ -307,17 +315,19 @@ class _PackageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Ink(
           decoration: BoxDecoration(
-            color: selected ? null : LavifyColors.surface,
+            color: selected ? null : _flowSurfaceColor(context),
             gradient: selected
-                ? const LinearGradient(
+                ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0x243D7BFF), Color(0x146AA8FF)],
+                    colors: LavifyTheme.isLight(context)
+                        ? const [Color(0x22314664), Color(0x18D6B47B)]
+                        : const [Color(0x243D7BFF), Color(0x146AA8FF)],
                   )
                 : null,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected ? accent : _flowBorderColor(context),
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -338,8 +348,8 @@ class _PackageCard extends StatelessWidget {
                         children: [
                           Text(
                             package.name,
-                            style: const TextStyle(
-                              color: LavifyColors.textPrimary,
+                            style: TextStyle(
+                              color: textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               height: 1.08,
@@ -348,8 +358,8 @@ class _PackageCard extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             package.description,
-                            style: const TextStyle(
-                              color: LavifyColors.textSecondary,
+                            style: TextStyle(
+                              color: textSecondary,
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               height: 1.5,
@@ -359,16 +369,16 @@ class _PackageCard extends StatelessWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.schedule_rounded,
                                 size: 13,
-                                color: LavifyColors.textSecondary,
+                                color: textSecondary,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 _packageDuration(package.id),
-                                style: const TextStyle(
-                                  color: LavifyColors.textSecondary,
+                                style: TextStyle(
+                                  color: textSecondary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   height: 1,
@@ -388,9 +398,7 @@ class _PackageCard extends StatelessWidget {
                           child: Text(
                             package.formattedPrice,
                             style: TextStyle(
-                              color: selected
-                                  ? LavifyColors.primary
-                                  : LavifyColors.textPrimary,
+                              color: selected ? accent : textPrimary,
                               fontSize: 30,
                               fontWeight: FontWeight.w900,
                               height: 1,
@@ -502,12 +510,13 @@ class _LocationVehicleStep extends StatelessWidget {
             TextField(
               controller: controller.addressController,
               onChanged: controller.updateAddress,
-              style: const TextStyle(
-                color: LavifyColors.textPrimary,
+              style: TextStyle(
+                color: _flowTextPrimaryColor(context),
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
               decoration: _flowInputDecoration(
+                context: context,
                 hintText: 'Direccion del servicio',
               ),
             ),
@@ -554,6 +563,9 @@ class _VehicleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final extraFee = vehicle.extraFee;
+    final textPrimary = _flowTextPrimaryColor(context);
+    final textSecondary = _flowTextSecondaryColor(context);
+    final accent = _flowAccentColor(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -562,10 +574,12 @@ class _VehicleTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: selected ? const Color(0x1A6AA8FF) : LavifyColors.surface,
+            color: selected
+                ? _flowSelectedColor(context)
+                : _flowSurfaceColor(context),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected ? accent : _flowBorderColor(context),
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -575,18 +589,14 @@ class _VehicleTile extends StatelessWidget {
               Icon(
                 vehicle.icon,
                 size: 26,
-                color: selected
-                    ? LavifyColors.primary
-                    : LavifyColors.textSecondary,
+                color: selected ? accent : textSecondary,
               ),
               const SizedBox(height: 10),
               Text(
                 vehicle.name.replaceAll(' mediano', ''),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: selected
-                      ? LavifyColors.textPrimary
-                      : LavifyColors.textSecondary,
+                  color: selected ? textPrimary : textSecondary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -595,8 +605,8 @@ class _VehicleTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   '+\$$extraFee',
-                  style: const TextStyle(
-                    color: LavifyColors.primary,
+                  style: TextStyle(
+                    color: accent,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -663,6 +673,9 @@ class _ScheduleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textPrimary = _flowTextPrimaryColor(context);
+    final textSecondary = _flowTextSecondaryColor(context);
+    final accent = _flowAccentColor(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -671,10 +684,12 @@ class _ScheduleTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           decoration: BoxDecoration(
-            color: selected ? const Color(0x1A6AA8FF) : LavifyColors.surface,
+            color: selected
+                ? _flowSelectedColor(context)
+                : _flowSurfaceColor(context),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? LavifyColors.primary : LavifyColors.border,
+              color: selected ? accent : _flowBorderColor(context),
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -685,16 +700,14 @@ class _ScheduleTile extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: selected
-                      ? const Color(0x266AA8FF)
-                      : Colors.white.withAlpha(10),
+                      ? _flowSelectedIconFillColor(context)
+                      : _flowSoftFillColor(context),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: Icon(
                   Icons.schedule_rounded,
                   size: 20,
-                  color: selected
-                      ? LavifyColors.primary
-                      : LavifyColors.textSecondary,
+                  color: selected ? accent : textSecondary,
                 ),
               ),
               const SizedBox(width: 14),
@@ -704,8 +717,8 @@ class _ScheduleTile extends StatelessWidget {
                   children: [
                     Text(
                       _scheduleTitle(slot.id, slot.time),
-                      style: const TextStyle(
-                        color: LavifyColors.textPrimary,
+                      style: TextStyle(
+                        color: textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -713,20 +726,12 @@ class _ScheduleTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       _scheduleSubtitle(slot.id, slot.period),
-                      style: const TextStyle(
-                        color: LavifyColors.textSecondary,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: textSecondary, fontSize: 13),
                     ),
                   ],
                 ),
               ),
-              if (selected)
-                const Icon(
-                  Icons.check_rounded,
-                  size: 18,
-                  color: LavifyColors.primary,
-                ),
+              if (selected) Icon(Icons.check_rounded, size: 18, color: accent),
             ],
           ),
         ),
@@ -744,23 +749,26 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final extraFee = draft.vehicleExtraFee;
     final total = draft.totalPrice;
+    final textPrimary = _flowTextPrimaryColor(context);
+    final textSecondary = _flowTextSecondaryColor(context);
+    final accent = _flowAccentColor(context);
 
     const sep = '\u00B7';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: _flowSurfaceColor(context),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: _flowBorderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Resumen del pedido',
             style: TextStyle(
-              color: LavifyColors.textPrimary,
+              color: textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
@@ -785,10 +793,7 @@ class _SummaryCard extends StatelessWidget {
                 children: [
                   Text(
                     row.$1,
-                    style: const TextStyle(
-                      color: LavifyColors.textSecondary,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: textSecondary, fontSize: 14),
                   ),
                   const Spacer(),
                   ConstrainedBox(
@@ -796,8 +801,8 @@ class _SummaryCard extends StatelessWidget {
                     child: Text(
                       row.$2,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        color: LavifyColors.textPrimary,
+                      style: TextStyle(
+                        color: textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -807,44 +812,35 @@ class _SummaryCard extends StatelessWidget {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
-            child: Divider(color: LavifyColors.border, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Divider(color: _flowBorderColor(context), height: 1),
           ),
           const SizedBox(height: 12),
           Text(
             '${draft.selectedPackage.name} $sep ${draft.selectedPackage.formattedPrice}',
-            style: const TextStyle(
-              color: LavifyColors.textSecondary,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 6),
           Text(
             'Desplazamiento $sep \$20',
-            style: const TextStyle(
-              color: LavifyColors.textSecondary,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: textSecondary, fontSize: 13),
           ),
           if (extraFee > 0) ...[
             const SizedBox(height: 6),
             Text(
               '${draft.selectedVehicle.name.replaceAll(' mediano', '')} extra $sep +\$$extraFee',
-              style: const TextStyle(
-                color: LavifyColors.textSecondary,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: textSecondary, fontSize: 13),
             ),
           ],
           const SizedBox(height: 14),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Total',
                   style: TextStyle(
-                    color: LavifyColors.textPrimary,
+                    color: textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
@@ -852,8 +848,8 @@ class _SummaryCard extends StatelessWidget {
               ),
               Text(
                 '\$$total',
-                style: const TextStyle(
-                  color: LavifyColors.primary,
+                style: TextStyle(
+                  color: accent,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.4,
@@ -906,18 +902,33 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
     final address = widget.address.trim().isEmpty
         ? 'Av. Reforma 245'
         : widget.address.trim();
+    final isLight = LavifyTheme.isLight(context);
     return Container(
       height: 210,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF0A1422),
+        color: isLight ? const Color(0xFFFFFBF7) : const Color(0xFF0A1422),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: _flowBorderColor(context)),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _GridPainter(
+                gridColor: isLight
+                    ? const Color(0x25314664)
+                    : const Color(0x126AA8FF),
+                pathColor: isLight
+                    ? const Color(0x44314664)
+                    : const Color(0x336AA8FF),
+                dotColor: isLight
+                    ? const Color(0x88314664)
+                    : const Color(0x886AA8FF),
+              ),
+            ),
+          ),
           AnimatedBuilder(
             animation: _controller,
             builder: (context, _) {
@@ -946,16 +957,16 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
                   vertical: 9,
                 ),
                 decoration: BoxDecoration(
-                  color: LavifyColors.surface,
+                  color: _flowSurfaceColor(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: LavifyColors.border),
+                  border: Border.all(color: _flowBorderColor(context)),
                 ),
                 child: Text(
                   widget.isResolving ? 'Resolviendo...' : address,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: LavifyColors.textPrimary,
+                  style: TextStyle(
+                    color: _flowTextPrimaryColor(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -992,10 +1003,20 @@ class _PulseRing extends StatelessWidget {
 }
 
 class _GridPainter extends CustomPainter {
+  const _GridPainter({
+    required this.gridColor,
+    required this.pathColor,
+    required this.dotColor,
+  });
+
+  final Color gridColor;
+  final Color pathColor;
+  final Color dotColor;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x126AA8FF)
+      ..color = gridColor
       ..strokeWidth = 1;
 
     for (double y = 35; y < size.height; y += 35) {
@@ -1006,7 +1027,7 @@ class _GridPainter extends CustomPainter {
     }
 
     final pathPaint = Paint()
-      ..color = const Color(0x336AA8FF)
+      ..color = pathColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -1026,7 +1047,7 @@ class _GridPainter extends CustomPainter {
       );
     canvas.drawPath(path, pathPaint);
 
-    final dotPaint = Paint()..color = const Color(0x886AA8FF);
+    final dotPaint = Paint()..color = dotColor;
     for (int i = 0; i < 10; i++) {
       final dx = size.width * (0.14 + (i * 0.075));
       final dy = size.height * (0.66 - math.sin(i * 0.5) * 0.12);
@@ -1035,7 +1056,11 @@ class _GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridPainter oldDelegate) {
+    return oldDelegate.gridColor != gridColor ||
+        oldDelegate.pathColor != pathColor ||
+        oldDelegate.dotColor != dotColor;
+  }
 }
 
 class _BottomContinueButton extends StatelessWidget {
@@ -1059,9 +1084,9 @@ class _BottomContinueButton extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-      decoration: const BoxDecoration(
-        color: LavifyColors.background,
-        border: Border(top: BorderSide(color: LavifyColors.border)),
+      decoration: BoxDecoration(
+        color: _flowBackgroundColor(context),
+        border: Border(top: BorderSide(color: _flowBorderColor(context))),
       ),
       child: Row(
         children: [
@@ -1078,10 +1103,10 @@ class _BottomContinueButton extends StatelessWidget {
           Expanded(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+                  colors: _flowButtonGradientColors(context),
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
@@ -1166,11 +1191,15 @@ class _RoundIconButton extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: LavifyColors.surface,
+            color: _flowSurfaceColor(context),
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: LavifyColors.border),
+            border: Border.all(color: _flowBorderColor(context)),
           ),
-          child: Icon(icon, size: iconSize, color: LavifyColors.textPrimary),
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: _flowTextPrimaryColor(context),
+          ),
         ),
       ),
     );
@@ -1190,8 +1219,8 @@ class _RequestSectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: LavifyColors.textPrimary,
+          style: TextStyle(
+            color: _flowTextPrimaryColor(context),
             fontSize: 26,
             fontWeight: FontWeight.w900,
             height: 1.02,
@@ -1201,8 +1230,8 @@ class _RequestSectionTitle extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: const TextStyle(
-            color: LavifyColors.textSecondary,
+          style: TextStyle(
+            color: _flowTextSecondaryColor(context),
             fontSize: 14,
             fontWeight: FontWeight.w500,
             height: 1.35,
@@ -1222,8 +1251,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
-        color: LavifyColors.textSecondary,
+      style: TextStyle(
+        color: _flowTextSecondaryColor(context),
         fontSize: 11,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.6,
@@ -1232,25 +1261,67 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-InputDecoration _flowInputDecoration({required String hintText}) {
+Color _flowBackgroundColor(BuildContext context) =>
+    Theme.of(context).scaffoldBackgroundColor;
+
+Color _flowSurfaceColor(BuildContext context) =>
+    LavifyTheme.surfaceColor(context);
+
+Color _flowBorderColor(BuildContext context) =>
+    LavifyTheme.borderColor(context);
+
+Color _flowTextPrimaryColor(BuildContext context) =>
+    LavifyTheme.textPrimaryColor(context);
+
+Color _flowTextSecondaryColor(BuildContext context) =>
+    LavifyTheme.textSecondaryColor(context);
+
+Color _flowAccentColor(BuildContext context) => LavifyTheme.isLight(context)
+    ? LavifyColors.lightNavy
+    : LavifyColors.primary;
+
+Color _flowSelectedColor(BuildContext context) => LavifyTheme.isLight(context)
+    ? const Color(0x18314664)
+    : const Color(0x1A6AA8FF);
+
+Color _flowSelectedIconFillColor(BuildContext context) =>
+    LavifyTheme.isLight(context)
+    ? const Color(0x1F314664)
+    : const Color(0x266AA8FF);
+
+Color _flowSoftFillColor(BuildContext context) => LavifyTheme.isLight(context)
+    ? const Color(0xFFF4ECE1)
+    : Colors.white.withAlpha(10);
+
+List<Color> _flowButtonGradientColors(BuildContext context) =>
+    LavifyTheme.isLight(context)
+    ? const [LavifyColors.lightNavy, Color(0xFF4A6082)]
+    : const [LavifyColors.primaryStrong, LavifyColors.primary];
+
+InputDecoration _flowInputDecoration({
+  required BuildContext context,
+  required String hintText,
+}) {
+  final border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(18),
+    borderSide: BorderSide(color: _flowBorderColor(context)),
+  );
+
   return InputDecoration(
     hintText: hintText,
-    hintStyle: const TextStyle(color: Color(0xFF4A5A72), fontSize: 15),
-    filled: true,
-    fillColor: LavifyColors.surface,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.border),
+    hintStyle: TextStyle(
+      color: _flowTextSecondaryColor(context).withAlpha(170),
+      fontSize: 15,
     ),
+    filled: true,
+    fillColor: _flowSurfaceColor(context),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+    enabledBorder: border,
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.primary),
+      borderSide: BorderSide(color: _flowAccentColor(context)),
     ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LavifyColors.border),
-    ),
+    border: border,
   );
 }
 

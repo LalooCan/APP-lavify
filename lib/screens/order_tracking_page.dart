@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/order_service.dart';
+import '../services/review_service.dart';
 import '../theme/theme.dart';
 import '../widgets/live_tracking_map.dart';
 import '../widgets/primary_button.dart';
@@ -15,10 +16,16 @@ class OrderTrackingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<List<WashOrder>>(
-      valueListenable: _orderService.orders,
-      builder: (context, _, _) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _orderService.orders,
+        _orderService.pendingSyncOrderIds,
+        _orderService.syncErrors,
+      ]),
+      builder: (context, _) {
         final liveOrder = _orderService.getOrderById(order.id) ?? order;
+        final isSyncPending = _orderService.isOrderSyncPending(liveOrder.id);
+        final syncError = _orderService.syncErrorForOrder(liveOrder.id);
         final stages = OrderStatus.values;
         final activeIndex = stages.indexOf(liveOrder.status);
         final isSearching = liveOrder.status == OrderStatus.searching;
@@ -40,6 +47,33 @@ class OrderTrackingPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (isSyncPending || syncError != null) ...[
+                      _OrderSyncBanner(
+                        isPending: isSyncPending,
+                        errorMessage: syncError,
+                        onRetry: syncError == null
+                            ? null
+                            : () {
+                                _orderService
+                                    .retryOrderSync(liveOrder.id)
+                                    .catchError((Object error) {
+                                      if (!context.mounted) {
+                                        return;
+                                      }
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No se pudo reintentar la sincronizacion.',
+                                          ),
+                                        ),
+                                      );
+                                    });
+                              },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(22),
@@ -248,6 +282,15 @@ class OrderTrackingPage extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (liveOrder.status == OrderStatus.completed &&
+                        liveOrder.workerId != null) ...[
+                      const SizedBox(height: 20),
+                      _ReviewCard(
+                        orderId: liveOrder.id,
+                        workerId: liveOrder.workerId!,
+                        workerName: liveOrder.assignedWasherName,
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     PrimaryButton(
                       label: 'Volver al inicio',
@@ -295,6 +338,74 @@ class OrderTrackingPage extends StatelessWidget {
       case OrderStatus.completed:
         return LavifyColors.success;
     }
+  }
+}
+
+class _OrderSyncBanner extends StatelessWidget {
+  const _OrderSyncBanner({
+    required this.isPending,
+    required this.errorMessage,
+    required this.onRetry,
+  });
+
+  final bool isPending;
+  final String? errorMessage;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasError = errorMessage != null;
+    final accent = hasError ? const Color(0xFFFF6B6B) : LavifyColors.primary;
+    final title = hasError ? 'Sincronizacion pendiente' : 'Pedido creado';
+    final message =
+        errorMessage ??
+        (isPending
+            ? 'Estamos guardando tu pedido en Firestore. Puedes seguir aqui mientras termina.'
+            : 'Tu pedido ya esta sincronizado.');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: accent.withAlpha(LavifyTheme.isLight(context) ? 24 : 20),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: accent.withAlpha(72)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            hasError ? Icons.sync_problem_rounded : Icons.cloud_sync_rounded,
+            color: accent,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: LavifyTheme.textPrimaryColor(context),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(message, style: Theme.of(context).textTheme.bodyMedium),
+                if (onRetry != null) ...[
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Reintentar'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -420,6 +531,191 @@ class _TrackingNote extends StatelessWidget {
           Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
+    );
+  }
+}
+
+class _ReviewCard extends StatefulWidget {
+  const _ReviewCard({
+    required this.orderId,
+    required this.workerId,
+    required this.workerName,
+  });
+
+  final String orderId;
+  final String workerId;
+  final String workerName;
+
+  @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  static final ReviewService _reviewService = ReviewService();
+
+  int _rating = 5;
+  final _commentController = TextEditingController();
+  bool _submitted = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExisting();
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkExisting() async {
+    final existing = await _reviewService.getReviewForOrder(widget.orderId);
+    if (existing != null && mounted) {
+      setState(() {
+        _rating = existing.rating;
+        _commentController.text = existing.comment;
+        _submitted = true;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    final result = await _reviewService.submitReview(
+      orderId: widget.orderId,
+      workerId: widget.workerId,
+      rating: _rating,
+      comment: _commentController.text,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _submitted = result != null;
+    });
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo guardar la calificación.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: LavifyTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: _submitted ? _submittedView(rating: _rating) : _formView(),
+    );
+  }
+
+  Widget _submittedView({required int rating}) {
+    return Column(
+      children: [
+        const Icon(Icons.check_circle_rounded,
+            color: LavifyColors.success, size: 40),
+        const SizedBox(height: 12),
+        Text(
+          '¡Gracias por tu calificación!',
+          style: Theme.of(context).textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            5,
+            (i) => Icon(
+              i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+              color: const Color(0xFFFFC857),
+              size: 28,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _formView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '¿Cómo fue tu experiencia?',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Califica el servicio de ${widget.workerName}',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(5, (i) {
+            final star = i + 1;
+            return GestureDetector(
+              onTap: () => setState(() => _rating = star),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  star <= _rating
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                  color: const Color(0xFFFFC857),
+                  size: 36,
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _commentController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: 'Deja un comentario (opcional)',
+            hintStyle: TextStyle(
+                color: LavifyTheme.textSecondaryColor(context)),
+            filled: true,
+            fillColor: LavifyTheme.surfaceAltColor(context),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: LavifyTheme.borderColor(context)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: LavifyColors.primary),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _isLoading ? null : _submit,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Enviar calificación'),
+          ),
+        ),
+      ],
     );
   }
 }

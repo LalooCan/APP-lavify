@@ -22,6 +22,15 @@ void main() {
       expect(OrderStatus.completed.isActiveForWorker, isFalse);
     });
 
+    test('nextForWorker respeta transiciones del lavador', () {
+      expect(OrderStatus.searching.nextForWorker, isNull);
+      expect(OrderStatus.assigned.nextForWorker, OrderStatus.onTheWay);
+      expect(OrderStatus.onTheWay.nextForWorker, OrderStatus.arrived);
+      expect(OrderStatus.arrived.nextForWorker, OrderStatus.inProgress);
+      expect(OrderStatus.inProgress.nextForWorker, OrderStatus.completed);
+      expect(OrderStatus.completed.nextForWorker, isNull);
+    });
+
     test('label en espanol para cada estado', () {
       expect(OrderStatus.searching.label, 'Buscando lavador');
       expect(OrderStatus.completed.label, 'Completado');
@@ -31,10 +40,7 @@ void main() {
   group('RequestLifecycleStatusX', () {
     test('apiValue ↔ fromValue round-trip', () {
       for (final status in RequestLifecycleStatus.values) {
-        expect(
-          RequestLifecycleStatusX.fromValue(status.apiValue),
-          status,
-        );
+        expect(RequestLifecycleStatusX.fromValue(status.apiValue), status);
       }
     });
 

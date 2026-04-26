@@ -34,6 +34,16 @@ class WorkerService {
     return _firestoreRepository.getAvailableWorkers();
   }
 
+  Stream<Map<String, dynamic>> watchEarnings() {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return Stream.value(const {});
+    return FirebaseFirestore.instance
+        .collection('workers')
+        .doc(uid)
+        .snapshots()
+        .map((snap) => snap.data() ?? const {});
+  }
+
   void updateWorkerLocation(GeoPoint location) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.isEmpty) {

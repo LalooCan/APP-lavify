@@ -15,6 +15,62 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/orders/$(orderId)).data;
     }
 
+    function profileDoc(uid) {
+      return get(/databases/$(database)/documents/profiles/$(uid)).data;
+    }
+
+    function isWorkerProfile() {
+      return isSignedIn() && profileDoc(request.auth.uid).role == 'worker';
+    }
+
+    function knownPackage(packageId) {
+      return packageId == 'express'
+        || packageId == 'full-care'
+        || packageId == 'premium';
+    }
+
+    function packagePrice(packageId) {
+      return packageId == 'express'
+        ? 99
+        : packageId == 'full-care'
+          ? 149
+          : packageId == 'premium'
+            ? 199
+            : -1;
+    }
+
+    function knownVehicle(vehicleTypeId) {
+      return vehicleTypeId == 'compact'
+        || vehicleTypeId == 'sedan'
+        || vehicleTypeId == 'suv';
+    }
+
+    function vehicleExtraFee(vehicleTypeId) {
+      return vehicleTypeId == 'suv' ? 30 : 0;
+    }
+
+    function hasTrustedPricing(data) {
+      return knownPackage(data.request.packageId)
+        && knownVehicle(data.request.vehicleTypeId)
+        && data.request.servicePrice == packagePrice(data.request.packageId)
+        && data.request.travelFee is int
+        && data.request.travelFee >= 0
+        && data.request.travelFee <= 250
+        && data.request.totalPrice ==
+          data.request.servicePrice +
+          data.request.travelFee +
+          vehicleExtraFee(data.request.vehicleTypeId)
+        && data.request.currency == 'MXN';
+    }
+
+    function isAllowedWorkerStatusTransition(fromStatus, toStatus) {
+      return fromStatus == toStatus
+        || (fromStatus == 'assigned' && toStatus == 'on_the_way')
+        || (fromStatus == 'on_the_way' && toStatus == 'arrived')
+        || (fromStatus == 'arrived' && toStatus == 'in_progress')
+        || (fromStatus == 'in_progress' && toStatus == 'completed');
+    }
+
     function isOrderClient(orderId) {
       return isSignedIn() && orderDoc(orderId).clientId == request.auth.uid;
     }
@@ -30,6 +86,7 @@ service cloud.firestore {
         && request.resource.data.assignedWasherName == resource.data.assignedWasherName
         && request.resource.data.assignedWorkerEmail == resource.data.assignedWorkerEmail
         && request.resource.data.assignedVehicleLabel == resource.data.assignedVehicleLabel
+        && request.resource.data.status == resource.data.status
         && request.resource.data.etaMinutes == resource.data.etaMinutes
         && request.resource.data.request.servicePrice == resource.data.request.servicePrice
         && request.resource.data.request.travelFee == resource.data.request.travelFee
@@ -41,6 +98,7 @@ service cloud.firestore {
     function workerPreservesProtectedFields() {
       return request.resource.data.clientId == resource.data.clientId
         && request.resource.data.customerEmail == resource.data.customerEmail
+        && request.resource.data.request == resource.data.request
         && request.resource.data.request.servicePrice == resource.data.request.servicePrice
         && request.resource.data.request.travelFee == resource.data.request.travelFee
         && request.resource.data.request.totalPrice == resource.data.request.totalPrice
@@ -49,13 +107,49 @@ service cloud.firestore {
 
     // El lavador solo puede tomar el pedido si aun no esta asignado.
     function workerClaimsUnassignedOrder() {
-      return resource.data.workerId == null
-        && request.resource.data.workerId == request.auth.uid;
+      return isWorkerProfile()
+        && resource.data.status == 'searching'
+        && resource.data.workerId == null
+        && request.resource.data.workerId == request.auth.uid
+        && request.resource.data.status == 'assigned'
+        && workerPreservesProtectedFields();
+    }
+
+    function workerUpdatesOwnOrder() {
+      return isWorkerProfile()
+        && resource.data.workerId == request.auth.uid
+        && request.resource.data.workerId == resource.data.workerId
+        && request.resource.data.assignedWorkerEmail == resource.data.assignedWorkerEmail
+        && request.resource.data.assignedWasherName == resource.data.assignedWasherName
+        && request.resource.data.assignedVehicleLabel == resource.data.assignedVehicleLabel
+        && isAllowedWorkerStatusTransition(resource.data.status, request.resource.data.status)
+        && workerPreservesProtectedFields();
     }
 
     // ---------- profiles ----------
     match /profiles/{uid} {
       allow read, write: if isOwnerUid(uid);
+    }
+
+    // ---------- reviews ----------
+    // Solo el cliente de la orden puede crear. Todos los auth pueden leer
+    // reviews de un trabajador (para mostrar calificación).
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.clientId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update, delete: if false;
+    }
+
+    // ---------- ledger ----------
+    // Solo lectura por el lavador dueño del registro. Escritura solo por backend.
+    match /ledger/{orderId} {
+      allow read: if isSignedIn()
+        && resource.data.workerId == request.auth.uid;
+      allow write: if false;
     }
 
     // ---------- orders ----------
@@ -64,11 +158,13 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.clientId == request.auth.uid
         && request.resource.data.workerId == null
-        && request.resource.data.status == 'searching';
+        && request.resource.data.status == 'searching'
+        && hasTrustedPricing(request.resource.data);
 
       allow read: if isSignedIn()
         && (resource.data.clientId == request.auth.uid
-          || resource.data.workerId == request.auth.uid);
+          || resource.data.workerId == request.auth.uid
+          || (resource.data.status == 'searching' && isWorkerProfile()));
 
       // Cliente puede actualizar campos no sensibles (notas, direccion, etc.)
       // pero no puede cambiar quien lo atiende, precios ni asignacion.
@@ -78,9 +174,7 @@ service cloud.firestore {
 
       // Lavador puede tomar pedido sin asignar, o avanzar el suyo.
       // No puede tocar precios ni cambiar de cliente.
-      allow update: if isSignedIn()
-        && (workerClaimsUnassignedOrder() || resource.data.workerId == request.auth.uid)
-        && workerPreservesProtectedFields();
+      allow update: if workerClaimsUnassignedOrder() || workerUpdatesOwnOrder();
 
       // No se permite borrar pedidos desde cliente.
       allow delete: if false;
@@ -89,13 +183,24 @@ service cloud.firestore {
     // ---------- tracking ----------
     // Solo cliente o lavador del pedido pueden leer/escribir su tracking.
     match /tracking/{orderId} {
-      allow read, write: if isOrderClient(orderId) || isOrderWorker(orderId);
+      allow read: if isOrderClient(orderId)
+        || isOrderWorker(orderId)
+        || (orderDoc(orderId).status == 'searching' && isWorkerProfile());
+      allow write: if isOrderClient(orderId) || isOrderWorker(orderId);
     }
 
     // ---------- workers ----------
+    // El worker puede actualizar su propio documento (disponibilidad, ubicación,
+    // fcmToken). totalEarnings y completedServicesCount solo los escribe
+    // calculateCommission (Cloud Function con admin SDK, que omite rules).
     match /workers/{uid} {
       allow read: if isSignedIn();
-      allow write: if isOwnerUid(uid);
+      allow create: if isOwnerUid(uid);
+      allow update: if isOwnerUid(uid)
+        && (!resource.data.keys().hasAll(['totalEarnings']) ||
+            request.resource.data.totalEarnings == resource.data.totalEarnings)
+        && (!resource.data.keys().hasAll(['completedServicesCount']) ||
+            request.resource.data.completedServicesCount == resource.data.completedServicesCount);
     }
 
     // ---------- default deny ----------

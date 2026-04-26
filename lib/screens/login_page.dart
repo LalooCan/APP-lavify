@@ -7,6 +7,7 @@ import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
 import 'app_shell.dart';
+import 'role_login_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -488,9 +489,7 @@ class _LoginCard extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {
-                    // TODO: conectar recuperacion de contrasena.
-                  },
+                  onPressed: () => _showPasswordResetDialog(context),
                   child: const Text('Olvide mi contrasena'),
                 ),
               ],
@@ -625,7 +624,11 @@ class _LoginCard extends StatelessWidget {
                     label: 'Apple',
                     logo: const Icon(Icons.apple_rounded, size: 24),
                     onPressed: () {
-                      // TODO: conectar inicio de sesion con Apple.
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Sign in with Apple próximamente.'),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -643,7 +646,13 @@ class _LoginCard extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {
-                      // TODO: conectar flujo de registro de cuenta.
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const RoleLoginPage(
+                            initialMode: AppRole.client,
+                          ),
+                        ),
+                      );
                     },
                     child: const Text('Crear cuenta'),
                   ),
@@ -654,6 +663,64 @@ class _LoginCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showPasswordResetDialog(BuildContext context) async {
+    final controller = TextEditingController(text: emailController.text.trim());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recuperar contraseña'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Correo electrónico',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Enviar enlace'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+    final email = controller.text.trim();
+    if (email.isEmpty) return;
+
+    try {
+      await AuthService().sendPasswordResetEmail(email);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Enlace enviado a $email. Revisa tu bandeja.'),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo enviar el correo. Verifica la dirección.'),
+        ),
+      );
+    }
   }
 }
 

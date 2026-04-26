@@ -14,14 +14,41 @@ import '../widgets/secondary_button.dart';
 import '../widgets/section_text.dart';
 import 'order_tracking_page.dart';
 import 'request_wash_flow_page.dart';
+import 'role_login_page.dart';
 
-class HomePage extends StatelessWidget {
+final _homeOrderService = OrderService();
+
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   static const HomeService _homeService = HomeService();
-  static final OrderService _orderService = OrderService();
   static final ProfileService _profileService = ProfileService();
   static final SessionService _sessionService = SessionService();
+
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _howItWorksKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToHowItWorks() {
+    final ctx = _howItWorksKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +75,7 @@ class HomePage extends StatelessWidget {
             ),
             SafeArea(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: horizontalPadding,
@@ -66,13 +94,20 @@ class HomePage extends StatelessWidget {
                               _TopBar(isDesktop: isDesktop),
                               const SizedBox(height: 56),
                               if (isDesktop)
-                                _DesktopHero(session: session)
+                                _DesktopHero(
+                                  session: session,
+                                  onHowItWorks: _scrollToHowItWorks,
+                                )
                               else
-                                _MobileHero(session: session),
+                                _MobileHero(
+                                  session: session,
+                                  onHowItWorks: _scrollToHowItWorks,
+                                ),
                               const SizedBox(height: 56),
                               _FunctionalSection(
                                 session: session,
                                 featuredPackages: featuredPackages,
+                                howItWorksKey: _howItWorksKey,
                               ),
                             ],
                           );
@@ -131,7 +166,13 @@ class _TopBar extends StatelessWidget {
           label: 'Quiero trabajar',
           icon: Icons.arrow_outward_rounded,
           onPressed: () {
-            // TODO: conectar registro o onboarding de lavadores.
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const RoleLoginPage(
+                  initialMode: AppRole.worker,
+                ),
+              ),
+            );
           },
         ),
       ],
@@ -140,16 +181,20 @@ class _TopBar extends StatelessWidget {
 }
 
 class _DesktopHero extends StatelessWidget {
-  const _DesktopHero({required this.session});
+  const _DesktopHero({required this.session, required this.onHowItWorks});
 
   final HomeSessionData session;
+  final VoidCallback onHowItWorks;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 11, child: _HeroContent(session: session)),
+        Expanded(
+          flex: 11,
+          child: _HeroContent(session: session, onHowItWorks: onHowItWorks),
+        ),
         const SizedBox(width: 40),
         Expanded(
           flex: 9,
@@ -157,7 +202,7 @@ class _DesktopHero extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: _PreviewCard(orderService: HomePage._orderService),
+              child: _PreviewCard(orderService: _homeOrderService),
             ),
           ),
         ),
@@ -167,27 +212,29 @@ class _DesktopHero extends StatelessWidget {
 }
 
 class _MobileHero extends StatelessWidget {
-  const _MobileHero({required this.session});
+  const _MobileHero({required this.session, required this.onHowItWorks});
 
   final HomeSessionData session;
+  final VoidCallback onHowItWorks;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroContent(session: session),
+        _HeroContent(session: session, onHowItWorks: onHowItWorks),
         const SizedBox(height: 32),
-        _PreviewCard(orderService: HomePage._orderService),
+        _PreviewCard(orderService: _homeOrderService),
       ],
     );
   }
 }
 
 class _HeroContent extends StatelessWidget {
-  const _HeroContent({required this.session});
+  const _HeroContent({required this.session, required this.onHowItWorks});
 
   final HomeSessionData session;
+  final VoidCallback onHowItWorks;
 
   @override
   Widget build(BuildContext context) {
@@ -240,9 +287,7 @@ class _HeroContent extends StatelessWidget {
             SecondaryButton(
               label: 'Ver como funciona',
               icon: Icons.play_circle_outline_rounded,
-              onPressed: () {
-                // TODO: conectar scroll o navegacion a la seccion explicativa.
-              },
+              onPressed: onHowItWorks,
             ),
           ],
         ),
@@ -298,13 +343,13 @@ class _PreviewCard extends StatelessWidget {
             : 'Servicio activo · \$${order.request.totalPrice}';
 
         return RepaintBoundary(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: LavifyTheme.premiumPanelGradient(context),
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: LavifyTheme.borderColor(context)),
-          boxShadow: LavifyTheme.panelShadow(context),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LavifyTheme.premiumPanelGradient(context),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: LavifyTheme.borderColor(context)),
+              boxShadow: LavifyTheme.panelShadow(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,10 +602,12 @@ class _FunctionalSection extends StatelessWidget {
   const _FunctionalSection({
     required this.session,
     required this.featuredPackages,
+    required this.howItWorksKey,
   });
 
   final HomeSessionData session;
   final List<WashPackage> featuredPackages;
+  final GlobalKey howItWorksKey;
 
   @override
   Widget build(BuildContext context) {
@@ -570,7 +617,7 @@ class _FunctionalSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const HowItWorksSection(),
+        HowItWorksSection(key: howItWorksKey),
         SizedBox(height: isCompact ? 36 : 56),
         Text(
           'Paquetes disponibles',
@@ -676,10 +723,7 @@ class _SessionOverview extends StatelessWidget {
             ? const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFFFCF9),
-                  Color(0xFFF1EBE4),
-                ],
+                colors: [Color(0xFFFFFCF9), Color(0xFFF1EBE4)],
               )
             : null,
         color: isLight
@@ -700,10 +744,7 @@ class _SessionOverview extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFE4D1B1),
-                    Color(0xFFF9F3EA),
-                  ],
+                  colors: [Color(0xFFE4D1B1), Color(0xFFF9F3EA)],
                 ),
               ),
             ),
@@ -719,11 +760,7 @@ class _SessionOverview extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(
-                Icons.timer_outlined,
-                color: LavifyColors.primary,
-                size: 18,
-              ),
+              Icon(Icons.timer_outlined, color: LavifyColors.primary, size: 18),
               const SizedBox(width: 8),
               if (isLight)
                 Container(
@@ -774,10 +811,7 @@ class _MetallicHeroCopy extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF8F3EC),
-                Color(0xFFEDE4D7),
-              ],
+              colors: [Color(0xFFF8F3EC), Color(0xFFEDE4D7)],
             ),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: const Color(0x88D8C8B4)),
@@ -798,10 +832,7 @@ class _MetallicHeroCopy extends StatelessWidget {
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF5E86FF),
-                      Color(0xFF85A8FF),
-                    ],
+                    colors: [Color(0xFF5E86FF), Color(0xFF85A8FF)],
                   ),
                 ),
               ),
@@ -849,10 +880,9 @@ class _HeroGradientText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.headlineLarge?.copyWith(
-      color: Colors.white,
-      height: 0.92,
-    );
+    final style = Theme.of(
+      context,
+    ).textTheme.headlineLarge?.copyWith(color: Colors.white, height: 0.92);
 
     return ShaderMask(
       blendMode: BlendMode.srcIn,
@@ -860,11 +890,7 @@ class _HeroGradientText extends StatelessWidget {
         return const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF8EB5FF),
-            Color(0xFF4A72F4),
-            Color(0xFF5866F0),
-          ],
+          colors: [Color(0xFF8EB5FF), Color(0xFF4A72F4), Color(0xFF5866F0)],
         ).createShader(bounds);
       },
       child: Text(text, style: style),
@@ -946,9 +972,7 @@ class _TrustCard extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: isLight
-                    ? LavifyColors.lightNavy
-                    : LavifyColors.primary,
+                color: isLight ? LavifyColors.lightNavy : LavifyColors.primary,
                 size: isCompact ? 18 : 22,
               ),
             ),
@@ -960,9 +984,7 @@ class _TrustCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: isCompact ? 16 : 18,
                 height: 1.05,
-                color: isLight
-                    ? LavifyColors.lightTextPrimary
-                    : LavifyColors.textPrimary,
+                color: LavifyTheme.textPrimaryColor(context),
               ),
             ),
             SizedBox(height: isCompact ? 6 : 8),

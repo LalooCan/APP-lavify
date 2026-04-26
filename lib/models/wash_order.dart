@@ -75,6 +75,22 @@ extension OrderStatusX on OrderStatus {
         return false;
     }
   }
+
+  OrderStatus? get nextForWorker {
+    switch (this) {
+      case OrderStatus.assigned:
+        return OrderStatus.onTheWay;
+      case OrderStatus.onTheWay:
+        return OrderStatus.arrived;
+      case OrderStatus.arrived:
+        return OrderStatus.inProgress;
+      case OrderStatus.inProgress:
+        return OrderStatus.completed;
+      case OrderStatus.searching:
+      case OrderStatus.completed:
+        return null;
+    }
+  }
 }
 
 class WashOrder {
@@ -121,6 +137,7 @@ class WashOrder {
   }
 
   WashOrder copyWith({
+    String? id,
     OrderStatus? status,
     String? clientId,
     String? customerEmail,
@@ -131,7 +148,7 @@ class WashOrder {
     int? etaMinutes,
   }) {
     return WashOrder(
-      id: id,
+      id: id ?? this.id,
       request: request,
       status: status ?? this.status,
       clientId: clientId ?? this.clientId,
@@ -182,4 +199,28 @@ class WashOrder {
 extension WashOrderTrackingX on WashOrder {
   ServiceLocation get customerLocation =>
       ServiceLocation(latitude: request.latitude, longitude: request.longitude);
+}
+
+extension WashOrderVisibilityX on WashOrder {
+  bool isVisibleToClient({String? clientId, String? email}) {
+    final normalizedClientId = clientId?.trim() ?? '';
+    final normalizedEmail = email?.trim().toLowerCase() ?? '';
+    return (normalizedClientId.isNotEmpty &&
+            this.clientId == normalizedClientId) ||
+        (normalizedEmail.isNotEmpty &&
+            customerEmail.trim().toLowerCase() == normalizedEmail);
+  }
+
+  bool isVisibleToWorker({String? workerId, String? email}) {
+    if (status == OrderStatus.searching) {
+      return true;
+    }
+
+    final normalizedWorkerId = workerId?.trim() ?? '';
+    final normalizedEmail = email?.trim().toLowerCase() ?? '';
+    return (normalizedWorkerId.isNotEmpty &&
+            this.workerId == normalizedWorkerId) ||
+        (normalizedEmail.isNotEmpty &&
+            assignedWorkerEmail?.trim().toLowerCase() == normalizedEmail);
+  }
 }

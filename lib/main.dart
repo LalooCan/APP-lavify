@@ -8,6 +8,7 @@ import 'models/wash_models.dart';
 import 'screens/app_shell.dart';
 import 'screens/role_login_page.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'services/profile_service.dart';
 import 'services/session_service.dart';
 import 'services/theme_service.dart';
@@ -16,6 +17,7 @@ import 'theme/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService().initialize();
   runApp(const LavifyApp());
 }
 
@@ -68,8 +70,10 @@ class _AuthGateState extends State<_AuthGate> {
   }
 
   Future<UserProfile> _loadAndStoreProfile(User user) async {
+    final pendingRole = AuthService.consumePendingRegistrationRole();
     final profile = await LavifyApp._authService.loadOrCreateUserProfile(
       user: user,
+      fallbackRole: pendingRole ?? AppRole.client,
     );
     LavifyApp._profileService.setProfile(profile);
     return profile;

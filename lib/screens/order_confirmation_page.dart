@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../repositories/firestore_order_repository.dart';
+import '../services/cloud_functions_service.dart';
 import '../services/order_service.dart';
+import '../services/profile_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
@@ -20,6 +22,7 @@ class OrderConfirmationPage extends StatefulWidget {
 
 class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   static final OrderService _orderService = OrderService();
+  static final ProfileService _profileService = ProfileService();
 
   bool _isSubmitting = false;
   String? _submitError;
@@ -27,6 +30,11 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   @override
   Widget build(BuildContext context) {
     final request = widget.draft.toRequest();
+    final vehicleExtraFee = widget.draft.vehicleExtraFee;
+    final paymentMethod = _profileService.profile.value.paymentMethod.trim();
+    final paymentLabel = paymentMethod.isEmpty
+        ? 'Pago pendiente al asignar lavador'
+        : paymentMethod;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Confirmar pedido')),
@@ -44,7 +52,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Todo listo para confirmar tu pedido y revisar la informacion que luego consumira el backend.',
+                  'Confirma los detalles y nosotros buscamos un lavador disponible para tu horario.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 24),
@@ -52,22 +60,18 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        'Resumen',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
                       _ConfirmationRow(
                         label: 'Paquete',
                         value: request.packageName,
                       ),
                       _ConfirmationRow(
-                        label: 'Precio',
-                        value: '\$${request.price} ${request.currency}',
-                      ),
-                      _ConfirmationRow(
                         label: 'Direccion',
                         value: request.address,
-                      ),
-                      _ConfirmationRow(
-                        label: 'Coordenadas',
-                        value:
-                            '${request.latitude.toStringAsFixed(6)}, ${request.longitude.toStringAsFixed(6)}',
                       ),
                       _ConfirmationRow(
                         label: 'Horario',
@@ -76,6 +80,11 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                       _ConfirmationRow(
                         label: 'Vehiculo',
                         value: request.vehicleTypeName,
+                      ),
+                      _ConfirmationRow(
+                        label: 'Metodo de pago',
+                        value: paymentLabel,
+                        isLast: true,
                       ),
                     ],
                   ),
@@ -86,31 +95,37 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Payload listo para backend',
+                        'Total estimado',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: LavifyTheme.codePanelColor(context),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: LavifyTheme.borderColor(context),
-                          ),
+                      _PriceRow(
+                        label: 'Lavado ${request.packageName}',
+                        value: '\$${request.servicePrice}',
+                      ),
+                      _PriceRow(
+                        label: 'Traslado',
+                        value: '\$${request.travelFee}',
+                      ),
+                      if (vehicleExtraFee > 0)
+                        _PriceRow(
+                          label: 'Extra vehiculo',
+                          value: '\$$vehicleExtraFee',
                         ),
-                        child: SelectableText(
-                          request.toJson(),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: LavifyTheme.codePanelTextColor(context),
-                                fontFamily: 'monospace',
-                              ),
-                        ),
+                      Divider(color: LavifyTheme.borderColor(context)),
+                      _PriceRow(
+                        label: 'Total',
+                        value: '\$${request.price} ${request.currency}',
+                        isTotal: true,
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 18),
+                _SyncInfoCard(
+                  title: 'Sin cargo hasta la asignacion',
+                  subtitle:
+                      'Crearemos tu solicitud y, si Firestore tarda, la app continuara con seguimiento mientras termina de sincronizar.',
                 ),
                 const SizedBox(height: 24),
                 if (_submitError != null) ...[
@@ -125,7 +140,9 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                     child: Text(
                       _submitError!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
+                        color: LavifyTheme.isLight(context)
+                            ? const Color(0xFF8B2424)
+                            : Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -134,9 +151,9 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                 ],
                 PrimaryButton(
                   label: _isSubmitting
-                      ? 'Confirmando pedido...'
-                      : 'Confirmar pedido',
-                  onPressed: _isSubmitting ? () {} : _handleConfirmOrder,
+                      ? 'Creando solicitud...'
+                      : 'Confirmar solicitud \u00B7 \$${request.price}',
+                  onPressed: _isSubmitting ? null : _handleConfirmOrder,
                   isExpanded: true,
                 ),
                 const SizedBox(height: 14),
@@ -184,6 +201,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
       debugPrint('Error al confirmar pedido: $error\n$stack');
       final message = switch (error) {
         OrderSubmissionException(:final message) => message,
+        CloudFunctionsException(:final message) => message,
         FirestoreOrderRepositoryException(:final code)
             when code == 'permission-denied' =>
           'No tienes permisos para confirmar este pedido. Cierra sesion e inicia de nuevo.',
@@ -210,15 +228,20 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 }
 
 class _ConfirmationRow extends StatelessWidget {
-  const _ConfirmationRow({required this.label, required this.value});
+  const _ConfirmationRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
 
   final String label;
   final String value;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -229,6 +252,107 @@ class _ConfirmationRow extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: LavifyTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriceRow extends StatelessWidget {
+  const _PriceRow({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = isTotal
+        ? Theme.of(context).textTheme.titleLarge
+        : Theme.of(context).textTheme.bodyLarge;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: isTotal ? 0 : 10, top: isTotal ? 10 : 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: textStyle?.copyWith(
+                color: isTotal
+                    ? LavifyTheme.textPrimaryColor(context)
+                    : LavifyTheme.textSecondaryColor(context),
+                fontWeight: isTotal ? FontWeight.w800 : FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: textStyle?.copyWith(
+              color: LavifyTheme.textPrimaryColor(context),
+              fontWeight: isTotal ? FontWeight.w800 : FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SyncInfoCard extends StatelessWidget {
+  const _SyncInfoCard({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: LavifyTheme.softFillStrongColor(context),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: LavifyTheme.selectedTileColor(context),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.verified_user_rounded,
+              color: LavifyTheme.isLight(context)
+                  ? LavifyColors.lightNavy
+                  : LavifyColors.primary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: LavifyTheme.textPrimaryColor(context),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+              ],
             ),
           ),
         ],

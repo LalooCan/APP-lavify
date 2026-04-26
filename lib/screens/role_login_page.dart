@@ -111,6 +111,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                         onGoogleLogin: _signInWithGoogle,
                                         onBack: _hideAuthForm,
                                         onSwitchToSignIn: _switchToSignIn,
+                                        onSwitchToSignUp: _switchToSignUp,
                                       ),
                                     ),
                                   ],
@@ -134,6 +135,7 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
                                       onGoogleLogin: _signInWithGoogle,
                                       onBack: _hideAuthForm,
                                       onSwitchToSignIn: _switchToSignIn,
+                                      onSwitchToSignUp: _switchToSignUp,
                                     ),
                                     const SizedBox(height: 16),
                                     _LoginShowcase(
@@ -191,6 +193,12 @@ class _RoleLoginPageState extends State<RoleLoginPage> {
   void _switchToSignIn() {
     setState(() {
       _authIntent = _AuthEntryIntent.signIn;
+    });
+  }
+
+  void _switchToSignUp() {
+    setState(() {
+      _authIntent = _AuthEntryIntent.signUp;
     });
   }
 
@@ -581,6 +589,7 @@ class _LoginCard extends StatelessWidget {
     required this.onGoogleLogin,
     required this.onBack,
     required this.onSwitchToSignIn,
+    required this.onSwitchToSignUp,
   });
 
   final GlobalKey<FormState> formKey;
@@ -599,6 +608,7 @@ class _LoginCard extends StatelessWidget {
   final Future<void> Function() onGoogleLogin;
   final VoidCallback onBack;
   final VoidCallback onSwitchToSignIn;
+  final VoidCallback onSwitchToSignUp;
 
   bool get isClient => selectedMode == AppRole.client;
   bool get isSignUp => authIntent == _AuthEntryIntent.signUp;
@@ -827,35 +837,17 @@ class _LoginCard extends StatelessWidget {
               onPressed: isSubmitting ? null : onLogin,
             ),
             const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isSubmitting ? null : () => onGoogleLogin(),
-                    icon: const Text(
-                      'G',
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    label: Text(isSignUp ? 'Registrarme con Google' : 'Google'),
-                  ),
+            OutlinedButton.icon(
+              onPressed: isSubmitting ? null : () => onGoogleLogin(),
+              icon: const Text(
+                'G',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isSubmitting ? null : () {},
-                    icon: const Icon(
-                      Icons.apple_rounded,
-                      color: Colors.black54,
-                      size: 22,
-                    ),
-                    label: const Text('Apple'),
-                  ),
-                ),
-              ],
+              ),
+              label: Text(isSignUp ? 'Registrarme con Google' : 'Google'),
             ),
             const SizedBox(height: 18),
             Center(
@@ -891,6 +883,24 @@ class _LoginCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (!isSignUp && !isClient) ...[
+              Center(
+                child: Wrap(
+                  spacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Eres nuevo trabajador?',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    TextButton(
+                      onPressed: isSubmitting ? null : onSwitchToSignUp,
+                      child: const Text('Crear cuenta de trabajador'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

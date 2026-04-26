@@ -1,22 +1,131 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/wash_models.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
+import '../services/review_service.dart';
 import '../services/session_service.dart';
 import '../services/theme_service.dart';
+import '../services/worker_service.dart';
 import '../theme/theme.dart';
 import 'role_login_page.dart';
 
-class ProfileHubPage extends StatelessWidget {
+class ProfileHubPage extends StatefulWidget {
   const ProfileHubPage({super.key, required this.mode});
 
   final AppRole mode;
 
+  @override
+  State<ProfileHubPage> createState() => _ProfileHubPageState();
+}
+
+class _ProfileHubPageState extends State<ProfileHubPage> {
   static final _profileService = ProfileService();
   static final _sessionService = SessionService();
   static final _themeService = ThemeService();
   static final _authService = AuthService();
+  static final _workerService = WorkerService();
+  static final _reviewService = ReviewService();
+
+  AppRole get mode => widget.mode;
+
+  double _totalEarnings = 0;
+  int _completedCount = 0;
+  double _averageRating = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileService.ensureFavoriteAddressResolved();
+    if (mode == AppRole.worker) {
+      _workerService.watchEarnings().listen((data) {
+        if (!mounted) return;
+        setState(() {
+          _totalEarnings =
+              (data['totalEarnings'] as num?)?.toDouble() ?? 0;
+          _completedCount =
+              (data['completedServicesCount'] as num?)?.toInt() ?? 0;
+        });
+      });
+      _reviewService
+          .getWorkerAverageRating(
+            FirebaseAuth.instance.currentUser?.uid ?? '',
+          )
+          .then((avg) {
+            if (!mounted) return;
+            setState(() => _averageRating = avg);
+          });
+    }
+  }
+
+  Future<void> _showChangePasswordDialog(BuildContext context) async {
+    final email =
+        _profileService.profile.value.email.trim();
+    if (email.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cambiar contraseña'),
+        content: Text(
+          'Se enviará un enlace de restablecimiento a\n$email',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Enviar enlace'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Enlace enviado a $email')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo enviar el correo.'),
+        ),
+      );
+    }
+  }
+
+  List<_ProfileStat> _buildStats(UserProfile profile) {
+    if (mode == AppRole.worker) {
+      final ratingLabel = _averageRating > 0
+          ? _averageRating.toStringAsFixed(1)
+          : '—';
+      final earningsLabel = _totalEarnings > 0
+          ? '\$${_totalEarnings.toStringAsFixed(0)}'
+          : '\$0';
+      return [
+        _ProfileStat(value: '$_completedCount', label: 'Lavados'),
+        _ProfileStat(
+            value: earningsLabel, label: 'Ganancias', highlight: true),
+        _ProfileStat(value: ratingLabel, label: 'Rating'),
+      ];
+    }
+    final clientOrders = _completedCount;
+    return [
+      _ProfileStat(value: '$clientOrders', label: 'Lavados'),
+      _ProfileStat(
+          value: '\$${_totalEarnings.toStringAsFixed(0)}',
+          label: 'Total',
+          highlight: true),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +133,14 @@ class ProfileHubPage extends StatelessWidget {
     final isDesktop = width >= 900;
 
     return Scaffold(
-      backgroundColor: LavifyColors.background,
+      backgroundColor: _profileBackgroundColor(context),
       body: DecoratedBox(
         decoration: LavifyTheme.pageDecoration(context),
         child: SafeArea(
           child: ValueListenableBuilder<UserProfile>(
             valueListenable: _profileService.profile,
             builder: (context, profile, _) {
-              final stats = _statsForProfile(profile, mode);
+              final stats = _buildStats(profile);
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   isDesktop ? 32 : 20,
@@ -85,6 +194,8 @@ class ProfileHubPage extends StatelessWidget {
                                 );
                               },
                             ),
+                            onChangePassword: () =>
+                                _showChangePasswordDialog(context),
                             onToggleTheme: _themeService.toggleBrightness,
                             onLogout: () => _handleLogout(context),
                           )
@@ -128,6 +239,8 @@ class ProfileHubPage extends StatelessWidget {
                                 );
                               },
                             ),
+                            onChangePassword: () =>
+                                _showChangePasswordDialog(context),
                             onToggleTheme: _themeService.toggleBrightness,
                             onLogout: () => _handleLogout(context),
                           ),
@@ -151,19 +264,19 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF121B2A),
+          backgroundColor: _profileSurfaceColor(context),
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
-            side: const BorderSide(color: LavifyColors.border),
+            side: BorderSide(color: _profileBorderColor(context)),
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
           contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
           actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          title: const Text(
+          title: Text(
             'Editar perfil',
             style: TextStyle(
-              color: LavifyColors.textPrimary,
+              color: _profileTextPrimaryColor(context),
               fontSize: 17,
               fontWeight: FontWeight.w800,
             ),
@@ -186,8 +299,8 @@ class ProfileHubPage extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     'El correo se toma del login. El nombre de usuario si lo eliges tu.',
-                    style: const TextStyle(
-                      color: Color(0xFF98A5BB),
+                    style: TextStyle(
+                      color: _profileTextSecondaryColor(context),
                       fontSize: 13,
                       height: 1.5,
                     ),
@@ -200,7 +313,7 @@ class ProfileHubPage extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
-                foregroundColor: LavifyColors.primary,
+                foregroundColor: _profileAccentColor(context),
                 textStyle: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -210,8 +323,8 @@ class ProfileHubPage extends StatelessWidget {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: LavifyColors.primary,
-                foregroundColor: LavifyColors.textPrimary,
+                backgroundColor: _profileAccentColor(context),
+                foregroundColor: Colors.white,
                 textStyle: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
@@ -247,19 +360,19 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF121B2A),
+          backgroundColor: _profileSurfaceColor(dialogContext),
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
-            side: const BorderSide(color: LavifyColors.border),
+            side: BorderSide(color: _profileBorderColor(dialogContext)),
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
           contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
           actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           title: Text(
             title,
-            style: const TextStyle(
-              color: LavifyColors.textPrimary,
+            style: TextStyle(
+              color: _profileTextPrimaryColor(dialogContext),
               fontSize: 17,
               fontWeight: FontWeight.w800,
             ),
@@ -272,7 +385,7 @@ class ProfileHubPage extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               style: TextButton.styleFrom(
-                foregroundColor: LavifyColors.primary,
+                foregroundColor: _profileAccentColor(dialogContext),
                 textStyle: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -282,8 +395,8 @@ class ProfileHubPage extends StatelessWidget {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: LavifyColors.primary,
-                foregroundColor: LavifyColors.textPrimary,
+                backgroundColor: _profileAccentColor(dialogContext),
+                foregroundColor: Colors.white,
                 textStyle: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
@@ -306,24 +419,24 @@ class ProfileHubPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF121B2A),
+          backgroundColor: _profileSurfaceColor(dialogContext),
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
-            side: const BorderSide(color: LavifyColors.border),
+            side: BorderSide(color: _profileBorderColor(dialogContext)),
           ),
-          title: const Text(
+          title: Text(
             'Cerrar sesion',
             style: TextStyle(
-              color: LavifyColors.textPrimary,
+              color: _profileTextPrimaryColor(dialogContext),
               fontSize: 17,
               fontWeight: FontWeight.w800,
             ),
           ),
-          content: const Text(
+          content: Text(
             'Vas a salir de tu cuenta actual y regresar a la pantalla de login.',
             style: TextStyle(
-              color: Color(0xFF98A5BB),
+              color: _profileTextSecondaryColor(dialogContext),
               fontSize: 13,
               height: 1.5,
             ),
@@ -332,7 +445,7 @@ class ProfileHubPage extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               style: TextButton.styleFrom(
-                foregroundColor: LavifyColors.primary,
+                foregroundColor: _profileAccentColor(dialogContext),
               ),
               child: const Text('Cancelar'),
             ),
@@ -375,6 +488,7 @@ class _MobileProfileLayout extends StatelessWidget {
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
+    required this.onChangePassword,
     required this.onToggleTheme,
     required this.onLogout,
   });
@@ -387,6 +501,7 @@ class _MobileProfileLayout extends StatelessWidget {
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
+  final VoidCallback onChangePassword;
   final ValueChanged<bool> onToggleTheme;
   final VoidCallback onLogout;
 
@@ -403,7 +518,7 @@ class _MobileProfileLayout extends StatelessWidget {
         icon: Icons.lock_outline_rounded,
         title: 'Contrasena',
         value: 'Cambiar',
-        onTap: () {},
+        onTap: onChangePassword,
       ),
       _ProfileMenuItem(
         icon: Icons.notifications_none_rounded,
@@ -437,7 +552,7 @@ class _MobileProfileLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        _ProfileHero(profile: profile, mode: mode),
+        _ProfileHero(profile: profile, mode: mode, onEditAvatar: onEditProfile),
         const SizedBox(height: 22),
         Row(
           children: stats
@@ -479,6 +594,7 @@ class _DesktopProfileLayout extends StatelessWidget {
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
+    required this.onChangePassword,
     required this.onToggleTheme,
     required this.onLogout,
   });
@@ -491,6 +607,7 @@ class _DesktopProfileLayout extends StatelessWidget {
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
+  final VoidCallback onChangePassword;
   final ValueChanged<bool> onToggleTheme;
   final VoidCallback onLogout;
 
@@ -504,7 +621,11 @@ class _DesktopProfileLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ProfileHero(profile: profile, mode: mode),
+              _ProfileHero(
+                profile: profile,
+                mode: mode,
+                onEditAvatar: onEditProfile,
+              ),
               const SizedBox(height: 20),
               Row(
                 children: stats
@@ -546,7 +667,7 @@ class _DesktopProfileLayout extends StatelessWidget {
                     icon: Icons.lock_outline_rounded,
                     title: 'Contrasena',
                     value: 'Cambiar',
-                    onTap: () {},
+                    onTap: onChangePassword,
                   ),
                   _ProfileMenuItem(
                     icon: Icons.notifications_none_rounded,
@@ -597,10 +718,15 @@ class _DesktopProfileLayout extends StatelessWidget {
 }
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.profile, required this.mode});
+  const _ProfileHero({
+    required this.profile,
+    required this.mode,
+    required this.onEditAvatar,
+  });
 
   final UserProfile profile;
   final AppRole mode;
+  final VoidCallback onEditAvatar;
 
   @override
   Widget build(BuildContext context) {
@@ -608,25 +734,73 @@ class _ProfileHero extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(4, 12, 4, 22),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: LavifyColors.border)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _profileBorderColor(context))),
       ),
       child: Row(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0x4D3D7BFF), Color(0x2D6AA8FF)],
-              ),
-              border: Border.all(color: const Color(0x476AA8FF), width: 2),
-            ),
-            child: const Icon(
-              Icons.person_outline_rounded,
-              color: LavifyColors.primary,
-              size: 30,
+          SizedBox(
+            width: 68,
+            height: 68,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0x4D3D7BFF), Color(0x2D6AA8FF)],
+                    ),
+                    border: Border.all(
+                      color: const Color(0x476AA8FF),
+                      width: 2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x336AA8FF),
+                        blurRadius: 22,
+                        spreadRadius: 1,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    color: LavifyColors.primary,
+                    size: 30,
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onEditAvatar,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: LavifyColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _profileBackgroundColor(context),
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 16),
@@ -634,60 +808,105 @@ class _ProfileHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  profile.name.trim().isEmpty ? 'Usuario Lavify' : profile.name,
-                  style: const TextStyle(
-                    color: LavifyColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        profile.name.trim().isEmpty
+                            ? 'Usuario Lavify'
+                            : profile.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _profileTextPrimaryColor(context),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                    if (isWorker) ...[
+                      const SizedBox(width: 8),
+                      const _VerifiedBadge(),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
                   profile.email.isEmpty ? 'cliente@lavify.app' : profile.email,
-                  style: const TextStyle(
-                    color: LavifyColors.textSecondary,
+                  style: TextStyle(
+                    color: _profileTextSecondaryColor(context),
                     fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 6),
                 if (isWorker)
                   Row(
-                    children: const [
-                      Icon(
+                    children: [
+                      const Icon(
                         Icons.star_rounded,
                         size: 12,
                         color: Color(0xFFFFC857),
                       ),
-                      SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Text(
                         '4.9',
                         style: TextStyle(
-                          color: LavifyColors.textPrimary,
+                          color: _profileTextPrimaryColor(context),
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Text(
-                        '· 128 lavados completados',
+                        '\u00B7 128 lavados completados',
                         style: TextStyle(
-                          color: LavifyColors.textSecondary,
+                          color: _profileTextSecondaryColor(context),
                           fontSize: 12,
                         ),
                       ),
                     ],
                   )
                 else
-                  const Text(
+                  Text(
                     '3 lavados solicitados',
                     style: TextStyle(
-                      color: LavifyColors.textSecondary,
+                      color: _profileTextSecondaryColor(context),
                       fontSize: 12,
                     ),
                   ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerifiedBadge extends StatelessWidget {
+  const _VerifiedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0x2634D39A),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x5134D39A)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.verified_rounded, size: 12, color: LavifyColors.success),
+          SizedBox(width: 4),
+          Text(
+            'Verificado',
+            style: TextStyle(
+              color: LavifyColors.success,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -709,8 +928,8 @@ class _ProfileSection extends StatelessWidget {
       children: [
         Text(
           title.toUpperCase(),
-          style: const TextStyle(
-            color: LavifyColors.textSecondary,
+          style: TextStyle(
+            color: _profileTextSecondaryColor(context),
             fontSize: 11,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.7,
@@ -719,16 +938,16 @@ class _ProfileSection extends StatelessWidget {
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: LavifyColors.surface,
+            color: _profileSurfaceColor(context),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: LavifyColors.border),
+            border: Border.all(color: _profileBorderColor(context)),
           ),
           child: Column(
             children: [
               for (var i = 0; i < items.length; i++) ...[
                 _ProfileRow(item: items[i]),
                 if (i < items.length - 1)
-                  const Divider(color: LavifyColors.border, height: 1),
+                  Divider(color: _profileBorderColor(context), height: 1),
               ],
             ],
           ),
@@ -765,8 +984,8 @@ class _ProfileRow extends StatelessWidget {
             Expanded(
               child: Text(
                 item.title,
-                style: const TextStyle(
-                  color: LavifyColors.textPrimary,
+                style: TextStyle(
+                  color: _profileTextPrimaryColor(context),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -778,17 +997,17 @@ class _ProfileRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: LavifyColors.textSecondary,
+                style: TextStyle(
+                  color: _profileTextSecondaryColor(context),
                   fontSize: 12,
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            const Icon(
-              Icons.arrow_forward_rounded,
-              size: 14,
-              color: LavifyColors.textSecondary,
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: _profileTextSecondaryColor(context),
             ),
           ],
         ),
@@ -808,43 +1027,68 @@ class _ThemePreferenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: LavifyColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: LavifyColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0x146AA8FF),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(
-              isLightMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              size: 16,
-              color: LavifyColors.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'PREFERENCIAS',
+          style: TextStyle(
+            color: _profileTextSecondaryColor(context),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.7,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: _profileSurfaceColor(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _profileBorderColor(context)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0x146AA8FF),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(
+                    isLightMode
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_rounded,
+                    size: 16,
+                    color: LavifyColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Modo claro',
+                    style: TextStyle(
+                      color: _profileTextPrimaryColor(context),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: isLightMode,
+                  onChanged: onChanged,
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: _profileAccentColor(context),
+                  inactiveThumbColor: _profileTextSecondaryColor(context),
+                  inactiveTrackColor: _profileSurfaceAltColor(context),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Modo claro',
-              style: TextStyle(
-                color: LavifyColors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Switch(value: isLightMode, onChanged: onChanged),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -892,9 +1136,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       decoration: BoxDecoration(
-        color: LavifyColors.surface,
+        color: _profileSurfaceColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LavifyColors.border),
+        border: Border.all(color: _profileBorderColor(context)),
       ),
       child: Column(
         children: [
@@ -903,7 +1147,7 @@ class _StatCard extends StatelessWidget {
             style: TextStyle(
               color: stat.highlight
                   ? LavifyColors.success
-                  : LavifyColors.textPrimary,
+                  : _profileTextPrimaryColor(context),
               fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
@@ -911,8 +1155,8 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             stat.label,
-            style: const TextStyle(
-              color: LavifyColors.textSecondary,
+            style: TextStyle(
+              color: _profileTextSecondaryColor(context),
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -933,44 +1177,47 @@ class _ProfileField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      style: const TextStyle(
-        color: LavifyColors.textPrimary,
+      style: TextStyle(
+        color: _profileTextPrimaryColor(context),
         fontSize: 15,
         fontWeight: FontWeight.w600,
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
-          color: Color(0xFF9BA8BE),
+        labelStyle: TextStyle(
+          color: _profileTextSecondaryColor(context),
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        floatingLabelStyle: const TextStyle(
-          color: LavifyColors.primary,
+        floatingLabelStyle: TextStyle(
+          color: _profileAccentColor(context),
           fontSize: 14,
           fontWeight: FontWeight.w700,
         ),
-        hintStyle: const TextStyle(
-          color: Color(0xFF7E8BA1),
+        hintStyle: TextStyle(
+          color: _profileTextSecondaryColor(context).withAlpha(170),
           fontSize: 14,
         ),
         filled: true,
-        fillColor: const Color(0xFF141F30),
+        fillColor: _profileSurfaceAltColor(context),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 18,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Color(0xFF304158)),
+          borderSide: BorderSide(color: _profileBorderColor(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: LavifyColors.primary, width: 1.3),
+          borderSide: BorderSide(
+            color: _profileAccentColor(context),
+            width: 1.3,
+          ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Color(0xFF304158)),
+          borderSide: BorderSide(color: _profileBorderColor(context)),
         ),
       ),
     );
@@ -990,8 +1237,8 @@ class _ReadOnlyProfileField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF9BA8BE),
+          style: TextStyle(
+            color: _profileTextSecondaryColor(context),
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -1001,14 +1248,14 @@ class _ReadOnlyProfileField extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
           decoration: BoxDecoration(
-            color: const Color(0xFF141F30),
+            color: _profileSurfaceAltColor(context),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF304158)),
+            border: Border.all(color: _profileBorderColor(context)),
           ),
           child: Text(
             value,
-            style: const TextStyle(
-              color: Color(0xFFC3CEE0),
+            style: TextStyle(
+              color: _profileTextPrimaryColor(context).withAlpha(210),
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -1045,27 +1292,34 @@ class _ProfileStat {
   final bool highlight;
 }
 
-List<_ProfileStat> _statsForProfile(UserProfile profile, AppRole mode) {
-  if (mode == AppRole.worker) {
-    return const [
-      _ProfileStat(value: '128', label: 'Lavados'),
-      _ProfileStat(value: '\$8,450', label: 'Total', highlight: true),
-      _ProfileStat(value: '4.9', label: 'Rating'),
-    ];
-  }
-  return const [
-    _ProfileStat(value: '3', label: 'Lavados'),
-    _ProfileStat(value: '\$487', label: 'Total gastado', highlight: true),
-  ];
-}
+Color _profileBackgroundColor(BuildContext context) =>
+    Theme.of(context).scaffoldBackgroundColor;
+
+Color _profileSurfaceColor(BuildContext context) =>
+    LavifyTheme.surfaceColor(context);
+
+Color _profileSurfaceAltColor(BuildContext context) =>
+    LavifyTheme.surfaceAltColor(context);
+
+Color _profileBorderColor(BuildContext context) =>
+    LavifyTheme.borderColor(context);
+
+Color _profileTextPrimaryColor(BuildContext context) =>
+    LavifyTheme.textPrimaryColor(context);
+
+Color _profileTextSecondaryColor(BuildContext context) =>
+    LavifyTheme.textSecondaryColor(context);
+
+Color _profileAccentColor(BuildContext context) => LavifyTheme.isLight(context)
+    ? LavifyColors.lightNavy
+    : LavifyColors.primary;
+
 
 String _fallbackValue(String value, String fallback) {
   return value.trim().isEmpty ? fallback : value.trim();
 }
 
-final RegExp _coordPattern = RegExp(
-  r'^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$',
-);
+final RegExp _coordPattern = RegExp(r'^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$');
 
 String _displayAddress(String value, String fallback) {
   final trimmed = value.trim();
@@ -1074,5 +1328,3 @@ String _displayAddress(String value, String fallback) {
   }
   return trimmed;
 }
-
-

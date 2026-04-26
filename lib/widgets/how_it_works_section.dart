@@ -53,7 +53,11 @@ class HowItWorksSection extends StatelessWidget {
           builder: (context, constraints) {
             final availableWidth = constraints.maxWidth;
             final spacing = isCompact ? 10.0 : 14.0;
-            final columns = isCompact ? 2 : availableWidth >= 920 ? 3 : 2;
+            final columns = isCompact
+                ? 2
+                : availableWidth >= 920
+                ? 3
+                : 2;
             final cardWidth =
                 (availableWidth - (spacing * (columns - 1))) / columns;
 
@@ -104,10 +108,7 @@ class _HowItWorksCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: isLight
                 ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
-                : const [
-                    Color(0xCC12203A),
-                    Color(0xCC0C1527),
-                  ],
+                : const [Color(0xCC12203A), Color(0xCC0C1527)],
           ),
           border: Border.all(
             color: isLight
@@ -196,9 +197,7 @@ class _HowItWorksCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: isCompact ? 16 : 18,
                 height: 1.05,
-                color: isLight
-                    ? LavifyColors.lightTextPrimary
-                    : LavifyColors.textPrimary,
+                color: LavifyTheme.textPrimaryColor(context),
               ),
             ),
             SizedBox(height: isCompact ? 6 : 8),

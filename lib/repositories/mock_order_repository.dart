@@ -30,7 +30,7 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
-  WashOrder updateOrder(WashOrder order) {
+  Future<WashOrder> updateOrder(WashOrder order) async {
     final index = _orders.indexWhere((item) => item.id == order.id);
     if (index >= 0) {
       _orders[index] = order;

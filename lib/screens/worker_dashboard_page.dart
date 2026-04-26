@@ -105,6 +105,8 @@ class WorkerDashboardPage extends StatelessWidget {
                     return _AgendaCard(orders: orders);
                   },
                 ),
+                const SizedBox(height: 20),
+                _EarningsCard(workerService: _workerService),
               ],
             ),
           ),
@@ -587,6 +589,137 @@ class _AgendaCard extends StatelessWidget {
   }
 }
 
+class _EarningsCard extends StatelessWidget {
+  const _EarningsCard({required this.workerService});
+
+  final WorkerService workerService;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: workerService.watchEarnings(),
+      builder: (context, snapshot) {
+        final data = snapshot.data ?? const {};
+        final totalEarnings = (data['totalEarnings'] as num?)?.toDouble() ?? 0;
+        final completedCount =
+            (data['completedServicesCount'] as num?)?.toInt() ?? 0;
+        final avgTicket =
+            completedCount > 0 ? totalEarnings / completedCount : 0.0;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: LavifyTheme.surfaceColor(context),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: LavifyTheme.borderColor(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0x1A28D17C),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.payments_rounded,
+                      color: LavifyColors.success,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Text(
+                    'Mis ganancias',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _EarningsStat(
+                    label: 'Total acumulado',
+                    value: '\$${totalEarnings.toStringAsFixed(0)} MXN',
+                    icon: Icons.account_balance_wallet_rounded,
+                    accent: LavifyColors.success,
+                  ),
+                  _EarningsStat(
+                    label: 'Servicios completados',
+                    value: '$completedCount',
+                    icon: Icons.task_alt_rounded,
+                    accent: LavifyColors.primary,
+                  ),
+                  _EarningsStat(
+                    label: 'Ticket promedio',
+                    value: '\$${avgTicket.toStringAsFixed(0)} MXN',
+                    icon: Icons.trending_up_rounded,
+                    accent: const Color(0xFF9B7BFF),
+                  ),
+                ],
+              ),
+              if (completedCount == 0) ...[
+                const SizedBox(height: 14),
+                Text(
+                  'Completa servicios para ver tus ganancias acumuladas aquí.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EarningsStat extends StatelessWidget {
+  const _EarningsStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.accent,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: LavifyTheme.softFillStrongColor(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: accent, size: 22),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: LavifyTheme.textPrimaryColor(context),
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
 class _AgendaItem extends StatelessWidget {
   const _AgendaItem({required this.order});
 
@@ -614,8 +747,8 @@ class _AgendaItem extends StatelessWidget {
             child: Text(
               order.request.scheduleLabel.split(' - ').last,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: LavifyColors.textPrimary,
+              style: TextStyle(
+                color: LavifyTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),
@@ -629,7 +762,7 @@ class _AgendaItem extends StatelessWidget {
                 Text(
                   '${order.request.packageName} en ${order.request.address}',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textPrimary,
+                    color: LavifyTheme.textPrimaryColor(context),
                     fontWeight: FontWeight.w700,
                   ),
                 ),

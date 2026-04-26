@@ -196,13 +196,20 @@ class TrackingService {
 
     _repositorySubscriptions[orderId] = _repository
         .watchTracking(orderId)
-        .listen((snapshot) {
-          final notifier = _trackers.putIfAbsent(
-            orderId,
-            () => ValueNotifier<OrderTrackingSnapshot?>(null),
-          );
-          notifier.value = snapshot;
-        });
+        .listen(
+          (snapshot) {
+            final notifier = _trackers.putIfAbsent(
+              orderId,
+              () => ValueNotifier<OrderTrackingSnapshot?>(null),
+            );
+            if (snapshot != null) {
+              notifier.value = snapshot;
+            }
+          },
+          onError: (Object error, StackTrace stack) {
+            debugPrint('TrackingService.watchTracking error: $error');
+          },
+        );
   }
 
   void _startMockTimer(WashOrder order) {

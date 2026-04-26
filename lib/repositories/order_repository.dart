@@ -7,5 +7,5 @@ abstract class OrderRepository {
 
   Future<WashOrder> createOrder(WashOrder order);
 
-  WashOrder updateOrder(WashOrder order);
+  Future<WashOrder> updateOrder(WashOrder order);
 }

@@ -162,7 +162,18 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
 
     try {
       final updatedOrder = await _orderService.takeOrder(order.id);
-      if (!mounted || updatedOrder == null) {
+      if (!mounted) {
+        return;
+      }
+
+      if (updatedOrder == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudo tomar el servicio. Revisa tu disponibilidad o intenta de nuevo.',
+            ),
+          ),
+        );
         return;
       }
 
@@ -171,6 +182,13 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
           content: Text('Servicio ${updatedOrder.id} tomado correctamente.'),
         ),
       );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_workerActionErrorMessage(error))));
     } finally {
       if (mounted) {
         setState(() {
@@ -207,7 +225,18 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
 
     try {
       final updatedOrder = await _orderService.advanceOrder(order.id);
-      if (!mounted || updatedOrder == null) {
+      if (!mounted) {
+        return;
+      }
+
+      if (updatedOrder == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudo avanzar este servicio. Verifica que siga asignado a tu cuenta.',
+            ),
+          ),
+        );
         return;
       }
 
@@ -220,6 +249,13 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_workerActionErrorMessage(error))));
     } finally {
       if (mounted) {
         setState(() {
@@ -227,6 +263,13 @@ class _WorkerServicesPageState extends State<WorkerServicesPage> {
         });
       }
     }
+  }
+
+  String _workerActionErrorMessage(Object error) {
+    if (error is OrderSubmissionException) {
+      return error.message;
+    }
+    return 'No se pudo sincronizar el cambio. Intenta de nuevo.';
   }
 }
 
@@ -453,7 +496,7 @@ class _WorkerOrderCard extends StatelessWidget {
                 child: Text(
                   'Total: \$${order.request.totalPrice} ${order.request.currency}',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyColors.textPrimary,
+                    color: LavifyTheme.textPrimaryColor(context),
                     fontWeight: FontWeight.w700,
                   ),
                 ),

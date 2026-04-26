@@ -73,9 +73,7 @@ class PackageCard extends StatelessWidget {
                     BoxShadow(
                       color: isLight
                           ? const Color(0x14D6B47B)
-                          : LavifyColors.primary.withAlpha(
-                              isPopular ? 40 : 18,
-                            ),
+                          : LavifyColors.primary.withAlpha(isPopular ? 40 : 18),
                       blurRadius: isPopular ? 24 : 18,
                       spreadRadius: isPopular ? 1 : 0,
                     ),
@@ -183,9 +181,7 @@ class PackageCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontSize: isCompact ? 18 : 20,
                           fontWeight: FontWeight.w700,
-                          color: isLight
-                              ? LavifyColors.lightTextPrimary
-                              : LavifyColors.textPrimary,
+                          color: LavifyTheme.textPrimaryColor(context),
                         ),
                       ),
                       SizedBox(height: isCompact ? 8 : 10),

@@ -8,6 +8,7 @@ import '../models/wash_models.dart';
 import '../repositories/firestore_profile_repository.dart';
 import '../repositories/mock_profile_repository.dart';
 import '../repositories/profile_repository.dart';
+import 'location_service.dart';
 import 'session_service.dart';
 
 class ProfileService {
@@ -189,6 +190,48 @@ class ProfileService {
       await _repository.updateAddress(nextProfile.uid, normalizedAddress);
     } catch (error, stack) {
       debugPrint('ProfileService.syncFavoriteAddress error: $error\n$stack');
+    }
+  }
+
+  static final RegExp _coordPattern = RegExp(
+    r'^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$',
+  );
+  bool _addressResolutionAttempted = false;
+
+  // Si el perfil guarda coordenadas raw como direccion favorita, dispara
+  // reverse-geocoding una sola vez y persiste la direccion legible.
+  Future<void> ensureFavoriteAddressResolved({
+    LocationService locationService = const LocationService(),
+  }) async {
+    if (_addressResolutionAttempted) {
+      return;
+    }
+    _addressResolutionAttempted = true;
+
+    final current = profile.value.favoriteAddress.trim();
+    if (current.isEmpty || !_coordPattern.hasMatch(current)) {
+      return;
+    }
+
+    final parts = current.split(',');
+    final lat = double.tryParse(parts[0].trim());
+    final lng = double.tryParse(parts[1].trim());
+    if (lat == null || lng == null) {
+      return;
+    }
+
+    try {
+      final resolution = await locationService.reverseGeocode(
+        ServiceLocation(latitude: lat, longitude: lng),
+      );
+      final resolved = resolution.address.trim();
+      if (resolution.isPrecise && resolved.isNotEmpty && resolved != current) {
+        await syncFavoriteAddress(resolved);
+      }
+    } catch (error, stack) {
+      debugPrint(
+        'ProfileService.ensureFavoriteAddressResolved error: $error\n$stack',
+      );
     }
   }
 

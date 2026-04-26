@@ -8,6 +8,7 @@ import '../models/wash_models.dart';
 import '../repositories/firestore_order_repository.dart';
 import '../repositories/mock_order_repository.dart';
 import '../repositories/order_repository.dart';
+import 'cloud_functions_service.dart';
 import 'session_service.dart';
 import 'tracking_service.dart';
 
@@ -23,6 +24,8 @@ class OrderSubmissionException implements Exception {
 class OrderService {
   OrderService._internal() : _repository = _buildRepository() {
     orders = ValueNotifier<List<WashOrder>>(_repository.getOrders());
+    pendingSyncOrderIds = ValueNotifier<Set<String>>(const <String>{});
+    syncErrors = ValueNotifier<Map<String, String>>(const <String, String>{});
     _repository.watchOrders().listen(
       (nextOrders) {
         orders.value = nextOrders;
@@ -43,7 +46,10 @@ class OrderService {
   final OrderRepository _repository;
   final SessionService _sessionService = SessionService();
   final TrackingService _trackingService = TrackingService();
+  final CloudFunctionsService _cloudFunctions = CloudFunctionsService();
   late final ValueNotifier<List<WashOrder>> orders;
+  late final ValueNotifier<Set<String>> pendingSyncOrderIds;
+  late final ValueNotifier<Map<String, String>> syncErrors;
 
   static OrderRepository _buildRepository() {
     switch (AppConfig.ordersBackendMode) {
@@ -55,6 +61,11 @@ class OrderService {
   }
 
   List<WashOrder> get currentOrders => orders.value;
+
+  bool isOrderSyncPending(String orderId) =>
+      pendingSyncOrderIds.value.contains(orderId);
+
+  String? syncErrorForOrder(String orderId) => syncErrors.value[orderId];
 
   ValueListenable<OrderTrackingSnapshot?> trackingForOrder(String orderId) {
     return _trackingService.trackingForOrder(orderId);
@@ -75,10 +86,10 @@ class OrderService {
 
   WashOrder? get activeWorkerOrder {
     final workerEmail = _normalizedCurrentSessionEmail;
+    final workerUid = FirebaseAuth.instance.currentUser?.uid;
     for (final order in orders.value) {
       if (order.status.isActiveForWorker &&
-          workerEmail != null &&
-          order.assignedWorkerEmail == workerEmail) {
+          order.isVisibleToWorker(workerId: workerUid, email: workerEmail)) {
         return order;
       }
     }
@@ -89,7 +100,8 @@ class OrderService {
 
   bool hasScheduleConflictForWorker(WashOrder candidateOrder) {
     final workerEmail = _normalizedCurrentSessionEmail;
-    if (workerEmail == null) {
+    final workerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (workerEmail == null && (workerUid == null || workerUid.isEmpty)) {
       return false;
     }
 
@@ -97,7 +109,8 @@ class OrderService {
       if (order.id == candidateOrder.id) {
         continue;
       }
-      if (order.assignedWorkerEmail != workerEmail) {
+      if (!order.isVisibleToWorker(workerId: workerUid, email: workerEmail) ||
+          order.status == OrderStatus.searching) {
         continue;
       }
       if (order.status == OrderStatus.completed) {
@@ -113,13 +126,15 @@ class OrderService {
 
   List<WashOrder> get clientVisibleOrders {
     final sessionEmail = _normalizedCurrentSessionEmail;
-    if (sessionEmail == null) {
+    final clientUid = FirebaseAuth.instance.currentUser?.uid;
+    if (sessionEmail == null && (clientUid == null || clientUid.isEmpty)) {
       return const <WashOrder>[];
     }
 
     return orders.value
         .where(
-          (order) => order.customerEmail.trim().toLowerCase() == sessionEmail,
+          (order) =>
+              order.isVisibleToClient(clientId: clientUid, email: sessionEmail),
         )
         .toList(growable: false);
   }
@@ -136,21 +151,25 @@ class OrderService {
 
   List<WashOrder> get workerVisibleOrders {
     final workerEmail = _normalizedCurrentSessionEmail;
-    if (workerEmail == null) {
+    final workerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (workerEmail == null && (workerUid == null || workerUid.isEmpty)) {
       return const <WashOrder>[];
     }
 
     return orders.value
-        .where((order) {
-          if (order.status == OrderStatus.searching) {
-            return true;
-          }
-          return order.assignedWorkerEmail == workerEmail;
-        })
+        .where(
+          (order) =>
+              order.isVisibleToWorker(workerId: workerUid, email: workerEmail),
+        )
         .toList(growable: false);
   }
 
   Future<WashOrder> createOrderFromDraft(WashRequestDraft draft) async {
+    final validationMessage = draft.validationMessage;
+    if (validationMessage != null) {
+      throw OrderSubmissionException(validationMessage);
+    }
+
     if (!AppConfig.usesRemoteOrdersBackend) {
       await Future<void>.delayed(const Duration(milliseconds: 900));
     }
@@ -161,7 +180,7 @@ class OrderService {
         'Inicia sesion nuevamente para confirmar tu pedido.',
       );
     }
-    final request = draft.toRequest();
+    final request = _requestFromTrustedCatalog(draft);
     final customerEmail = session?.email.trim().isNotEmpty == true
         ? session!.email.trim()
         : firebaseUser?.email?.trim() ?? 'cliente@lavify.app';
@@ -177,31 +196,85 @@ class OrderService {
       createdAt: DateTime.now().toUtc(),
       etaMinutes: request.estimatedMinutes,
     );
-    // TODO: mover a Cloud Function antes de producción
+    var createdOrder = order;
     if (AppConfig.usesRemoteOrdersBackend) {
+      // Optimistic local insert mientras Cloud Function escribe en Firestore.
       _storeOptimisticOrder(order);
-      unawaited(
-        _repository
-            .createOrder(order)
-            .timeout(
-              const Duration(seconds: 12),
-              onTimeout: () {
-                throw const OrderSubmissionException(
-                  'Firestore tardo demasiado en confirmar el pedido.',
-                );
-              },
-            )
-            .catchError((Object error, StackTrace stack) {
-              debugPrint('Error al guardar pedido remoto: $error\n$stack');
-              return order;
-            }),
-      );
+      _markOrderSyncPending(order.id);
+      try {
+        final result = await _cloudFunctions
+            .createOrder(draft)
+            .timeout(const Duration(seconds: 8));
+        // Reemplazar el id optimista con el id real devuelto por la función.
+        final realId = result['orderId'] as String? ?? order.id;
+        if (realId != order.id) {
+          _removeOptimisticOrder(order.id);
+          _markOrderSynced(order.id);
+          createdOrder = order.copyWith(id: realId);
+          _storeOptimisticOrder(createdOrder);
+          _markOrderSynced(realId);
+        } else {
+          _markOrderSynced(realId);
+        }
+      } on TimeoutException {
+        await _createOrderDirectly(order);
+        debugPrint('Cloud Function createOrder tardó; orden optimista activa.');
+      } catch (error, stack) {
+        debugPrint('Error Cloud Function createOrder: $error\n$stack');
+        if (error is CloudFunctionsException &&
+            _canFallbackToFirestore(error)) {
+          await _createOrderDirectly(order);
+        } else {
+          _removeOptimisticOrder(order.id);
+          _markOrderSyncError(order.id, _syncErrorMessage(error));
+          rethrow;
+        }
+      }
     } else {
       await _repository.createOrder(order);
       orders.value = _repository.getOrders();
     }
-    _trackingService.syncOrder(order);
-    return order;
+    _trackingService.syncOrder(createdOrder);
+    return createdOrder;
+  }
+
+  Future<void> _createOrderDirectly(WashOrder order) async {
+    final saveFuture = _repository.createOrder(order);
+    try {
+      await saveFuture.timeout(const Duration(seconds: 8));
+      _markOrderSynced(order.id);
+    } on TimeoutException {
+      debugPrint(
+        'Firestore createOrder tardo; la orden queda pendiente de sync.',
+      );
+      unawaited(
+        saveFuture
+            .then<void>((_) => _markOrderSynced(order.id))
+            .catchError((Object error, StackTrace stack) {
+          debugPrint('Fallback Firestore createOrder error: $error\n$stack');
+          _removeOptimisticOrder(order.id);
+          _markOrderSyncError(order.id, _syncErrorMessage(error));
+        }),
+      );
+    } catch (error, stack) {
+      debugPrint('Fallback Firestore createOrder error: $error\n$stack');
+      _removeOptimisticOrder(order.id);
+      _markOrderSyncError(order.id, _syncErrorMessage(error));
+      rethrow;
+    }
+  }
+
+  bool _canFallbackToFirestore(CloudFunctionsException error) {
+    switch (error.code) {
+      case 'internal':
+      case 'not-found':
+      case 'unavailable':
+      case 'deadline-exceeded':
+      case 'unknown':
+        return true;
+      default:
+        return false;
+    }
   }
 
   Future<WashOrder> createOrder(WashRequest request) async {
@@ -237,6 +310,7 @@ class OrderService {
     final order = _findById(orderId);
     final session = _sessionService.currentSession.value;
     final workerEmail = _normalizedCurrentSessionEmail;
+    final workerUid = FirebaseAuth.instance.currentUser?.uid;
     final activeOrder = activeWorkerOrder;
     final hasAnotherActiveOrder =
         activeOrder != null && activeOrder.id != orderId;
@@ -248,17 +322,38 @@ class OrderService {
         session == null ||
         session.role != AppRole.worker ||
         workerEmail == null ||
+        (AppConfig.usesRemoteOrdersBackend &&
+            (workerUid == null || workerUid.isEmpty)) ||
         hasAnotherActiveOrder ||
         hasScheduleConflict) {
       return null;
     }
 
-    // TODO: mover a Cloud Function antes de producción
+    if (AppConfig.usesRemoteOrdersBackend) {
+      // Cloud Function valida race conditions y escribe en Firestore atómicamente.
+      try {
+        await _cloudFunctions.assignWorker(orderId);
+      } on CloudFunctionsException catch (e) {
+        _markOrderSyncError(orderId, e.message);
+        return null;
+      }
+      // Optimistic local update; Firestore stream entregará la versión real.
+      return _saveOrder(
+        order.copyWith(
+          status: OrderStatus.assigned,
+          assignedWasherName: session.visibleName,
+          workerId: workerUid,
+          assignedWorkerEmail: workerEmail,
+          assignedVehicleLabel: 'Unidad activa',
+          etaMinutes: 18,
+        ),
+      );
+    }
     return _saveOrder(
       order.copyWith(
         status: OrderStatus.assigned,
         assignedWasherName: session.visibleName,
-        workerId: FirebaseAuth.instance.currentUser?.uid,
+        workerId: workerUid,
         assignedWorkerEmail: workerEmail,
         assignedVehicleLabel: 'Unidad activa',
         etaMinutes: 18,
@@ -269,7 +364,17 @@ class OrderService {
   Future<WashOrder?> advanceOrder(String orderId) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
     final order = _findById(orderId);
+    final session = _sessionService.currentSession.value;
+    final workerEmail = _normalizedCurrentSessionEmail;
     if (order == null) {
+      return null;
+    }
+    if (session == null ||
+        session.role != AppRole.worker ||
+        workerEmail == null ||
+        order.status == OrderStatus.searching ||
+        (order.assignedWorkerEmail != workerEmail &&
+            order.workerId != FirebaseAuth.instance.currentUser?.uid)) {
       return null;
     }
 
@@ -296,7 +401,18 @@ class OrderService {
       OrderStatus.searching => order.etaMinutes,
     };
 
-    // TODO: mover a Cloud Function antes de producción
+    if (AppConfig.usesRemoteOrdersBackend) {
+      try {
+        await _cloudFunctions.updateOrderStatus(
+          orderId,
+          nextStatus,
+          etaMinutes: nextEta,
+        );
+      } on CloudFunctionsException catch (e) {
+        _markOrderSyncError(orderId, e.message);
+        return null;
+      }
+    }
     return _saveOrder(order.copyWith(status: nextStatus, etaMinutes: nextEta));
   }
 
@@ -332,6 +448,15 @@ class OrderService {
     _trackingService.setBackendRoute(order: order, routePoints: routePoints);
   }
 
+  Future<void> retryOrderSync(String orderId) async {
+    final order = _findById(orderId);
+    if (order == null) {
+      return;
+    }
+
+    await _saveOrder(order);
+  }
+
   WashOrder? _findById(String orderId) {
     return getOrderById(orderId);
   }
@@ -343,30 +468,147 @@ class OrderService {
     ];
   }
 
-  WashOrder _saveOrder(WashOrder order) {
-    _repository.updateOrder(order);
-    if (!AppConfig.usesRemoteOrdersBackend) {
-      orders.value = _repository.getOrders();
+  Future<WashOrder> _saveOrder(WashOrder order) async {
+    if (AppConfig.usesRemoteOrdersBackend) {
+      _markOrderSyncPending(order.id);
     }
-    _trackingService.syncOrder(order);
-    return order;
+
+    try {
+      final savedOrder = await _repository
+          .updateOrder(order)
+          .timeout(const Duration(seconds: 8));
+      if (AppConfig.usesRemoteOrdersBackend) {
+        _storeOptimisticOrder(savedOrder);
+        _markOrderSynced(savedOrder.id);
+      } else {
+        orders.value = _repository.getOrders();
+      }
+      _trackingService.syncOrder(savedOrder);
+      return savedOrder;
+    } on TimeoutException {
+      const message =
+          'Firestore tardo demasiado en actualizar el pedido. Intenta de nuevo.';
+      _markOrderSyncError(order.id, message);
+      throw const OrderSubmissionException(message);
+    } catch (error, stack) {
+      debugPrint('Error al actualizar pedido remoto: $error\n$stack');
+      _markOrderSyncError(order.id, _syncErrorMessage(error));
+      rethrow;
+    }
+  }
+
+  WashRequest _requestFromTrustedCatalog(WashRequestDraft draft) {
+    final package = _packageById(draft.selectedPackage.id);
+    final schedule = _scheduleById(draft.selectedSchedule.id);
+    final vehicle = _vehicleById(draft.selectedVehicle.id);
+
+    if (package == null) {
+      throw const OrderSubmissionException(
+        'El paquete seleccionado ya no esta disponible.',
+      );
+    }
+    if (schedule == null) {
+      throw const OrderSubmissionException(
+        'El horario seleccionado ya no esta disponible.',
+      );
+    }
+    if (vehicle == null) {
+      throw const OrderSubmissionException(
+        'El tipo de vehiculo seleccionado ya no esta disponible.',
+      );
+    }
+
+    return draft
+        .copyWith(
+          selectedPackage: package,
+          selectedSchedule: schedule,
+          selectedVehicle: vehicle,
+        )
+        .toRequest();
+  }
+
+  WashPackage? _packageById(String id) {
+    for (final package in washPackages) {
+      if (package.id == id) {
+        return package;
+      }
+    }
+    return null;
+  }
+
+  ScheduleSlot? _scheduleById(String id) {
+    for (final schedule in scheduleSlots) {
+      if (schedule.id == id) {
+        return schedule;
+      }
+    }
+    return null;
+  }
+
+  VehicleType? _vehicleById(String id) {
+    for (final vehicle in vehicleTypes) {
+      if (vehicle.id == id) {
+        return vehicle;
+      }
+    }
+    return null;
+  }
+
+  void _removeOptimisticOrder(String orderId) {
+    orders.value = orders.value
+        .where((order) => order.id != orderId)
+        .toList(growable: false);
+  }
+
+  void _markOrderSyncPending(String orderId) {
+    final next = <String>{...pendingSyncOrderIds.value, orderId};
+    pendingSyncOrderIds.value = Set<String>.unmodifiable(next);
+    if (syncErrors.value.containsKey(orderId)) {
+      final nextErrors = <String, String>{...syncErrors.value}..remove(orderId);
+      syncErrors.value = Map<String, String>.unmodifiable(nextErrors);
+    }
+  }
+
+  void _markOrderSynced(String orderId) {
+    if (pendingSyncOrderIds.value.contains(orderId)) {
+      final next = <String>{...pendingSyncOrderIds.value}..remove(orderId);
+      pendingSyncOrderIds.value = Set<String>.unmodifiable(next);
+    }
+    if (syncErrors.value.containsKey(orderId)) {
+      final nextErrors = <String, String>{...syncErrors.value}..remove(orderId);
+      syncErrors.value = Map<String, String>.unmodifiable(nextErrors);
+    }
+  }
+
+  void _markOrderSyncError(String orderId, String message) {
+    if (pendingSyncOrderIds.value.contains(orderId)) {
+      final next = <String>{...pendingSyncOrderIds.value}..remove(orderId);
+      pendingSyncOrderIds.value = Set<String>.unmodifiable(next);
+    }
+    syncErrors.value = Map<String, String>.unmodifiable({
+      ...syncErrors.value,
+      orderId: message,
+    });
+  }
+
+  String _syncErrorMessage(Object error) {
+    if (error is FirestoreOrderRepositoryException) {
+      if (error.code == 'permission-denied') {
+        return 'Firestore rechazo la sincronizacion por permisos.';
+      }
+      return error.message;
+    }
+    if (error is CloudFunctionsException) {
+      return error.message;
+    }
+    if (error is OrderSubmissionException) {
+      return error.message;
+    }
+    return 'No se pudo sincronizar el pedido. Intenta de nuevo.';
   }
 
   OrderStatus? _nextStatus(OrderStatus currentStatus) {
-    switch (currentStatus) {
-      case OrderStatus.searching:
-        return OrderStatus.assigned;
-      case OrderStatus.assigned:
-        return OrderStatus.onTheWay;
-      case OrderStatus.onTheWay:
-        return OrderStatus.arrived;
-      case OrderStatus.arrived:
-        return OrderStatus.inProgress;
-      case OrderStatus.inProgress:
-        return OrderStatus.completed;
-      case OrderStatus.completed:
-        return null;
-    }
+    return currentStatus.nextForWorker;
   }
 
   String? get _normalizedCurrentSessionEmail {

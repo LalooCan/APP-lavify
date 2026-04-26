@@ -69,16 +69,15 @@ void main() {
       final order = _newOrder('UP-1');
       await repo.createOrder(order);
       final advanced = order.copyWith(status: OrderStatus.assigned);
-      repo.updateOrder(advanced);
-      final stored =
-          repo.getOrders().firstWhere((item) => item.id == 'UP-1');
+      await repo.updateOrder(advanced);
+      final stored = repo.getOrders().firstWhere((item) => item.id == 'UP-1');
       expect(stored.status, OrderStatus.assigned);
     });
 
-    test('updateOrder inserta cuando el id es nuevo', () {
+    test('updateOrder inserta cuando el id es nuevo', () async {
       final repo = MockOrderRepository();
       final initial = repo.getOrders().length;
-      repo.updateOrder(_newOrder('NEW-XYZ'));
+      await repo.updateOrder(_newOrder('NEW-XYZ'));
       expect(repo.getOrders().length, initial + 1);
     });
   });
