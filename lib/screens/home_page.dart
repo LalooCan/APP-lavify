@@ -16,8 +16,6 @@ import 'order_tracking_page.dart';
 import 'request_wash_flow_page.dart';
 import 'role_login_page.dart';
 
-final _homeOrderService = OrderService();
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -202,7 +200,7 @@ class _DesktopHero extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: _PreviewCard(orderService: _homeOrderService),
+              child: const _PreviewCard(),
             ),
           ),
         ),
@@ -224,7 +222,7 @@ class _MobileHero extends StatelessWidget {
       children: [
         _HeroContent(session: session, onHowItWorks: onHowItWorks),
         const SizedBox(height: 32),
-        _PreviewCard(orderService: _homeOrderService),
+        const _PreviewCard(),
       ],
     );
   }
@@ -309,12 +307,11 @@ class _HeroContent extends StatelessWidget {
 }
 
 class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({required this.orderService});
-
-  final OrderService orderService;
+  const _PreviewCard();
 
   @override
   Widget build(BuildContext context) {
+    final orderService = OrderService();
     return ValueListenableBuilder<List<WashOrder>>(
       valueListenable: orderService.orders,
       builder: (context, _, _) {

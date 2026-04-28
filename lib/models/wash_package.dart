@@ -21,6 +21,19 @@ class WashPackage {
 
   String get formattedPrice => '\$$price';
 
+  String get durationLabel {
+    switch (id) {
+      case 'express':
+        return '30-45 min';
+      case 'full-care':
+        return '60-90 min';
+      case 'premium':
+        return '90-120 min';
+      default:
+        return '45 min';
+    }
+  }
+
   factory WashPackage.fromMap(Map<String, dynamic> map) {
     return WashPackage(
       id: map['id'] as String,

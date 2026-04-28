@@ -376,7 +376,7 @@ class _PackageCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                _packageDuration(package.id),
+                                package.durationLabel,
                                 style: TextStyle(
                                   color: textSecondary,
                                   fontSize: 12,
@@ -1335,19 +1335,6 @@ List<ScheduleSlot> _preferredSchedules() {
         ),
       )
       .toList(growable: false);
-}
-
-String _packageDuration(String packageId) {
-  switch (packageId) {
-    case 'express':
-      return '30-45 min';
-    case 'full-care':
-      return '60-90 min';
-    case 'premium':
-      return '90-120 min';
-    default:
-      return '45 min';
-  }
 }
 
 String _scheduleTitle(String scheduleId, String fallback) {

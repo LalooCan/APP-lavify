@@ -307,7 +307,7 @@ class OrderService {
 
   Future<WashOrder?> takeOrder(String orderId) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
-    final order = _findById(orderId);
+    final order = getOrderById(orderId);
     final session = _sessionService.currentSession.value;
     final workerEmail = _normalizedCurrentSessionEmail;
     final workerUid = FirebaseAuth.instance.currentUser?.uid;
@@ -337,17 +337,6 @@ class OrderService {
         _markOrderSyncError(orderId, e.message);
         return null;
       }
-      // Optimistic local update; Firestore stream entregará la versión real.
-      return _saveOrder(
-        order.copyWith(
-          status: OrderStatus.assigned,
-          assignedWasherName: session.visibleName,
-          workerId: workerUid,
-          assignedWorkerEmail: workerEmail,
-          assignedVehicleLabel: 'Unidad activa',
-          etaMinutes: 18,
-        ),
-      );
     }
     return _saveOrder(
       order.copyWith(
@@ -363,7 +352,7 @@ class OrderService {
 
   Future<WashOrder?> advanceOrder(String orderId) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
-    final order = _findById(orderId);
+    final order = getOrderById(orderId);
     final session = _sessionService.currentSession.value;
     final workerEmail = _normalizedCurrentSessionEmail;
     if (order == null) {
@@ -424,7 +413,7 @@ class OrderService {
     double? speedKph,
     List<ServiceLocation>? routePoints,
   }) {
-    final order = _findById(orderId);
+    final order = getOrderById(orderId);
     if (order == null) {
       return;
     }
@@ -440,7 +429,7 @@ class OrderService {
   }
 
   void setTrackingRoute(String orderId, List<ServiceLocation> routePoints) {
-    final order = _findById(orderId);
+    final order = getOrderById(orderId);
     if (order == null) {
       return;
     }
@@ -449,16 +438,12 @@ class OrderService {
   }
 
   Future<void> retryOrderSync(String orderId) async {
-    final order = _findById(orderId);
+    final order = getOrderById(orderId);
     if (order == null) {
       return;
     }
 
     await _saveOrder(order);
-  }
-
-  WashOrder? _findById(String orderId) {
-    return getOrderById(orderId);
   }
 
   void _storeOptimisticOrder(WashOrder order) {
