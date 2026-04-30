@@ -5,6 +5,23 @@ import '../services/order_service.dart';
 import '../theme/theme.dart';
 import 'order_tracking_page.dart';
 
+Color _statusAccentFor(OrderStatus status) {
+  switch (status) {
+    case OrderStatus.searching:
+      return const Color(0xFFFFC857);
+    case OrderStatus.assigned:
+    case OrderStatus.onTheWay:
+      return LavifyColors.primary;
+    case OrderStatus.arrived:
+    case OrderStatus.inProgress:
+      return const Color(0xFF9B7BFF);
+    case OrderStatus.completed:
+      return LavifyColors.success;
+    case OrderStatus.cancelled:
+      return const Color(0xFFFF6B6B);
+  }
+}
+
 class OrdersPage extends StatelessWidget {
   const OrdersPage({super.key});
 
@@ -79,87 +96,155 @@ class _ActiveOrderBanner extends StatelessWidget {
 
   final WashOrder order;
 
+  Future<void> _confirmCancel(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _CancelOrderDialog(order: order),
+    );
+    if (confirmed == true && context.mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final accent = _statusAccent(order.status);
+    final accent = _statusAccentFor(order.status);
+    final canCancel = order.status == OrderStatus.searching ||
+        order.status == OrderStatus.assigned;
     final helper = order.status == OrderStatus.searching
         ? 'Tu solicitud sigue buscando un lavador disponible.'
         : order.status == OrderStatus.completed
         ? 'Tu ultimo servicio ya fue completado.'
         : 'Tu pedido activo sigue avanzando. Puedes abrir el seguimiento cuando quieras.';
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => OrderTrackingPage(order: order),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(24),
-        child: Ink(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: LavifyTheme.overlayPanelColor(context),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => OrderTrackingPage(order: order),
+                ),
+              );
+            },
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: LavifyTheme.borderColor(context)),
-            boxShadow: LavifyTheme.panelShadow(context, floating: false),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: accent.withAlpha(24),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(Icons.route_rounded, color: accent),
+            child: Ink(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: LavifyTheme.overlayPanelColor(context),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: LavifyTheme.borderColor(context)),
+                boxShadow: LavifyTheme.panelShadow(context, floating: false),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pedido activo',
-                      style: Theme.of(context).textTheme.titleLarge,
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: accent.withAlpha(24),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(height: 4),
-                    Text(helper, style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
+                    child: Icon(Icons.route_rounded, color: accent),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pedido activo',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          helper,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    order.status.label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                order.status.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (canCancel) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => _confirmCancel(context),
+            icon: const Icon(
+              Icons.cancel_outlined,
+              size: 18,
+              color: Color(0xFFFF6B6B),
+            ),
+            label: const Text(
+              'Cancelar pedido',
+              style: TextStyle(color: Color(0xFFFF6B6B)),
+            ),
+          ),
+        ],
+      ],
     );
   }
+}
 
-  Color _statusAccent(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.searching:
-        return const Color(0xFFFFC857);
-      case OrderStatus.assigned:
-      case OrderStatus.onTheWay:
-        return LavifyColors.primary;
-      case OrderStatus.arrived:
-      case OrderStatus.inProgress:
-        return const Color(0xFF9B7BFF);
-      case OrderStatus.completed:
-        return LavifyColors.success;
-    }
+class _CancelOrderDialog extends StatefulWidget {
+  const _CancelOrderDialog({required this.order});
+  final WashOrder order;
+
+  @override
+  State<_CancelOrderDialog> createState() => _CancelOrderDialogState();
+}
+
+class _CancelOrderDialogState extends State<_CancelOrderDialog> {
+  static final OrderService _orderService = OrderService();
+  bool _loading = false;
+
+  Future<void> _cancel() async {
+    setState(() => _loading = true);
+    await _orderService.cancelOrder(widget.order.id);
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cancelar pedido'),
+      content: const Text(
+        '¿Estás seguro de que quieres cancelar este pedido? Esta acción no se puede deshacer.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('No, mantener'),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _cancel,
+          child: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  'Sí, cancelar',
+                  style: TextStyle(color: Color(0xFFFF6B6B)),
+                ),
+        ),
+      ],
+    );
   }
 }
 
@@ -205,16 +290,16 @@ class _OrderCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _statusAccent(order.status).withAlpha(22),
+                      color: _statusAccentFor(order.status).withAlpha(22),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: _statusAccent(order.status).withAlpha(40),
+                        color: _statusAccentFor(order.status).withAlpha(40),
                       ),
                     ),
                     child: Text(
                       order.status.label,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: _statusAccent(order.status),
+                        color: _statusAccentFor(order.status),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -238,7 +323,9 @@ class _OrderCard extends StatelessWidget {
                     child: Text(
                       '\$${order.request.totalPrice} ${order.request.currency}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: LavifyColors.primary,
+                        color: LavifyTheme.isLight(context)
+                            ? LavifyColors.lightNavy
+                            : LavifyColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -259,20 +346,6 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  Color _statusAccent(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.searching:
-        return const Color(0xFFFFC857);
-      case OrderStatus.assigned:
-      case OrderStatus.onTheWay:
-        return LavifyColors.primary;
-      case OrderStatus.arrived:
-      case OrderStatus.inProgress:
-        return const Color(0xFF9B7BFF);
-      case OrderStatus.completed:
-        return LavifyColors.success;
-    }
-  }
 }
 
 class _EmptyOrdersState extends StatelessWidget {

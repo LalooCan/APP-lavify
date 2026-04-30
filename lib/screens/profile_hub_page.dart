@@ -827,7 +827,11 @@ class _ProfileHero extends StatelessWidget {
                     ),
                     if (isWorker) ...[
                       const SizedBox(width: 8),
-                      const _VerifiedBadge(),
+                      if (profile.isVerified)
+                        const _VerifiedBadge()
+                      else if (profile.verificationStatus ==
+                          WorkerVerificationStatus.pending)
+                        const _PendingVerificationBadge(),
                     ],
                   ],
                 ),
@@ -905,6 +909,37 @@ class _VerifiedBadge extends StatelessWidget {
             'Verificado',
             style: TextStyle(
               color: LavifyColors.success,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingVerificationBadge extends StatelessWidget {
+  const _PendingVerificationBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: LavifyColors.primary.withAlpha(30),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: LavifyColors.primary.withAlpha(70)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.hourglass_top_rounded, size: 12, color: LavifyColors.primary),
+          SizedBox(width: 4),
+          Text(
+            'En revisión',
+            style: TextStyle(
+              color: LavifyColors.primary,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),

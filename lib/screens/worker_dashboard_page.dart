@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
+import '../services/chat_service.dart';
 import '../services/order_service.dart';
+import '../services/profile_service.dart';
 import '../services/worker_service.dart';
 import '../theme/theme.dart';
 import '../widgets/live_tracking_map.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
+import 'chat_screen.dart';
 import 'worker_services_page.dart';
+import 'worker_verification_page.dart';
 
 class WorkerDashboardPage extends StatelessWidget {
   const WorkerDashboardPage({super.key});
 
   static final OrderService _orderService = OrderService();
   static final WorkerService _workerService = WorkerService();
+  static final ProfileService _profileService = ProfileService();
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +57,12 @@ class WorkerDashboardPage extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 24),
+                ValueListenableBuilder<UserProfile>(
+                  valueListenable: _profileService.profile,
+                  builder: (context, profile, _) {
+                    return _VerificationBanner(profile: profile);
+                  },
+                ),
                 ValueListenableBuilder<bool>(
                   valueListenable: _workerService.isAvailable,
                   builder: (context, isAvailable, _) {
@@ -110,6 +121,89 @@ class WorkerDashboardPage extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VerificationBanner extends StatelessWidget {
+  const _VerificationBanner({required this.profile});
+  final UserProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = profile.verificationStatus;
+    if (status == WorkerVerificationStatus.approved) return const SizedBox.shrink();
+
+    final (icon, title, subtitle, accent, showButton) = switch (status) {
+      WorkerVerificationStatus.pending => (
+          Icons.hourglass_top_rounded,
+          'Verificación en revisión',
+          'Revisaremos tu solicitud en 2-3 días hábiles.',
+          LavifyColors.primary,
+          false,
+        ),
+      WorkerVerificationStatus.rejected => (
+          Icons.cancel_outlined,
+          'Verificación rechazada',
+          'Vuelve a enviar tu solicitud con los datos correctos.',
+          const Color(0xFFFF6B6B),
+          true,
+        ),
+      _ => (
+          Icons.verified_outlined,
+          'Completa tu verificación',
+          'Verificarte aumenta tu visibilidad con los clientes.',
+          LavifyColors.primary,
+          true,
+        ),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: accent.withAlpha(18),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: accent.withAlpha(60)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: accent, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: LavifyTheme.textPrimaryColor(context),
+                        ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            if (showButton) ...[
+              const SizedBox(width: 10),
+              TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => WorkerVerificationPage(profile: profile),
+                  ),
+                ),
+                child: const Text('Verificar'),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -360,6 +454,44 @@ class _AcceptedJobPanel extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (ChatService().canChat(order, ProfileService().profile.value))
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ChatScreen(order: order),
+                      ),
+                    ),
+                    icon: const Icon(Icons.chat_outlined, size: 18),
+                    label: const Text('Chat con cliente'),
+                  ),
+                ),
+              if (ChatService().canChat(order, ProfileService().profile.value) &&
+                  order.status == OrderStatus.assigned)
+                const SizedBox(width: 12),
+              if (order.status == OrderStatus.assigned)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => _CancelWorkerOrderDialog(order: order),
+                    ),
+                    icon: const Icon(
+                      Icons.cancel_outlined,
+                      size: 18,
+                      color: Color(0xFFFF6B6B),
+                    ),
+                    label: const Text(
+                      'Cancelar',
+                      style: TextStyle(color: Color(0xFFFF6B6B)),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -377,6 +509,8 @@ class _AcceptedJobPanel extends StatelessWidget {
         return const Color(0xFF9B7BFF);
       case OrderStatus.completed:
         return LavifyColors.success;
+      case OrderStatus.cancelled:
+        return const Color(0xFFFF6B6B);
     }
   }
 
@@ -394,6 +528,8 @@ class _AcceptedJobPanel extends StatelessWidget {
         return 'Completado';
       case OrderStatus.searching:
         return 'Disponible';
+      case OrderStatus.cancelled:
+        return 'Cancelado';
     }
   }
 
@@ -411,7 +547,58 @@ class _AcceptedJobPanel extends StatelessWidget {
         return 'Este servicio ya quedo terminado.';
       case OrderStatus.searching:
         return 'Aun no hay un trabajo tomado.';
+      case OrderStatus.cancelled:
+        return 'Este servicio fue cancelado.';
     }
+  }
+}
+
+class _CancelWorkerOrderDialog extends StatefulWidget {
+  const _CancelWorkerOrderDialog({required this.order});
+  final WashOrder order;
+
+  @override
+  State<_CancelWorkerOrderDialog> createState() =>
+      _CancelWorkerOrderDialogState();
+}
+
+class _CancelWorkerOrderDialogState extends State<_CancelWorkerOrderDialog> {
+  static final _orderService = OrderService();
+  bool _loading = false;
+
+  Future<void> _cancel() async {
+    setState(() => _loading = true);
+    await _orderService.cancelOrder(widget.order.id);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cancelar servicio'),
+      content: const Text(
+        '¿Seguro que quieres cancelar este servicio? El pedido volverá al estado de búsqueda.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: const Text('No, continuar'),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _cancel,
+          child: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  'Sí, cancelar',
+                  style: TextStyle(color: Color(0xFFFF6B6B)),
+                ),
+        ),
+      ],
+    );
   }
 }
 
@@ -423,7 +610,9 @@ class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeOrders = orders
-        .where((order) => order.status != OrderStatus.completed)
+        .where((order) =>
+            order.status != OrderStatus.completed &&
+            order.status != OrderStatus.cancelled)
         .length;
     final pendingPickup = orders
         .where((order) => order.status == OrderStatus.searching)

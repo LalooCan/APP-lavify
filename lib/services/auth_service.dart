@@ -262,7 +262,29 @@ class AuthService {
       'email': user.email?.trim() ?? '',
       'photoUrl': user.photoURL,
       'role': fallbackRole.name,
+      'verificationStatus': WorkerVerificationStatus.unverified.apiValue,
+      'onboardingComplete': false,
     };
+  }
+
+  Future<UserProfile> submitVerificationRequest(UserProfile profile) async {
+    final doc = _profilesCollection.doc(profile.uid);
+    await doc.set({
+      'verificationStatus': WorkerVerificationStatus.pending.apiValue,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    return profile.copyWith(
+      verificationStatus: WorkerVerificationStatus.pending,
+    );
+  }
+
+  Future<UserProfile> completeOnboarding(UserProfile profile) async {
+    final doc = _profilesCollection.doc(profile.uid);
+    await doc.set({
+      'onboardingComplete': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    return profile.copyWith(onboardingComplete: true);
   }
 
   Map<String, dynamic> _profileUpdatesForExisting({

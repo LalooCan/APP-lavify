@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
+import '../services/chat_service.dart';
 import '../services/order_service.dart';
+import '../services/profile_service.dart';
 import '../services/review_service.dart';
 import '../theme/theme.dart';
 import '../widgets/live_tracking_map.dart';
 import '../widgets/primary_button.dart';
+import 'chat_screen.dart';
 
 class OrderTrackingPage extends StatelessWidget {
   const OrderTrackingPage({super.key, required this.order});
@@ -26,8 +29,17 @@ class OrderTrackingPage extends StatelessWidget {
         final liveOrder = _orderService.getOrderById(order.id) ?? order;
         final isSyncPending = _orderService.isOrderSyncPending(liveOrder.id);
         final syncError = _orderService.syncErrorForOrder(liveOrder.id);
-        final stages = OrderStatus.values;
+        const stages = [
+          OrderStatus.searching,
+          OrderStatus.assigned,
+          OrderStatus.onTheWay,
+          OrderStatus.arrived,
+          OrderStatus.inProgress,
+          OrderStatus.completed,
+        ];
         final activeIndex = stages.indexOf(liveOrder.status);
+        final currentProfile = ProfileService().profile.value;
+        final canChat = ChatService().canChat(liveOrder, currentProfile);
         final isSearching = liveOrder.status == OrderStatus.searching;
         final statusAccent = _statusAccent(liveOrder.status);
         final statusSummary = _statusSummary(liveOrder);
@@ -291,6 +303,23 @@ class OrderTrackingPage extends StatelessWidget {
                         workerName: liveOrder.assignedWasherName,
                       ),
                     ],
+                    if (canChat) ...[
+                      const SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ChatScreen(order: liveOrder),
+                          ),
+                        ),
+                        icon: const Icon(Icons.chat_outlined, size: 18),
+                        label: Text(
+                          'Chat con ${liveOrder.assignedWasherName}',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     PrimaryButton(
                       label: 'Volver al inicio',
@@ -322,6 +351,8 @@ class OrderTrackingPage extends StatelessWidget {
         return '${order.assignedWasherName} ya esta realizando el lavado.';
       case OrderStatus.completed:
         return 'El servicio fue completado correctamente.';
+      case OrderStatus.cancelled:
+        return 'Este pedido fue cancelado.';
     }
   }
 
@@ -337,6 +368,8 @@ class OrderTrackingPage extends StatelessWidget {
         return const Color(0xFF9B7BFF);
       case OrderStatus.completed:
         return LavifyColors.success;
+      case OrderStatus.cancelled:
+        return const Color(0xFFFF6B6B);
     }
   }
 }

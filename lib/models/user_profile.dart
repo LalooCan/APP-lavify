@@ -1,5 +1,24 @@
 import 'session_models.dart';
 
+enum WorkerVerificationStatus { unverified, pending, approved, rejected }
+
+extension WorkerVerificationStatusX on WorkerVerificationStatus {
+  String get apiValue => name;
+
+  static WorkerVerificationStatus fromValue(String? value) {
+    switch (value) {
+      case 'pending':
+        return WorkerVerificationStatus.pending;
+      case 'approved':
+        return WorkerVerificationStatus.approved;
+      case 'rejected':
+        return WorkerVerificationStatus.rejected;
+      default:
+        return WorkerVerificationStatus.unverified;
+    }
+  }
+}
+
 class UserProfile {
   const UserProfile({
     this.uid = '',
@@ -10,6 +29,8 @@ class UserProfile {
     required this.favoriteAddress,
     required this.paymentMethod,
     this.photoUrl,
+    this.verificationStatus = WorkerVerificationStatus.unverified,
+    this.onboardingComplete = false,
   });
 
   final String uid;
@@ -20,6 +41,10 @@ class UserProfile {
   final String favoriteAddress;
   final String paymentMethod;
   final String? photoUrl;
+  final WorkerVerificationStatus verificationStatus;
+  final bool onboardingComplete;
+
+  bool get isVerified => verificationStatus == WorkerVerificationStatus.approved;
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     final rawRole = (map['role'] as String? ?? AppRole.client.name)
@@ -39,6 +64,10 @@ class UserProfile {
           map['favoriteAddress'] as String? ?? map['address'] as String? ?? '',
       paymentMethod: map['paymentMethod'] as String? ?? '',
       photoUrl: map['photoUrl'] as String?,
+      verificationStatus: WorkerVerificationStatusX.fromValue(
+        map['verificationStatus'] as String?,
+      ),
+      onboardingComplete: map['onboardingComplete'] as bool? ?? false,
     );
   }
 
@@ -51,6 +80,8 @@ class UserProfile {
     String? favoriteAddress,
     String? paymentMethod,
     String? photoUrl,
+    WorkerVerificationStatus? verificationStatus,
+    bool? onboardingComplete,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -61,6 +92,8 @@ class UserProfile {
       favoriteAddress: favoriteAddress ?? this.favoriteAddress,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       photoUrl: photoUrl ?? this.photoUrl,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      onboardingComplete: onboardingComplete ?? this.onboardingComplete,
     );
   }
 
@@ -76,6 +109,8 @@ class UserProfile {
       'address': favoriteAddress,
       'paymentMethod': paymentMethod,
       'photoUrl': photoUrl,
+      'verificationStatus': verificationStatus.apiValue,
+      'onboardingComplete': onboardingComplete,
     };
   }
 

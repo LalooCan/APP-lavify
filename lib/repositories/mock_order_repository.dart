@@ -40,4 +40,16 @@ class MockOrderRepository implements OrderRepository {
     _controller.add(getOrders());
     return order;
   }
+
+  @override
+  Future<WashOrder> cancelOrder(String orderId) async {
+    final index = _orders.indexWhere((item) => item.id == orderId);
+    if (index < 0) {
+      throw Exception('Orden no encontrada: $orderId');
+    }
+    final cancelled = _orders[index].copyWith(status: OrderStatus.cancelled);
+    _orders[index] = cancelled;
+    _controller.add(getOrders());
+    return cancelled;
+  }
 }

@@ -90,6 +90,20 @@ class CloudFunctionsService {
     }
   }
 
+  Future<void> cancelOrder(String orderId) async {
+    try {
+      await _functions.httpsCallable('cancelOrder').call({'orderId': orderId});
+    } on FirebaseFunctionsException catch (error) {
+      debugPrint(
+        'CloudFunctions cancelOrder error: ${error.code} - ${error.message}',
+      );
+      throw CloudFunctionsException(
+        _mapFunctionError(error),
+        code: error.code,
+      );
+    }
+  }
+
   String _mapFunctionError(FirebaseFunctionsException error) {
     switch (error.code) {
       case 'unauthenticated':

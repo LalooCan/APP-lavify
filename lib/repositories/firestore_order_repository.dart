@@ -221,6 +221,37 @@ class FirestoreOrderRepository implements OrderRepository {
     }
   }
 
+  @override
+  Future<WashOrder> cancelOrder(String orderId) async {
+    try {
+      final doc = await _ordersCollection.doc(orderId).get();
+      if (!doc.exists || doc.data() == null) {
+        throw FirestoreOrderRepositoryException(
+          message: 'Orden no encontrada: $orderId',
+        );
+      }
+      final order = _fromFirestore(orderId, doc.data()!);
+      final cancelled = order.copyWith(status: OrderStatus.cancelled);
+      await _ordersCollection
+          .doc(orderId)
+          .set({'status': OrderStatus.cancelled.apiValue}, SetOptions(merge: true));
+      return cancelled;
+    } on FirestoreOrderRepositoryException {
+      rethrow;
+    } on FirebaseException catch (error) {
+      throw FirestoreOrderRepositoryException(
+        message: 'No se pudo cancelar el pedido en Firestore.',
+        code: error.code,
+        cause: error,
+      );
+    } catch (error) {
+      throw FirestoreOrderRepositoryException(
+        message: 'Ocurrio un error inesperado al cancelar el pedido.',
+        cause: error,
+      );
+    }
+  }
+
   Map<String, dynamic> _toFirestore(WashOrder order) {
     return {
       'request': order.request.toMap(),

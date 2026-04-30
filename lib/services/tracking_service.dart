@@ -248,6 +248,7 @@ class TrackingService {
       case OrderStatus.arrived:
       case OrderStatus.inProgress:
       case OrderStatus.completed:
+      case OrderStatus.cancelled:
         return false;
     }
   }
@@ -263,6 +264,7 @@ class TrackingService {
       case OrderStatus.completed:
         return 1.0;
       case OrderStatus.searching:
+      case OrderStatus.cancelled:
         return 0.0;
     }
   }
@@ -312,7 +314,8 @@ class TrackingService {
       ),
       OrderStatus.searching ||
       OrderStatus.assigned ||
-      OrderStatus.onTheWay => workerLocation,
+      OrderStatus.onTheWay ||
+      OrderStatus.cancelled => workerLocation,
     };
 
     return OrderTrackingSnapshot(

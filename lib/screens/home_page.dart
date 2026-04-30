@@ -61,15 +61,25 @@ class _HomePageState extends State<HomePage> {
         decoration: LavifyTheme.pageDecoration(context),
         child: Stack(
           children: [
-            const Positioned(
+            Positioned(
               top: -120,
               right: -40,
-              child: _AmbientGlow(size: 320, color: Color(0x1E6AA8FF)),
+              child: _AmbientGlow(
+                size: 320,
+                color: LavifyTheme.isLight(context)
+                    ? const Color(0x18D6B47B)
+                    : const Color(0x1E6AA8FF),
+              ),
             ),
-            const Positioned(
+            Positioned(
               bottom: -90,
               left: -30,
-              child: _AmbientGlow(size: 260, color: Color(0x143D7BFF)),
+              child: _AmbientGlow(
+                size: 260,
+                color: LavifyTheme.isLight(context)
+                    ? const Color(0x12C9A870)
+                    : const Color(0x143D7BFF),
+              ),
             ),
             SafeArea(
               child: SingleChildScrollView(
@@ -591,6 +601,8 @@ class _PreviewCard extends StatelessWidget {
         return const Color(0xFF9B7BFF);
       case OrderStatus.completed:
         return LavifyColors.success;
+      case OrderStatus.cancelled:
+        return const Color(0xFFFF6B6B);
     }
   }
 }

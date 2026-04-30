@@ -208,6 +208,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         return const Color(0xFF9B7BFF);
       case OrderStatus.completed:
         return LavifyColors.success;
+      case OrderStatus.cancelled:
+        return const Color(0xFFFF6B6B);
     }
   }
 }

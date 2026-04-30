@@ -113,7 +113,8 @@ class OrderService {
           order.status == OrderStatus.searching) {
         continue;
       }
-      if (order.status == OrderStatus.completed) {
+      if (order.status == OrderStatus.completed ||
+          order.status == OrderStatus.cancelled) {
         continue;
       }
       if (order.request.scheduleId == candidateOrder.request.scheduleId) {
@@ -142,7 +143,8 @@ class OrderService {
   WashOrder? get activeClientOrder {
     final visibleOrders = clientVisibleOrders;
     for (final order in visibleOrders) {
-      if (order.status != OrderStatus.completed) {
+      if (order.status != OrderStatus.completed &&
+          order.status != OrderStatus.cancelled) {
         return order;
       }
     }
@@ -350,6 +352,39 @@ class OrderService {
     );
   }
 
+  Future<WashOrder?> cancelOrder(String orderId) async {
+    final order = getOrderById(orderId);
+    final session = _sessionService.currentSession.value;
+    final workerEmail = _normalizedCurrentSessionEmail;
+    final workerUid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (order == null) return null;
+
+    final isClient = session?.role == AppRole.client ||
+        (session == null && order.clientId == (workerUid ?? ''));
+    final isAssignedWorker = session?.role == AppRole.worker &&
+        (order.assignedWorkerEmail == workerEmail ||
+            order.workerId == workerUid);
+
+    final canCancel = isClient
+        ? (order.status == OrderStatus.searching ||
+            order.status == OrderStatus.assigned)
+        : isAssignedWorker && order.status == OrderStatus.assigned;
+
+    if (!canCancel) return null;
+
+    if (AppConfig.usesRemoteOrdersBackend) {
+      try {
+        await _cloudFunctions.cancelOrder(orderId);
+      } on CloudFunctionsException catch (e) {
+        _markOrderSyncError(orderId, e.message);
+        return null;
+      }
+    }
+
+    return _saveOrder(order.copyWith(status: OrderStatus.cancelled));
+  }
+
   Future<WashOrder?> advanceOrder(String orderId) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
     final order = getOrderById(orderId);
@@ -388,6 +423,7 @@ class OrderService {
       OrderStatus.inProgress => 30,
       OrderStatus.completed => 0,
       OrderStatus.searching => order.etaMinutes,
+      OrderStatus.cancelled => 0,
     };
 
     if (AppConfig.usesRemoteOrdersBackend) {

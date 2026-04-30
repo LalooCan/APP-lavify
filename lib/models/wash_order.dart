@@ -8,6 +8,7 @@ enum OrderStatus {
   arrived,
   inProgress,
   completed,
+  cancelled,
 }
 
 extension OrderStatusX on OrderStatus {
@@ -25,6 +26,8 @@ extension OrderStatusX on OrderStatus {
         return 'in_progress';
       case OrderStatus.completed:
         return 'completed';
+      case OrderStatus.cancelled:
+        return 'cancelled';
     }
   }
 
@@ -42,6 +45,8 @@ extension OrderStatusX on OrderStatus {
         return 'Lavado en progreso';
       case OrderStatus.completed:
         return 'Completado';
+      case OrderStatus.cancelled:
+        return 'Cancelado';
     }
   }
 
@@ -57,6 +62,8 @@ extension OrderStatusX on OrderStatus {
         return OrderStatus.inProgress;
       case 'completed':
         return OrderStatus.completed;
+      case 'cancelled':
+        return OrderStatus.cancelled;
       case 'searching':
       default:
         return OrderStatus.searching;
@@ -72,6 +79,7 @@ extension OrderStatusX on OrderStatus {
         return true;
       case OrderStatus.searching:
       case OrderStatus.completed:
+      case OrderStatus.cancelled:
         return false;
     }
   }
@@ -88,6 +96,7 @@ extension OrderStatusX on OrderStatus {
         return OrderStatus.completed;
       case OrderStatus.searching:
       case OrderStatus.completed:
+      case OrderStatus.cancelled:
         return null;
     }
   }
@@ -174,6 +183,8 @@ class WashOrder {
         return RequestLifecycleStatus.inProgress;
       case OrderStatus.completed:
         return RequestLifecycleStatus.completed;
+      case OrderStatus.cancelled:
+        return RequestLifecycleStatus.confirmed;
     }
   }
 

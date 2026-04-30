@@ -1,5 +1,6 @@
 // Barrel file: re-exporta los modelos de dominio.
 // Mantener para compatibilidad con imports existentes.
+export 'chat_message.dart';
 export 'order_tracking.dart';
 export 'service_location.dart';
 export 'session_models.dart';

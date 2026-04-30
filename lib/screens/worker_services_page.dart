@@ -335,6 +335,8 @@ class _ActiveWorkerServiceBanner extends StatelessWidget {
         return const Color(0xFF9B7BFF);
       case OrderStatus.completed:
         return LavifyColors.success;
+      case OrderStatus.cancelled:
+        return const Color(0xFFFF6B6B);
     }
   }
 }
@@ -561,6 +563,8 @@ class _WorkerOrderCard extends StatelessWidget {
         return const Color(0xFF9B7BFF);
       case OrderStatus.completed:
         return LavifyColors.success;
+      case OrderStatus.cancelled:
+        return const Color(0xFFFF6B6B);
     }
   }
 
@@ -579,6 +583,7 @@ class _WorkerOrderCard extends StatelessWidget {
       case OrderStatus.inProgress:
         return 'Completar servicio';
       case OrderStatus.completed:
+      case OrderStatus.cancelled:
         return null;
     }
   }
@@ -597,6 +602,8 @@ class _WorkerOrderCard extends StatelessWidget {
         return 'El servicio esta en curso. Completa cuando hayas terminado.';
       case OrderStatus.completed:
         return 'Este servicio ya fue cerrado correctamente.';
+      case OrderStatus.cancelled:
+        return 'Este servicio fue cancelado.';
     }
   }
 }

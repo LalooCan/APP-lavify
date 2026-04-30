@@ -57,23 +57,24 @@ class _LoginPageState extends State<LoginPage> {
               left: -40,
               child: _GlowBubble(size: 280, color: Color(0x1034D39A)),
             ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withAlpha(12),
-                        Colors.transparent,
-                        Colors.black.withAlpha(24),
-                      ],
+            if (!LavifyTheme.isLight(context))
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withAlpha(12),
+                          Colors.transparent,
+                          Colors.black.withAlpha(24),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
@@ -292,18 +293,18 @@ class _LoginShowcase extends StatelessWidget {
           Wrap(
             spacing: 14,
             runSpacing: 14,
-            children: const [
-              _MetricCard(
+            children: [
+              const _MetricCard(
                 value: '< 30 min',
                 label: 'Tiempo promedio de llegada',
                 icon: Icons.schedule_rounded,
               ),
-              _MetricCard(
+              const _MetricCard(
                 value: '4.9/5',
                 label: 'Calificacion de la experiencia',
                 icon: Icons.star_rounded,
               ),
-              _MetricCard(
+              const _MetricCard(
                 value: '365 dias',
                 label: 'Cobertura en zonas activas',
                 icon: Icons.pin_drop_rounded,
@@ -436,7 +437,9 @@ class _LoginCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(5),
+                color: LavifyTheme.isLight(context)
+                    ? LavifyTheme.softFillColor(context)
+                    : Colors.white.withAlpha(5),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: LavifyTheme.borderColor(context)),
               ),
@@ -737,6 +740,7 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     return Container(
       width: 170,
       padding: const EdgeInsets.all(18),
@@ -744,10 +748,9 @@ class _MetricCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withAlpha(8),
-            Colors.white.withAlpha(3),
-          ],
+          colors: isLight
+              ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
+              : [Colors.white.withAlpha(8), Colors.white.withAlpha(3)],
         ),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: LavifyTheme.borderColor(context)),
@@ -836,15 +839,15 @@ class _ProviderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withAlpha(7),
-            Colors.white.withAlpha(2),
-          ],
+          colors: isLight
+              ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
+              : [Colors.white.withAlpha(7), Colors.white.withAlpha(2)],
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: LavifyTheme.borderColor(context)),

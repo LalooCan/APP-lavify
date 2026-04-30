@@ -6,6 +6,7 @@ import 'app_config.dart';
 import 'firebase_options.dart';
 import 'models/wash_models.dart';
 import 'screens/app_shell.dart';
+import 'screens/onboarding_page.dart';
 import 'screens/role_login_page.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
@@ -113,6 +114,9 @@ class _AuthGateState extends State<_AuthGate> {
                   }
 
                   final profile = profileSnapshot.data;
+                  if (profile != null && !profile.onboardingComplete) {
+                    return OnboardingPage(profile: profile);
+                  }
                   return AppShell(mode: profile?.role ?? AppRole.client);
                 },
               );
