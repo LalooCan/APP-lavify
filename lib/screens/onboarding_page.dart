@@ -1,7 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../screens/app_shell.dart';
+import '../screens/privacy_page.dart';
+import '../screens/terms_page.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../theme/theme.dart';
@@ -178,12 +181,59 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             onPressed: _next,
                             isExpanded: true,
                           ),
+                    if (isLast) ...[
+                      const SizedBox(height: 16),
+                      _LegalText(),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LegalText extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final secondary = LavifyTheme.textSecondaryColor(context);
+    final primary = LavifyColors.primary;
+
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: Theme.of(context)
+            .textTheme
+            .bodySmall
+            ?.copyWith(color: secondary),
+        children: [
+          const TextSpan(text: 'Al continuar aceptas nuestros '),
+          TextSpan(
+            text: 'Términos',
+            style: TextStyle(color: primary, fontWeight: FontWeight.w700),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const TermsPage(),
+                    ),
+                  ),
+          ),
+          const TextSpan(text: ' y la '),
+          TextSpan(
+            text: 'Política de privacidad',
+            style: TextStyle(color: primary, fontWeight: FontWeight.w700),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PrivacyPage(),
+                    ),
+                  ),
+          ),
+          const TextSpan(text: '.'),
+        ],
       ),
     );
   }

@@ -266,6 +266,8 @@ class FirestoreOrderRepository implements OrderRepository {
       'assignedVehicleLabel': order.assignedVehicleLabel,
       'createdAt': order.createdAt.toIso8601String(),
       'etaMinutes': order.etaMinutes,
+      'paymentStatus': order.paymentStatus.apiValue,
+      'paymentMethod': order.paymentMethod,
     };
   }
 
@@ -287,6 +289,10 @@ class FirestoreOrderRepository implements OrderRepository {
       assignedVehicleLabel: data['assignedVehicleLabel'] as String? ?? '',
       createdAt: _parseDateTime(data['createdAt']),
       etaMinutes: (data['etaMinutes'] as num?)?.toInt() ?? 0,
+      paymentStatus: OrderPaymentStatusX.fromValue(
+        data['paymentStatus'] as String?,
+      ),
+      paymentMethod: data['paymentMethod'] as String? ?? '',
     );
   }
 

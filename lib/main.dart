@@ -72,6 +72,15 @@ class _AuthGateState extends State<_AuthGate> {
 
   Future<UserProfile> _loadAndStoreProfile(User user) async {
     final pendingRole = AuthService.consumePendingRegistrationRole();
+
+    // Si signInWithGoogle o createUserWithEmailAndPassword ya cargaron el perfil,
+    // usarlo directamente y evitar un segundo round-trip a Firestore.
+    final cached = AuthService.consumeRecentlyLoadedProfile();
+    if (cached != null && cached.uid == user.uid) {
+      LavifyApp._profileService.setProfile(cached);
+      return cached;
+    }
+
     final profile = await LavifyApp._authService.loadOrCreateUserProfile(
       user: user,
       fallbackRole: pendingRole ?? AppRole.client,

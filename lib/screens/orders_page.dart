@@ -330,6 +330,11 @@ class _OrderCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (order.status == OrderStatus.completed ||
+                      order.status == OrderStatus.cancelled) ...[
+                    _PaymentBadge(status: order.paymentStatus),
+                    const SizedBox(width: 10),
+                  ],
                   Text(
                     'Ver detalle',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -346,6 +351,43 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
+}
+
+class _PaymentBadge extends StatelessWidget {
+  const _PaymentBadge({required this.status});
+  final OrderPaymentStatus status;
+
+  Color _color() {
+    switch (status) {
+      case OrderPaymentStatus.paid:
+        return LavifyColors.success;
+      case OrderPaymentStatus.refunded:
+        return const Color(0xFF8F9CB2);
+      case OrderPaymentStatus.failed:
+        return const Color(0xFFFF6B6B);
+      case OrderPaymentStatus.pending:
+        return const Color(0xFFFFC857);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _color().withAlpha(22),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _color().withAlpha(60)),
+      ),
+      child: Text(
+        status.label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: _color(),
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
 }
 
 class _EmptyOrdersState extends StatelessWidget {

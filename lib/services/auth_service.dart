@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -18,6 +20,16 @@ class AuthService {
     final role = _pendingRegistrationRole;
     _pendingRegistrationRole = null;
     return role;
+  }
+
+  // Cache del perfil recién cargado. signInWithGoogle y createUserWithEmailAndPassword
+  // lo escriben para que _AuthGate no tenga que hacer una segunda llamada a Firestore.
+  static UserProfile? _recentlyLoadedProfile;
+
+  static UserProfile? consumeRecentlyLoadedProfile() {
+    final profile = _recentlyLoadedProfile;
+    _recentlyLoadedProfile = null;
+    return profile;
   }
 
   AuthService({
@@ -85,8 +97,13 @@ class AuthService {
         return null;
       }
 
-      await loadOrCreateUserProfile(user: user, fallbackRole: fallbackRole);
-      await NotificationService().refreshCurrentToken();
+      final profile = await loadOrCreateUserProfile(
+        user: user,
+        fallbackRole: fallbackRole,
+      );
+      _recentlyLoadedProfile = profile;
+      // Fire-and-forget: el token FCM no es crítico para mostrar la app.
+      unawaited(NotificationService().refreshCurrentToken());
       return user;
     } catch (e) {
       // loadOrCreateUserProfile falló — el auth state ya disparó,
@@ -104,7 +121,7 @@ class AuthService {
       email: email.trim(),
       password: password,
     );
-    await NotificationService().refreshCurrentToken();
+    unawaited(NotificationService().refreshCurrentToken());
     return credential;
   }
 
@@ -133,12 +150,12 @@ class AuthService {
       if (normalizedDisplayName.isNotEmpty) {
         await user.updateDisplayName(normalizedDisplayName);
       }
-      await _createUserProfile(
+      _recentlyLoadedProfile = await _createUserProfile(
         user: user,
         fallbackRole: fallbackRole,
         displayName: normalizedDisplayName,
       );
-      await NotificationService().refreshCurrentToken();
+      unawaited(NotificationService().refreshCurrentToken());
     }
     return credential;
   }
@@ -264,6 +281,7 @@ class AuthService {
       'role': fallbackRole.name,
       'verificationStatus': WorkerVerificationStatus.unverified.apiValue,
       'onboardingComplete': false,
+      'isAdmin': false,
     };
   }
 

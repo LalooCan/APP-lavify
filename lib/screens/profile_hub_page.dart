@@ -3,13 +3,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/wash_models.dart';
 import '../services/auth_service.dart';
+import '../services/order_service.dart';
 import '../services/profile_service.dart';
 import '../services/review_service.dart';
 import '../services/session_service.dart';
+import '../services/storage_service.dart';
 import '../services/theme_service.dart';
 import '../services/worker_service.dart';
 import '../theme/theme.dart';
+import 'admin_dashboard_page.dart';
+import 'privacy_page.dart';
 import 'role_login_page.dart';
+import 'terms_page.dart';
 
 class ProfileHubPage extends StatefulWidget {
   const ProfileHubPage({super.key, required this.mode});
@@ -27,6 +32,8 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
   static final _authService = AuthService();
   static final _workerService = WorkerService();
   static final _reviewService = ReviewService();
+  static final _orderService = OrderService();
+  static final _storageService = StorageService();
 
   AppRole get mode => widget.mode;
 
@@ -117,13 +124,66 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         _ProfileStat(value: ratingLabel, label: 'Rating'),
       ];
     }
-    final clientOrders = _completedCount;
+    // Cliente: datos reales desde OrderService
+    final visible = _orderService.clientVisibleOrders;
+    final completed =
+        visible.where((o) => o.status == OrderStatus.completed).toList();
+    final totalSpent = completed.fold<double>(
+      0,
+      (sum, o) => sum + o.request.totalPrice.toDouble(),
+    );
     return [
-      _ProfileStat(value: '$clientOrders', label: 'Lavados'),
+      _ProfileStat(value: '${completed.length}', label: 'Lavados'),
       _ProfileStat(
-          value: '\$${_totalEarnings.toStringAsFixed(0)}',
+          value: '\$${totalSpent.toStringAsFixed(0)}',
           label: 'Total',
           highlight: true),
+    ];
+  }
+
+  Future<void> _handleUploadPhoto(
+    BuildContext context,
+    UserProfile profile,
+  ) async {
+    final file = await _storageService.pickPhoto();
+    if (file == null || !context.mounted) return;
+    final url = await _storageService.uploadProfilePhoto(profile.uid, file);
+    if (url == null || !context.mounted) return;
+    await _profileService.updateProfile(profile.copyWith(photoUrl: url));
+  }
+
+  List<_ProfileMenuItem> _buildExtraItems(
+    BuildContext context,
+    UserProfile profile,
+  ) {
+    return [
+      if (profile.isAdmin)
+        _ProfileMenuItem(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Panel de administrador',
+          value: '',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AdminDashboardPage(),
+            ),
+          ),
+        ),
+      _ProfileMenuItem(
+        icon: Icons.description_outlined,
+        title: 'Términos y condiciones',
+        value: '',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const TermsPage()),
+        ),
+      ),
+      _ProfileMenuItem(
+        icon: Icons.privacy_tip_outlined,
+        title: 'Política de privacidad',
+        value: '',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const PrivacyPage()),
+        ),
+      ),
     ];
   }
 
@@ -161,6 +221,8 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
+                            onUploadPhoto: () =>
+                                _handleUploadPhoto(context, profile),
                             onEditVehicle: () => _showSingleFieldDialog(
                               context,
                               title: 'Vehiculo principal',
@@ -198,6 +260,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                                 _showChangePasswordDialog(context),
                             onToggleTheme: _themeService.toggleBrightness,
                             onLogout: () => _handleLogout(context),
+                            extraItems: _buildExtraItems(context, profile),
                           )
                         : _MobileProfileLayout(
                             profile: profile,
@@ -206,6 +269,8 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
+                            onUploadPhoto: () =>
+                                _handleUploadPhoto(context, profile),
                             onEditVehicle: () => _showSingleFieldDialog(
                               context,
                               title: 'Vehiculo principal',
@@ -243,6 +308,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                                 _showChangePasswordDialog(context),
                             onToggleTheme: _themeService.toggleBrightness,
                             onLogout: () => _handleLogout(context),
+                            extraItems: _buildExtraItems(context, profile),
                           ),
                   ),
                 ),
@@ -485,12 +551,14 @@ class _MobileProfileLayout extends StatelessWidget {
     required this.mode,
     required this.isLightMode,
     required this.onEditProfile,
+    required this.onUploadPhoto,
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
     required this.onChangePassword,
     required this.onToggleTheme,
     required this.onLogout,
+    required this.extraItems,
   });
 
   final UserProfile profile;
@@ -498,12 +566,14 @@ class _MobileProfileLayout extends StatelessWidget {
   final AppRole mode;
   final bool isLightMode;
   final VoidCallback onEditProfile;
+  final VoidCallback onUploadPhoto;
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
   final VoidCallback onChangePassword;
   final ValueChanged<bool> onToggleTheme;
   final VoidCallback onLogout;
+  final List<_ProfileMenuItem> extraItems;
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +622,11 @@ class _MobileProfileLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        _ProfileHero(profile: profile, mode: mode, onEditAvatar: onEditProfile),
+        _ProfileHero(
+          profile: profile,
+          mode: mode,
+          onEditAvatar: onUploadPhoto,
+        ),
         const SizedBox(height: 22),
         Row(
           children: stats
@@ -572,6 +646,10 @@ class _MobileProfileLayout extends StatelessWidget {
         _ProfileSection(title: 'Mi cuenta', items: accountItems),
         const SizedBox(height: 22),
         _ProfileSection(title: 'Mis datos', items: dataItems),
+        if (extraItems.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          _ProfileSection(title: 'Más', items: extraItems),
+        ],
         const SizedBox(height: 22),
         _ThemePreferenceTile(
           isLightMode: isLightMode,
@@ -591,12 +669,14 @@ class _DesktopProfileLayout extends StatelessWidget {
     required this.mode,
     required this.isLightMode,
     required this.onEditProfile,
+    required this.onUploadPhoto,
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
     required this.onChangePassword,
     required this.onToggleTheme,
     required this.onLogout,
+    required this.extraItems,
   });
 
   final UserProfile profile;
@@ -604,12 +684,14 @@ class _DesktopProfileLayout extends StatelessWidget {
   final AppRole mode;
   final bool isLightMode;
   final VoidCallback onEditProfile;
+  final VoidCallback onUploadPhoto;
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
   final VoidCallback onChangePassword;
   final ValueChanged<bool> onToggleTheme;
   final VoidCallback onLogout;
+  final List<_ProfileMenuItem> extraItems;
 
   @override
   Widget build(BuildContext context) {
@@ -624,7 +706,7 @@ class _DesktopProfileLayout extends StatelessWidget {
               _ProfileHero(
                 profile: profile,
                 mode: mode,
-                onEditAvatar: onEditProfile,
+                onEditAvatar: onUploadPhoto,
               ),
               const SizedBox(height: 20),
               Row(
@@ -707,6 +789,10 @@ class _DesktopProfileLayout extends StatelessWidget {
                   ),
                 ],
               ),
+              if (extraItems.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _ProfileSection(title: 'Más', items: extraItems),
+              ],
               const SizedBox(height: 20),
               _DangerButton(label: 'Cerrar sesion', onTap: onLogout),
             ],

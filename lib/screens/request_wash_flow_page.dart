@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/wash_request_draft_controller.dart';
 import '../models/wash_models.dart';
+import '../services/location_service.dart';
 import '../theme/theme.dart';
 import 'order_confirmation_page.dart';
 
@@ -471,27 +472,63 @@ class _SelectedCheck extends StatelessWidget {
   }
 }
 
-class _LocationVehicleStep extends StatelessWidget {
+class _LocationVehicleStep extends StatefulWidget {
   const _LocationVehicleStep({required this.controller});
 
   final WashRequestDraftController controller;
 
   @override
+  State<_LocationVehicleStep> createState() => _LocationVehicleStepState();
+}
+
+class _LocationVehicleStepState extends State<_LocationVehicleStep> {
+  static const _locationService = LocationService();
+  bool _gpsLoading = false;
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _gpsLoading = true);
+    try {
+      final location = await _locationService.getCurrentLocation();
+      final resolution = await _locationService.reverseGeocode(location);
+      widget.controller.updateAddress(resolution.address);
+      widget.controller.addressController.text = resolution.address;
+    } on LocationPermissionDeniedException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo obtener tu ubicación. Intenta de nuevo.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _gpsLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: Listenable.merge([
-        controller.selectedLocationNotifier,
-        controller.selectedVehicleNotifier,
-        controller.addressNotifier,
-        controller.locationMessageNotifier,
-        controller.isLocationConfirmedNotifier,
-        controller.isResolvingLocationNotifier,
+        widget.controller.selectedLocationNotifier,
+        widget.controller.selectedVehicleNotifier,
+        widget.controller.addressNotifier,
+        widget.controller.locationMessageNotifier,
+        widget.controller.isLocationConfirmedNotifier,
+        widget.controller.isResolvingLocationNotifier,
       ]),
       builder: (context, _) {
-        final selectedVehicle = controller.selectedVehicleNotifier.value;
-        final address = controller.addressController.text.trim().isEmpty
-            ? controller.addressNotifier.value
-            : controller.addressController.text.trim();
+        final selectedVehicle =
+            widget.controller.selectedVehicleNotifier.value;
+        final address =
+            widget.controller.addressController.text.trim().isEmpty
+                ? widget.controller.addressNotifier.value
+                : widget.controller.addressController.text.trim();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,22 +540,31 @@ class _LocationVehicleStep extends StatelessWidget {
             const SizedBox(height: 14),
             _RadarLocationCard(
               address: address,
-              location: controller.selectedLocationNotifier.value,
-              isResolving: controller.isResolvingLocationNotifier.value,
+              location: widget.controller.selectedLocationNotifier.value,
+              isResolving:
+                  widget.controller.isResolvingLocationNotifier.value,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: controller.addressController,
-              onChanged: controller.updateAddress,
-              style: TextStyle(
-                color: _flowTextPrimaryColor(context),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-              decoration: _flowInputDecoration(
-                context: context,
-                hintText: 'Direccion del servicio',
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: widget.controller.addressController,
+                    onChanged: widget.controller.updateAddress,
+                    style: TextStyle(
+                      color: _flowTextPrimaryColor(context),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: _flowInputDecoration(
+                      context: context,
+                      hintText: 'Dirección del servicio',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _GpsButton(loading: _gpsLoading, onTap: _useCurrentLocation),
+              ],
             ),
             const SizedBox(height: 26),
             const _SectionLabel('Tipo de vehiculo'),
@@ -538,13 +584,46 @@ class _LocationVehicleStep extends StatelessWidget {
                 return _VehicleTile(
                   vehicle: vehicle,
                   selected: vehicle.id == selectedVehicle.id,
-                  onTap: () => controller.selectVehicle(vehicle),
+                  onTap: () => widget.controller.selectVehicle(vehicle),
                 );
               },
             ),
           ],
         );
       },
+    );
+  }
+}
+
+class _GpsButton extends StatelessWidget {
+  const _GpsButton({required this.loading, required this.onTap});
+
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: loading ? null : onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: _flowSurfaceColor(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _flowBorderColor(context)),
+        ),
+        child: loading
+            ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                Icons.my_location_rounded,
+                color: _flowAccentColor(context),
+                size: 22,
+              ),
+      ),
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/wash_models.dart';
 import '../repositories/firestore_order_repository.dart';
 import '../services/cloud_functions_service.dart';
 import '../services/order_service.dart';
-import '../services/profile_service.dart';
+import '../services/payment_service.dart';
 import '../theme/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/secondary_button.dart';
@@ -22,19 +24,15 @@ class OrderConfirmationPage extends StatefulWidget {
 
 class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   static final OrderService _orderService = OrderService();
-  static final ProfileService _profileService = ProfileService();
 
   bool _isSubmitting = false;
   String? _submitError;
+  PaymentMethodType _selectedPayment = PaymentMethodType.cash;
 
   @override
   Widget build(BuildContext context) {
     final request = widget.draft.toRequest();
     final vehicleExtraFee = widget.draft.vehicleExtraFee;
-    final paymentMethod = _profileService.profile.value.paymentMethod.trim();
-    final paymentLabel = paymentMethod.isEmpty
-        ? 'Pago pendiente al asignar lavador'
-        : paymentMethod;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Confirmar pedido')),
@@ -80,11 +78,76 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                       _ConfirmationRow(
                         label: 'Vehiculo',
                         value: request.vehicleTypeName,
-                      ),
-                      _ConfirmationRow(
-                        label: 'Metodo de pago',
-                        value: paymentLabel,
                         isLast: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SectionContainer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Método de pago',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: PaymentMethodType.values.map((method) {
+                          final selected = method == _selectedPayment;
+                          return GestureDetector(
+                            onTap: () =>
+                                setState(() => _selectedPayment = method),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? LavifyColors.primary.withAlpha(28)
+                                    : LavifyTheme.softFillStrongColor(context),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: selected
+                                      ? LavifyColors.primary
+                                      : LavifyTheme.borderColor(context),
+                                  width: selected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    method.icon,
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    method.label,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
+                                          color: selected
+                                              ? LavifyColors.primary
+                                              : LavifyTheme.textPrimaryColor(
+                                                  context,
+                                                ),
+                                          fontWeight: selected
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
@@ -183,6 +246,16 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
     try {
       final order = await _orderService.createOrderFromDraft(widget.draft);
+
+      // Persistir método de pago seleccionado en la orden (fire-and-forget).
+      FirebaseFirestore.instance
+          .collection('orders')
+          .doc(order.id)
+          .set(
+            {'paymentMethod': _selectedPayment.apiValue},
+            SetOptions(merge: true),
+          )
+          .catchError((_) {});
 
       if (!mounted) {
         return;

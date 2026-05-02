@@ -1,6 +1,38 @@
 import 'service_location.dart';
 import 'wash_request.dart';
 
+enum OrderPaymentStatus { pending, paid, failed, refunded }
+
+extension OrderPaymentStatusX on OrderPaymentStatus {
+  String get apiValue => name;
+
+  String get label {
+    switch (this) {
+      case OrderPaymentStatus.pending:
+        return 'Pendiente';
+      case OrderPaymentStatus.paid:
+        return 'Pagado';
+      case OrderPaymentStatus.failed:
+        return 'Fallido';
+      case OrderPaymentStatus.refunded:
+        return 'Reembolsado';
+    }
+  }
+
+  static OrderPaymentStatus fromValue(String? value) {
+    switch (value) {
+      case 'paid':
+        return OrderPaymentStatus.paid;
+      case 'failed':
+        return OrderPaymentStatus.failed;
+      case 'refunded':
+        return OrderPaymentStatus.refunded;
+      default:
+        return OrderPaymentStatus.pending;
+    }
+  }
+}
+
 enum OrderStatus {
   searching,
   assigned,
@@ -115,6 +147,8 @@ class WashOrder {
     required this.assignedVehicleLabel,
     required this.createdAt,
     required this.etaMinutes,
+    this.paymentStatus = OrderPaymentStatus.pending,
+    this.paymentMethod = '',
   });
 
   final String id;
@@ -128,6 +162,8 @@ class WashOrder {
   final String assignedVehicleLabel;
   final DateTime createdAt;
   final int etaMinutes;
+  final OrderPaymentStatus paymentStatus;
+  final String paymentMethod;
 
   factory WashOrder.fromMap(Map<String, dynamic> map) {
     return WashOrder(
@@ -142,6 +178,10 @@ class WashOrder {
       assignedVehicleLabel: map['assignedVehicleLabel'] as String,
       createdAt: DateTime.parse(map['createdAt'] as String),
       etaMinutes: map['etaMinutes'] as int,
+      paymentStatus: OrderPaymentStatusX.fromValue(
+        map['paymentStatus'] as String?,
+      ),
+      paymentMethod: map['paymentMethod'] as String? ?? '',
     );
   }
 
@@ -155,6 +195,8 @@ class WashOrder {
     String? assignedWorkerEmail,
     String? assignedVehicleLabel,
     int? etaMinutes,
+    OrderPaymentStatus? paymentStatus,
+    String? paymentMethod,
   }) {
     return WashOrder(
       id: id ?? this.id,
@@ -168,6 +210,8 @@ class WashOrder {
       assignedVehicleLabel: assignedVehicleLabel ?? this.assignedVehicleLabel,
       createdAt: createdAt,
       etaMinutes: etaMinutes ?? this.etaMinutes,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 
@@ -201,6 +245,8 @@ class WashOrder {
       'assignedVehicleLabel': assignedVehicleLabel,
       'createdAt': createdAt.toIso8601String(),
       'etaMinutes': etaMinutes,
+      'paymentStatus': paymentStatus.apiValue,
+      'paymentMethod': paymentMethod,
     };
   }
 

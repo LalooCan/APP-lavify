@@ -101,20 +101,37 @@ class NotificationService {
       final profileRef = FirebaseFirestore.instance
           .collection('profiles')
           .doc(uid);
-      await profileRef.set({
-        'fcmToken': token,
-      }, SetOptions(merge: true));
 
-      final profile = await profileRef.get();
-      final role = (profile.data()?['role'] as String? ?? '').toLowerCase();
-      if (role == 'worker') {
-        await FirebaseFirestore.instance.collection('workers').doc(uid).set({
-          'fcmToken': token,
-        }, SetOptions(merge: true));
-      }
+      // Escribir el token inmediatamente (bloqueante: es el objetivo principal).
+      await profileRef.set({'fcmToken': token}, SetOptions(merge: true));
+
+      // Sincronizar el token al documento de workers en background:
+      // no necesita bloquear el flujo de login.
+      _syncWorkerToken(uid, token, profileRef);
     } catch (e) {
       debugPrint('NotificationService._saveToken error: $e');
     }
+  }
+
+  void _syncWorkerToken(
+    String uid,
+    String token,
+    DocumentReference<Map<String, dynamic>> profileRef,
+  ) {
+    profileRef.get().then((doc) {
+      final role = (doc.data()?['role'] as String? ?? '').toLowerCase();
+      if (role != 'worker') return;
+      FirebaseFirestore.instance
+          .collection('workers')
+          .doc(uid)
+          .set({'fcmToken': token}, SetOptions(merge: true))
+          .catchError((Object e) {
+            debugPrint('NotificationService._syncWorkerToken write error: $e');
+          });
+    }).catchError((Object e) {
+      debugPrint('NotificationService._syncWorkerToken read error: $e');
+      return null;
+    });
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
