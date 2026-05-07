@@ -78,6 +78,10 @@ class _AppShellState extends State<AppShell> {
     if (isDesktop) {
       final isWideDesktop = width >= 1440;
       final isExpanded = isWideDesktop || _isSidebarExpanded;
+      final shellBody = IndexedStack(
+        index: _selectedIndex,
+        children: pages,
+      );
 
       return Scaffold(
         body: Row(
@@ -201,14 +205,16 @@ class _AppShellState extends State<AppShell> {
                 ),
               ),
             ),
-            Expanded(child: pages[_selectedIndex]),
+            Expanded(child: shellBody),
           ],
         ),
       );
     }
 
+    final shellBody = IndexedStack(index: _selectedIndex, children: pages);
+
     return Scaffold(
-      body: pages[_selectedIndex],
+      body: shellBody,
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         decoration: BoxDecoration(

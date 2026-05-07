@@ -13,7 +13,6 @@ import '../services/worker_service.dart';
 import '../theme/theme.dart';
 import 'admin_dashboard_page.dart';
 import 'privacy_page.dart';
-import 'role_login_page.dart';
 import 'terms_page.dart';
 
 class ProfileHubPage extends StatefulWidget {
@@ -528,19 +527,10 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
       },
     );
 
-    if (shouldLogout != true || !context.mounted) {
-      return;
-    }
+    if (shouldLogout != true) return;
 
     await _authService.signOut();
     _sessionService.clearSession();
-    if (!context.mounted) {
-      return;
-    }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => RoleLoginPage(initialMode: mode)),
-      (route) => false,
-    );
   }
 }
 

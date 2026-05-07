@@ -154,18 +154,40 @@ class _ChatAppBar extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const SizedBox(width: 4),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: LavifyColors.primary.withAlpha(28),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Icon(
-              Icons.person_rounded,
-              color: LavifyColors.primary,
-              size: 20,
-            ),
+          Stack(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              Positioned(
+                bottom: 1,
+                right: 1,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: LavifyColors.success,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: LavifyTheme.overlayPanelColor(context),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -291,24 +313,30 @@ class _InputBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: controller,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: 'Escribe un mensaje...',
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: LavifyTheme.borderColor(context),
-                  ),
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: LavifyTheme.surfaceAltColor(context),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: LavifyTheme.borderColor(context)),
               ),
-              maxLines: null,
+              child: TextField(
+                controller: controller,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => onSend(),
+                decoration: InputDecoration(
+                  hintText: 'Escribe un mensaje...',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                maxLines: null,
+              ),
             ),
           ),
           const SizedBox(width: 10),

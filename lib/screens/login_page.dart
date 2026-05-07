@@ -749,7 +749,7 @@ class _MetricCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isLight
-              ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
+              ? const [Color(0xFFF4F5F7), Color(0xFFECEDF1)]
               : [Colors.white.withAlpha(8), Colors.white.withAlpha(3)],
         ),
         borderRadius: BorderRadius.circular(26),
@@ -846,7 +846,7 @@ class _ProviderButton extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isLight
-              ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
+              ? const [Color(0xFFF4F5F7), Color(0xFFECEDF1)]
               : [Colors.white.withAlpha(7), Colors.white.withAlpha(2)],
         ),
         borderRadius: BorderRadius.circular(22),

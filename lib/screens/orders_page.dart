@@ -109,6 +109,9 @@ class _ActiveOrderBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _statusAccentFor(order.status);
+    final isActive = order.status == OrderStatus.onTheWay ||
+        order.status == OrderStatus.assigned ||
+        order.status == OrderStatus.inProgress;
     final canCancel = order.status == OrderStatus.searching ||
         order.status == OrderStatus.assigned;
     final helper = order.status == OrderStatus.searching
@@ -134,9 +137,25 @@ class _ActiveOrderBanner extends StatelessWidget {
             child: Ink(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: LavifyTheme.overlayPanelColor(context),
+                gradient: isActive
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          LavifyColors.primaryStrong,
+                          LavifyColors.primary,
+                        ],
+                      )
+                    : null,
+                color: isActive
+                    ? null
+                    : LavifyTheme.overlayPanelColor(context),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: LavifyTheme.borderColor(context)),
+                border: Border.all(
+                  color: isActive
+                      ? Colors.transparent
+                      : LavifyTheme.borderColor(context),
+                ),
                 boxShadow: LavifyTheme.panelShadow(context, floating: false),
               ),
               child: Row(
@@ -145,10 +164,17 @@ class _ActiveOrderBanner extends StatelessWidget {
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
-                      color: accent.withAlpha(24),
+                      color: isActive
+                          ? Colors.white.withAlpha(51)
+                          : accent.withAlpha(24),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(Icons.route_rounded, color: accent),
+                    child: Icon(
+                      isActive
+                          ? Icons.local_car_wash_rounded
+                          : Icons.route_rounded,
+                      color: isActive ? Colors.white : accent,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -157,12 +183,22 @@ class _ActiveOrderBanner extends StatelessWidget {
                       children: [
                         Text(
                           'Pedido activo',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: isActive
+                                    ? Colors.white
+                                    : LavifyTheme.textPrimaryColor(context),
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           helper,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: isActive
+                                    ? Colors.white
+                                    : null,
+                              ),
                         ),
                       ],
                     ),
@@ -171,7 +207,7 @@ class _ActiveOrderBanner extends StatelessWidget {
                   Text(
                     order.status.label,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: accent,
+                      color: isActive ? Colors.white : accent,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -362,7 +398,7 @@ class _PaymentBadge extends StatelessWidget {
       case OrderPaymentStatus.paid:
         return LavifyColors.success;
       case OrderPaymentStatus.refunded:
-        return const Color(0xFF8F9CB2);
+        return const Color(0xFF94A3B8);
       case OrderPaymentStatus.failed:
         return const Color(0xFFFF6B6B);
       case OrderPaymentStatus.pending:

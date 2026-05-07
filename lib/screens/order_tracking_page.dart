@@ -7,7 +7,6 @@ import '../services/profile_service.dart';
 import '../services/review_service.dart';
 import '../theme/theme.dart';
 import '../widgets/live_tracking_map.dart';
-import '../widgets/primary_button.dart';
 import 'chat_screen.dart';
 
 class OrderTrackingPage extends StatelessWidget {
@@ -43,295 +42,92 @@ class OrderTrackingPage extends StatelessWidget {
         final isSearching = liveOrder.status == OrderStatus.searching;
         final statusAccent = _statusAccent(liveOrder.status);
         final statusSummary = _statusSummary(liveOrder);
-        final mapBadgeLabel = isSearching
-            ? 'Buscando lavador cerca de ti'
-            : liveOrder.etaMinutes > 0
-            ? 'Llegando en ${liveOrder.etaMinutes} min'
-            : liveOrder.status.label;
+        final padding = MediaQuery.of(context).padding;
 
         return Scaffold(
-          appBar: AppBar(title: Text('Pedido ${liveOrder.id}')),
-          body: Container(
-            decoration: LavifyTheme.pageDecoration(context),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isSyncPending || syncError != null) ...[
-                      _OrderSyncBanner(
-                        isPending: isSyncPending,
-                        errorMessage: syncError,
-                        onRetry: syncError == null
-                            ? null
-                            : () {
-                                _orderService
-                                    .retryOrderSync(liveOrder.id)
-                                    .catchError((Object error) {
-                                      if (!context.mounted) {
-                                        return;
-                                      }
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'No se pudo reintentar la sincronizacion.',
-                                          ),
-                                        ),
-                                      );
-                                    });
-                              },
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        color: LavifyTheme.surfaceColor(context),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: LavifyTheme.borderColor(context),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  isSearching
-                                      ? 'Buscando lavador'
-                                      : liveOrder.status.label,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.headlineMedium,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: statusAccent.withAlpha(24),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  isSearching
-                                      ? 'Buscando'
-                                      : liveOrder.status.label,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: statusAccent,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            statusSummary,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 280,
-                      width: double.infinity,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: LiveTrackingMap(order: liveOrder),
-                          ),
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: LavifyTheme.overlayPanelColor(context),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: LavifyTheme.borderColor(context),
-                                ),
-                              ),
-                              child: Text(
-                                mapBadgeLabel,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      color: LavifyTheme.textPrimaryColor(
-                                        context,
-                                      ),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (isSearching) ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(22),
-                        decoration: BoxDecoration(
-                          color: LavifyTheme.surfaceColor(context),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: LavifyTheme.borderColor(context),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Que esta pasando ahora',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 14),
-                            const _TrackingNote(
-                              title: 'Solicitud confirmada',
-                              subtitle:
-                                  'Tu pedido ya entro al flujo y esta listo para asignacion.',
-                            ),
-                            const SizedBox(height: 12),
-                            const _TrackingNote(
-                              title: 'Buscando lavador disponible',
-                              subtitle:
-                                  'Lavify esta revisando trabajadores cercanos y disponibles.',
-                            ),
-                            const SizedBox(height: 12),
-                            const _TrackingNote(
-                              title: 'Te avisaremos al asignarlo',
-                              subtitle:
-                                  'Cuando alguien tome el servicio, esta pantalla cambiara al seguimiento del trayecto.',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(22),
-                        decoration: BoxDecoration(
-                          color: LavifyTheme.surfaceColor(context),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: LavifyTheme.borderColor(context),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Progreso del servicio',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 18),
-                            for (int i = 0; i < stages.length; i++) ...[
-                              _TrackingStep(
-                                title: stages[i].label,
-                                completed: i <= activeIndex,
-                                isLast: i == stages.length - 1,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        color: LavifyTheme.surfaceColor(context),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: LavifyTheme.borderColor(context),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Detalle del pedido',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 14),
-                          _DetailRow(
-                            label: 'Paquete',
-                            value: liveOrder.request.packageName,
-                          ),
-                          _DetailRow(
-                            label: 'Vehiculo',
-                            value: liveOrder.request.vehicleTypeName,
-                          ),
-                          _DetailRow(
-                            label: 'Direccion',
-                            value: liveOrder.request.address,
-                          ),
-                          _DetailRow(
-                            label: 'Horario',
-                            value: liveOrder.request.scheduleLabel,
-                          ),
-                          _DetailRow(
-                            label: 'Total',
-                            value:
-                                '\$${liveOrder.request.totalPrice} ${liveOrder.request.currency}',
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (liveOrder.status == OrderStatus.completed &&
-                        liveOrder.workerId != null) ...[
-                      const SizedBox(height: 20),
-                      _ReviewCard(
-                        orderId: liveOrder.id,
-                        workerId: liveOrder.workerId!,
-                        workerName: liveOrder.assignedWasherName,
-                      ),
-                    ],
-                    if (canChat) ...[
-                      const SizedBox(height: 20),
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => ChatScreen(order: liveOrder),
-                          ),
-                        ),
-                        icon: const Icon(Icons.chat_outlined, size: 18),
-                        label: Text(
-                          'Chat con ${liveOrder.assignedWasherName}',
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    PrimaryButton(
-                      label: 'Volver al inicio',
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).popUntil((route) => route.isFirst),
-                      isExpanded: true,
-                    ),
-                  ],
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: LiveTrackingMap(
+                  order: liveOrder,
+                  showLegend: false,
+                  borderRadius: 0,
                 ),
               ),
-            ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    child: Row(
+                      children: [
+                        _MapOverlayBtn(
+                          icon: Icons.arrow_back_rounded,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                        const Spacer(),
+                        if (canChat)
+                          _MapOverlayBtn(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ChatScreen(order: liveOrder),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (isSyncPending || syncError != null)
+                Positioned(
+                  top: padding.top + 64,
+                  left: 16,
+                  right: 16,
+                  child: _OrderSyncBanner(
+                    isPending: isSyncPending,
+                    errorMessage: syncError,
+                    onRetry: syncError == null
+                        ? null
+                        : () {
+                            _orderService
+                                .retryOrderSync(liveOrder.id)
+                                .catchError((Object error) {
+                                  if (!context.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No se pudo reintentar la sincronizacion.',
+                                      ),
+                                    ),
+                                  );
+                                });
+                          },
+                  ),
+                ),
+              DraggableScrollableSheet(
+                initialChildSize: 0.38,
+                minChildSize: 0.28,
+                maxChildSize: 0.75,
+                snap: true,
+                snapSizes: const [0.38, 0.55, 0.75],
+                builder: (ctx, sc) => _TrackingSheet(
+                  scrollController: sc,
+                  order: liveOrder,
+                  statusAccent: statusAccent,
+                  statusSummary: statusSummary,
+                  isSearching: isSearching,
+                  stages: stages,
+                  activeIndex: activeIndex,
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -749,6 +545,346 @@ class _ReviewCardState extends State<_ReviewCard> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MapOverlayBtn extends StatelessWidget {
+  const _MapOverlayBtn({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: LavifyTheme.overlayPanelColor(context),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: LavifyTheme.navRailBorderColor(context)),
+          boxShadow: LavifyTheme.panelShadow(context),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: LavifyTheme.textPrimaryColor(context),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackingSheet extends StatelessWidget {
+  const _TrackingSheet({
+    required this.scrollController,
+    required this.order,
+    required this.statusAccent,
+    required this.statusSummary,
+    required this.isSearching,
+    required this.stages,
+    required this.activeIndex,
+  });
+
+  final ScrollController scrollController;
+  final WashOrder order;
+  final Color statusAccent;
+  final String statusSummary;
+  final bool isSearching;
+  final List<OrderStatus> stages;
+  final int activeIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = order.status == OrderStatus.completed;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: LavifyTheme.overlayPanelColor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 40,
+            offset: Offset(0, -12),
+          ),
+        ],
+      ),
+      child: ListView(
+        controller: scrollController,
+        padding: EdgeInsets.zero,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: LavifyTheme.borderColor(context),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+
+          // Status header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      isSearching ? 'Buscando lavador' : order.status.label,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: LavifyTheme.textPrimaryColor(context),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusAccent.withAlpha(24),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: statusAccent.withAlpha(50)),
+                      ),
+                      child: Text(
+                        isSearching ? 'Buscando' : order.status.label,
+                        style: TextStyle(
+                          color: statusAccent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  statusSummary,
+                  style: TextStyle(
+                    color: LavifyTheme.textSecondaryColor(context),
+                  ),
+                ),
+                if (order.etaMinutes > 0 && !isSearching) ...[
+                  Container(
+                    margin: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusAccent.withAlpha(18),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: statusAccent,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${order.etaMinutes} min',
+                          style: TextStyle(
+                            color: LavifyTheme.textPrimaryColor(context),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (order.workerId != null && !isSearching) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: LavifyTheme.surfaceColor(context),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: LavifyTheme.borderColor(context),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: LavifyColors.primary.withAlpha(28),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: LavifyColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.assignedWasherName,
+                                style: TextStyle(
+                                  color: LavifyTheme.textPrimaryColor(context),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Text(
+                                order.assignedVehicleLabel,
+                                style: TextStyle(
+                                  color:
+                                      LavifyTheme.textSecondaryColor(context),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: List.generate(
+                            3,
+                            (_) => const Icon(
+                              Icons.star_rounded,
+                              color: Color(0xFFFFC857),
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Progress section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PROGRESO',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: LavifyTheme.textSecondaryColor(context),
+                    letterSpacing: 0.08,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (isSearching)
+                  const _TrackingNote(
+                    title: 'Confirmada',
+                    subtitle: 'Tu pedido esta en cola para asignacion.',
+                  )
+                else
+                  for (int i = 0; i < stages.length; i++)
+                    _TrackingStep(
+                      title: stages[i].label,
+                      completed: i <= activeIndex,
+                      isLast: i == stages.length - 1,
+                    ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Detail section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DETALLE',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: LavifyTheme.textSecondaryColor(context),
+                    letterSpacing: 0.08,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: LavifyTheme.surfaceColor(context),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: LavifyTheme.borderColor(context),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _DetailRow(
+                        label: 'Paquete',
+                        value: order.request.packageName,
+                      ),
+                      _DetailRow(
+                        label: 'Vehiculo',
+                        value: order.request.vehicleTypeName,
+                      ),
+                      _DetailRow(
+                        label: 'Direccion',
+                        value: order.request.address,
+                      ),
+                      _DetailRow(
+                        label: 'Horario',
+                        value: order.request.scheduleLabel,
+                      ),
+                      _DetailRow(
+                        label: 'Total',
+                        value:
+                            '\$${order.request.totalPrice} ${order.request.currency}',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Review card
+          if (completed && order.workerId != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: _ReviewCard(
+                orderId: order.id,
+                workerId: order.workerId!,
+                workerName: order.assignedWasherName,
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // Home button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: OutlinedButton.icon(
+              onPressed: () =>
+                  Navigator.of(context).popUntil((route) => route.isFirst),
+              icon: const Icon(Icons.home_outlined),
+              label: const Text('Volver al inicio'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 52),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -18,8 +20,8 @@ import 'theme/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await NotificationService().initialize();
   runApp(const LavifyApp());
+  unawaited(NotificationService().initialize());
 }
 
 class LavifyApp extends StatelessWidget {
@@ -62,6 +64,17 @@ class _AuthGateState extends State<_AuthGate> {
   String? _profileUid;
   Future<UserProfile>? _profileFuture;
 
+  @override
+  void initState() {
+    super.initState();
+    // Si el usuario ya estaba logueado (estado local de Firebase), iniciamos la
+    // carga del perfil inmediatamente sin esperar a que el stream emita.
+    final existingUser = FirebaseAuth.instance.currentUser;
+    if (existingUser != null) {
+      _profileFor(existingUser);
+    }
+  }
+
   Future<UserProfile> _profileFor(User user) {
     if (_profileUid != user.uid || _profileFuture == null) {
       _profileUid = user.uid;
@@ -73,12 +86,26 @@ class _AuthGateState extends State<_AuthGate> {
   Future<UserProfile> _loadAndStoreProfile(User user) async {
     final pendingRole = AuthService.consumePendingRegistrationRole();
 
-    // Si signInWithGoogle o createUserWithEmailAndPassword ya cargaron el perfil,
-    // usarlo directamente y evitar un segundo round-trip a Firestore.
+    // Perfil cacheado por signInWithGoogle / createUserWithEmailAndPassword.
     final cached = AuthService.consumeRecentlyLoadedProfile();
     if (cached != null && cached.uid == user.uid) {
       LavifyApp._profileService.setProfile(cached);
       return cached;
+    }
+
+    // Future en vuelo iniciado por signInWithEmailAndPassword: reutilizarlo
+    // para evitar una segunda lectura Firestore en paralelo.
+    final inflightFuture = AuthService.consumeInflightProfileFuture();
+    if (inflightFuture != null) {
+      try {
+        final profile = await inflightFuture;
+        if (profile.uid == user.uid) {
+          LavifyApp._profileService.setProfile(profile);
+          return profile;
+        }
+      } catch (_) {
+        // Si falla el future en vuelo, cae al fetch normal de abajo.
+      }
     }
 
     final profile = await LavifyApp._authService.loadOrCreateUserProfile(
@@ -103,8 +130,11 @@ class _AuthGateState extends State<_AuthGate> {
         return StreamBuilder(
           stream: LavifyApp._authService.authStateChanges,
           builder: (context, snapshot) {
+            // Solo mostrar spinner si realmente no sabemos el estado de auth.
+            // Si currentUser ya está disponible localmente, procedemos de inmediato.
             if (snapshot.connectionState == ConnectionState.waiting &&
-                session == null) {
+                session == null &&
+                FirebaseAuth.instance.currentUser == null) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );

@@ -32,6 +32,16 @@ class AuthService {
     return profile;
   }
 
+  // Future del perfil iniciado en signInWithEmailAndPassword. _AuthGate lo
+  // reutiliza para no hacer una segunda lectura Firestore en paralelo.
+  static Future<UserProfile>? _inflightProfileFuture;
+
+  static Future<UserProfile>? consumeInflightProfileFuture() {
+    final f = _inflightProfileFuture;
+    _inflightProfileFuture = null;
+    return f;
+  }
+
   AuthService({
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
@@ -115,12 +125,27 @@ class AuthService {
 
   Future<UserCredential> signInWithEmailAndPassword(
     String email,
-    String password,
-  ) async {
+    String password, {
+    AppRole fallbackRole = AppRole.client,
+  }) async {
+    // Guardar el rol seleccionado antes de que dispare el auth state change.
+    // Evita que _AuthGate use AppRole.client por defecto en usuarios nuevos
+    // o en casos donde Firestore aún no tiene el campo role.
+    _pendingRegistrationRole = fallbackRole;
     final credential = await _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+    // Inicia la carga del perfil inmediatamente. El auth state change se
+    // disparará en el próximo microtask, y _AuthGate reutilizará este future
+    // en lugar de lanzar una segunda lectura Firestore en paralelo.
+    final user = credential.user;
+    if (user != null) {
+      _inflightProfileFuture = loadOrCreateUserProfile(
+        user: user,
+        fallbackRole: fallbackRole,
+      );
+    }
     unawaited(NotificationService().refreshCurrentToken());
     return credential;
   }
@@ -221,10 +246,11 @@ class AuthService {
       return UserProfile.fromMap(data);
     }
 
-    await doc.set({
+    // Persiste los cambios en background: no bloquea el flujo de login.
+    unawaited(doc.set({
       ...updates,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true)));
 
     return UserProfile.fromMap({...data, ...updates});
   }
@@ -234,7 +260,8 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await NotificationService().clearToken();
+    _inflightProfileFuture = null;
+    unawaited(NotificationService().clearToken());
     if (!kIsWeb) {
       await _googleSignIn.signOut();
     }

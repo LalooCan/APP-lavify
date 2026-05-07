@@ -4,6 +4,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../models/wash_models.dart';
+import 'profile_service.dart';
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('FCM background: ${message.messageId}');
@@ -118,6 +121,23 @@ class NotificationService {
     String token,
     DocumentReference<Map<String, dynamic>> profileRef,
   ) {
+    // Usa el perfil en memoria si ya está cargado para evitar una lectura
+    // Firestore extra. Si el perfil aún no tiene uid (placeholder inicial),
+    // cae al read remoto como fallback.
+    final cachedProfile = ProfileService().profile.value;
+    if (cachedProfile.uid == uid) {
+      if (cachedProfile.role != AppRole.worker) return;
+      FirebaseFirestore.instance
+          .collection('workers')
+          .doc(uid)
+          .set({'fcmToken': token}, SetOptions(merge: true))
+          .catchError((Object e) {
+            debugPrint('NotificationService._syncWorkerToken write error: $e');
+          });
+      return;
+    }
+
+    // Fallback: perfil no cargado todavía (ej. primera instalación).
     profileRef.get().then((doc) {
       final role = (doc.data()?['role'] as String? ?? '').toLowerCase();
       if (role != 'worker') return;

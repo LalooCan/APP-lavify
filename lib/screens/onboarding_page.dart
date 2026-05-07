@@ -71,21 +71,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Future<void> _finish() async {
     if (_completing) return;
-    setState(() => _completing = true);
-    try {
-      final updated =
-          await AuthService().completeOnboarding(widget.profile);
-      ProfileService().setProfile(updated);
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => AppShell(mode: updated.role),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _completing = false);
-    }
+    _completing = true;
+
+    // Actualiza el perfil en memoria y navega de inmediato.
+    // La escritura a Firestore se hace en background para no bloquear al usuario.
+    final updated = widget.profile.copyWith(onboardingComplete: true);
+    ProfileService().setProfile(updated);
+    AuthService().completeOnboarding(widget.profile).ignore();
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => AppShell(mode: updated.role),
+      ),
+    );
   }
 
   void _next() {
@@ -167,13 +166,33 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    _completing
-                        ? const SizedBox(
-                            height: 56,
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        : PrimaryButton(
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        if (_currentPage > 0) ...[
+                          OutlinedButton(
+                            onPressed: () => _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(56, 56),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              side: BorderSide(
+                                color: LavifyTheme.borderColor(context),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: PrimaryButton(
                             label: isLast ? 'Comenzar' : 'Siguiente',
                             icon: isLast
                                 ? Icons.check_rounded
@@ -181,6 +200,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             onPressed: _next,
                             isExpanded: true,
                           ),
+                        ),
+                      ],
+                    ),
                     if (isLast) ...[
                       const SizedBox(height: 16),
                       _LegalText(),
@@ -263,20 +285,34 @@ class _SlideView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              gradient: LavifyTheme.premiumPanelGradient(context),
-              borderRadius: BorderRadius.circular(36),
-              border: Border.all(color: LavifyTheme.borderColor(context)),
-              boxShadow: LavifyTheme.panelShadow(context, floating: false),
-            ),
-            child: Icon(
-              slide.icon,
-              size: 52,
-              color: LavifyColors.primary,
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      LavifyColors.primary.withAlpha(40),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: LavifyTheme.premiumPanelGradient(context),
+                  borderRadius: BorderRadius.circular(36),
+                  border: Border.all(color: LavifyTheme.borderColor(context)),
+                  boxShadow: LavifyTheme.panelShadow(context, floating: false),
+                ),
+                child: Icon(slide.icon, size: 52, color: LavifyColors.primary),
+              ),
+            ],
           ),
           const SizedBox(height: 48),
           Text(
