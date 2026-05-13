@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../models/wash_models.dart';
-import '../repositories/firestore_order_repository.dart';
 import '../services/cloud_functions_service.dart';
 import '../services/order_service.dart';
 import '../services/payment_service.dart';
@@ -247,15 +244,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     try {
       final order = await _orderService.createOrderFromDraft(widget.draft);
 
-      // Persistir método de pago seleccionado en la orden (fire-and-forget).
-      FirebaseFirestore.instance
-          .collection('orders')
-          .doc(order.id)
-          .set(
-            {'paymentMethod': _selectedPayment.apiValue},
-            SetOptions(merge: true),
-          )
-          .catchError((_) {});
+      _orderService.setOrderPaymentMethod(order.id, _selectedPayment.apiValue);
 
       if (!mounted) {
         return;
@@ -275,10 +264,6 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
       final message = switch (error) {
         OrderSubmissionException(:final message) => message,
         CloudFunctionsException(:final message) => message,
-        FirestoreOrderRepositoryException(:final code)
-            when code == 'permission-denied' =>
-          'No tienes permisos para confirmar este pedido. Cierra sesion e inicia de nuevo.',
-        FirestoreOrderRepositoryException(:final message) => message,
         _ =>
           'No se pudo confirmar el pedido. Verifica tu conexion e intenta de nuevo.',
       };

@@ -17,15 +17,25 @@ import 'services/session_service.dart';
 import 'services/theme_service.dart';
 import 'theme/theme.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const LavifyApp());
-  unawaited(NotificationService().initialize());
+
+  // Inicia Firebase sin bloquear — runApp muestra el splash de inmediato
+  // mientras el SDK se inicializa en paralelo.
+  final firebaseReady = Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(LavifyApp(firebaseReady: firebaseReady));
+
+  // Notificaciones solo después de que Firebase esté listo.
+  unawaited(firebaseReady.then((_) => NotificationService().initialize()));
 }
 
 class LavifyApp extends StatelessWidget {
-  const LavifyApp({super.key});
+  const LavifyApp({super.key, required this.firebaseReady});
+
+  final Future<FirebaseApp> firebaseReady;
 
   static final ThemeService _themeService = ThemeService();
   static final AuthService _authService = AuthService();
@@ -38,7 +48,6 @@ class LavifyApp extends StatelessWidget {
       valueListenable: _themeService.themeMode,
       builder: (context, themeMode, child) {
         return MaterialApp(
-          key: ValueKey(themeMode),
           title: 'Lavify',
           debugShowCheckedModeBanner: false,
           theme: LavifyTheme.lightTheme,
@@ -46,7 +55,15 @@ class LavifyApp extends StatelessWidget {
           themeMode: themeMode,
           themeAnimationDuration: Duration.zero,
           routes: {'/home': (_) => const AppShell(mode: AppRole.client)},
-          home: const _AuthGate(),
+          home: FutureBuilder<FirebaseApp>(
+            future: firebaseReady,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const _SplashScreen();
+              }
+              return const _AuthGate();
+            },
+          ),
         );
       },
     );
@@ -89,8 +106,9 @@ class _AuthGateState extends State<_AuthGate> {
     // Perfil cacheado por signInWithGoogle / createUserWithEmailAndPassword.
     final cached = AuthService.consumeRecentlyLoadedProfile();
     if (cached != null && cached.uid == user.uid) {
-      LavifyApp._profileService.setProfile(cached);
-      return cached;
+      final profile = _applyPendingRole(cached, pendingRole);
+      LavifyApp._profileService.setProfile(profile);
+      return profile;
     }
 
     // Future en vuelo iniciado por signInWithEmailAndPassword: reutilizarlo
@@ -98,8 +116,9 @@ class _AuthGateState extends State<_AuthGate> {
     final inflightFuture = AuthService.consumeInflightProfileFuture();
     if (inflightFuture != null) {
       try {
-        final profile = await inflightFuture;
-        if (profile.uid == user.uid) {
+        final fetched = await inflightFuture;
+        if (fetched.uid == user.uid) {
+          final profile = _applyPendingRole(fetched, pendingRole);
           LavifyApp._profileService.setProfile(profile);
           return profile;
         }
@@ -108,12 +127,20 @@ class _AuthGateState extends State<_AuthGate> {
       }
     }
 
-    final profile = await LavifyApp._authService.loadOrCreateUserProfile(
+    final fetched = await LavifyApp._authService.loadOrCreateUserProfile(
       user: user,
       fallbackRole: pendingRole ?? AppRole.client,
     );
+    final profile = _applyPendingRole(fetched, pendingRole);
     LavifyApp._profileService.setProfile(profile);
     return profile;
+  }
+
+  // Aplica el rol seleccionado en login al perfil en memoria (sin tocar Firestore).
+  // Permite que una misma cuenta acceda como cliente o trabajador según la pestaña.
+  UserProfile _applyPendingRole(UserProfile profile, AppRole? pendingRole) {
+    if (pendingRole == null || pendingRole == profile.role) return profile;
+    return profile.copyWith(role: pendingRole);
   }
 
   void _clearProfileFuture() {
@@ -135,9 +162,7 @@ class _AuthGateState extends State<_AuthGate> {
             if (snapshot.connectionState == ConnectionState.waiting &&
                 session == null &&
                 FirebaseAuth.instance.currentUser == null) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+              return const _SplashScreen();
             }
 
             final user = snapshot.data;
@@ -170,6 +195,55 @@ class _AuthGateState extends State<_AuthGate> {
           },
         );
       },
+    );
+  }
+}
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: LavifyColors.primary.withAlpha(22),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.local_car_wash_rounded,
+                color: LavifyColors.primary,
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Lavify',
+              style: TextStyle(
+                color: LavifyTheme.textPrimaryColor(context),
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 36),
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: LavifyColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

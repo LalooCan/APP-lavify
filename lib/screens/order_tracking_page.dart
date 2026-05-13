@@ -111,6 +111,52 @@ class OrderTrackingPage extends StatelessWidget {
                           },
                   ),
                 ),
+              if (liveOrder.etaMinutes > 0 && !isSearching)
+                Positioned(
+                  top: padding.top + 68,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: LavifyTheme.overlayPanelColor(context),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: LavifyTheme.borderColor(context),
+                        ),
+                        boxShadow: LavifyTheme.panelShadow(context),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'LLEGA EN',
+                            style: TextStyle(
+                              color: LavifyTheme.textSecondaryColor(context),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Text(
+                            '${liveOrder.etaMinutes} min',
+                            style: TextStyle(
+                              color: LavifyTheme.textPrimaryColor(context),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               DraggableScrollableSheet(
                 initialChildSize: 0.38,
                 minChildSize: 0.28,
@@ -125,6 +171,14 @@ class OrderTrackingPage extends StatelessWidget {
                   isSearching: isSearching,
                   stages: stages,
                   activeIndex: activeIndex,
+                  canChat: canChat,
+                  onChatTap: canChat
+                      ? () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ChatScreen(order: liveOrder),
+                            ),
+                          )
+                      : null,
                 ),
               ),
             ],
@@ -585,6 +639,8 @@ class _TrackingSheet extends StatelessWidget {
     required this.isSearching,
     required this.stages,
     required this.activeIndex,
+    required this.canChat,
+    required this.onChatTap,
   });
 
   final ScrollController scrollController;
@@ -594,6 +650,8 @@ class _TrackingSheet extends StatelessWidget {
   final bool isSearching;
   final List<OrderStatus> stages;
   final int activeIndex;
+  final bool canChat;
+  final VoidCallback? onChatTap;
 
   @override
   Widget build(BuildContext context) {
@@ -627,6 +685,28 @@ class _TrackingSheet extends StatelessWidget {
               ),
             ),
           ),
+          // Stage progress bar
+          if (!isSearching)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+              child: Row(
+                children: List.generate(stages.length, (i) {
+                  final filled = i <= activeIndex;
+                  return Expanded(
+                    child: Container(
+                      margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: filled
+                            ? statusAccent
+                            : LavifyTheme.borderColor(context),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
 
           // Status header
           Padding(
@@ -717,14 +797,39 @@ class _TrackingSheet extends StatelessWidget {
                       ),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: LavifyColors.primary.withAlpha(28),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: LavifyColors.primary,
-                          ),
+                        Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor:
+                                  LavifyColors.primary.withAlpha(28),
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: LavifyColors.primary,
+                                size: 26,
+                              ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 13,
+                                height: 13,
+                                decoration: BoxDecoration(
+                                  color: LavifyColors.success,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: LavifyTheme.overlayPanelColor(
+                                      context,
+                                    ),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -735,30 +840,82 @@ class _TrackingSheet extends StatelessWidget {
                                 order.assignedWasherName,
                                 style: TextStyle(
                                   color: LavifyTheme.textPrimaryColor(context),
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   fontSize: 15,
                                 ),
                               ),
-                              Text(
-                                order.assignedVehicleLabel,
-                                style: TextStyle(
-                                  color:
-                                      LavifyTheme.textSecondaryColor(context),
-                                  fontSize: 12,
-                                ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    color: Color(0xFFFFC857),
+                                    size: 13,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '4.9 · 128 lavados',
+                                    style: TextStyle(
+                                      color: LavifyTheme.textSecondaryColor(
+                                        context,
+                                      ),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: LavifyColors.primary.withAlpha(22),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Text(
+                                      'Verificado',
+                                      style: TextStyle(
+                                        color: LavifyColors.primary,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      order.assignedVehicleLabel,
+                                      style: TextStyle(
+                                        color: LavifyTheme.textSecondaryColor(
+                                          context,
+                                        ),
+                                        fontSize: 11,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
-                        Row(
-                          children: List.generate(
-                            3,
-                            (_) => const Icon(
-                              Icons.star_rounded,
-                              color: Color(0xFFFFC857),
-                              size: 14,
+                        const SizedBox(width: 8),
+                        Column(
+                          children: [
+                            _SheetActionBtn(
+                              icon: Icons.chat_bubble_outline_rounded,
+                              onTap: canChat ? onChatTap : null,
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            _SheetActionBtn(
+                              icon: Icons.phone_rounded,
+                              onTap: () {},
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -884,6 +1041,36 @@ class _TrackingSheet extends StatelessWidget {
 
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+}
+
+class _SheetActionBtn extends StatelessWidget {
+  const _SheetActionBtn({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: LavifyTheme.surfaceAltColor(context),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap != null
+              ? LavifyTheme.textPrimaryColor(context)
+              : LavifyTheme.textSecondaryColor(context),
+        ),
       ),
     );
   }

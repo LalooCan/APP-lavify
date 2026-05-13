@@ -43,40 +43,31 @@ class PackageCard extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: radius,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      isLight
-                          ? const Color(0x66D6B47B)
-                          : LavifyColors.primary.withAlpha(
-                              isPopular ? 130 : 95,
-                            ),
-                      isLight
-                          ? Colors.white.withAlpha(180)
-                          : Colors.white.withAlpha(28),
-                      isLight
-                          ? const Color(0x3A314664)
-                          : LavifyColors.primaryStrong.withAlpha(
-                              isPopular ? 100 : 60,
-                            ),
-                    ],
+                  color: isLight
+                      ? LavifyColors.lightSurface
+                      : LavifyColors.surface,
+                  border: Border.all(
+                    color: isPopular
+                        ? LavifyColors.primary.withAlpha(isLight ? 80 : 60)
+                        : (isLight
+                            ? LavifyColors.lightBorder
+                            : LavifyColors.border),
+                    width: isPopular ? 1.5 : 1,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: isLight
-                          ? const Color(0x221D2432)
-                          : Colors.black.withAlpha(40),
-                      blurRadius: 22,
-                      offset: const Offset(0, 14),
+                          ? const Color(0x12000000)
+                          : Colors.black.withAlpha(30),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
-                    BoxShadow(
-                      color: isLight
-                          ? const Color(0x14D6B47B)
-                          : LavifyColors.primary.withAlpha(isPopular ? 40 : 18),
-                      blurRadius: isPopular ? 24 : 18,
-                      spreadRadius: isPopular ? 1 : 0,
-                    ),
+                    if (isPopular)
+                      BoxShadow(
+                        color: LavifyColors.primary.withAlpha(isLight ? 20 : 30),
+                        blurRadius: 20,
+                        spreadRadius: 1,
+                      ),
                   ],
                 ),
                 padding: const EdgeInsets.all(1.2),
@@ -88,21 +79,8 @@ class PackageCard extends StatelessWidget {
                     isCompact ? 13 : 15,
                   ),
                   decoration: BoxDecoration(
-                    borderRadius: radius.subtract(
-                      const BorderRadius.all(Radius.circular(1.2)),
-                    ),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                          ? const [Color(0xFFFFFCF8), Color(0xFFF3ECE4)]
-                          : const [Color(0xDD13213A), Color(0xCC0D1528)],
-                    ),
-                    border: Border.all(
-                      color: isLight
-                          ? const Color(0x88D9C9B5)
-                          : Colors.white.withAlpha(18),
-                    ),
+                    borderRadius: radius,
+                    color: isLight ? Colors.white : LavifyColors.surfaceAlt,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,23 +96,7 @@ class PackageCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(
                                 isCompact ? 12 : 14,
                               ),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  isLight
-                                      ? const Color(0x22D6B47B)
-                                      : LavifyColors.primary.withAlpha(36),
-                                  isLight
-                                      ? Colors.white
-                                      : Colors.white.withAlpha(10),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: isLight
-                                    ? const Color(0x66D8C7B2)
-                                    : LavifyColors.primary.withAlpha(45),
-                              ),
+                              color: LavifyColors.primary.withAlpha(22),
                             ),
                             child: Icon(
                               package.icon,
@@ -151,15 +113,8 @@ class PackageCard extends StatelessWidget {
                               vertical: isCompact ? 5 : 6,
                             ),
                             decoration: BoxDecoration(
-                              color: isLight
-                                  ? const Color(0x66FFF8F1)
-                                  : Colors.white.withAlpha(8),
+                              color: LavifyColors.primarySoft,
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: isLight
-                                    ? const Color(0x77D8C8B4)
-                                    : LavifyColors.primary.withAlpha(52),
-                              ),
                             ),
                             child: Text(
                               package.priceLabel,
@@ -193,9 +148,7 @@ class PackageCard extends StatelessWidget {
                               package.formattedPrice,
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(
-                                    color: isLight
-                                        ? LavifyColors.lightNavyStrong
-                                        : Colors.white,
+                                    color: LavifyTheme.textPrimaryColor(context),
                                     fontSize: isCompact ? 33 : 36,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: -1.1,
@@ -256,27 +209,13 @@ class PackageCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      gradient: LinearGradient(
-                        colors: isLight
-                            ? const [Color(0xFFDCC08D), Color(0xFFF0D6A6)]
-                            : const [Color(0xFF7FE4FF), Color(0xFF4F8DFF)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isLight
-                              ? const Color(0x22D6B47B)
-                              : LavifyColors.primary.withAlpha(60),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                      color: LavifyColors.primary,
                     ),
-                    child: Text(
+                    child: const Text(
                       'MAS POPULAR',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: isLight
-                            ? LavifyColors.lightNavyStrong
-                            : const Color(0xFF081120),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.7,
                       ),

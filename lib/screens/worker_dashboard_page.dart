@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
-import '../services/chat_service.dart';
 import '../services/order_service.dart';
 import '../services/profile_service.dart';
 import '../services/worker_service.dart';
 import '../theme/theme.dart';
-import '../widgets/live_tracking_map.dart';
-import '../widgets/primary_button.dart';
-import '../widgets/secondary_button.dart';
-import 'chat_screen.dart';
-import 'worker_services_page.dart';
 import 'worker_verification_page.dart';
 
 class WorkerDashboardPage extends StatelessWidget {
@@ -22,187 +16,387 @@ class WorkerDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void handleToggleAvailability() {
-      final isAvailable = _workerService.isAvailable.value;
-      if (isAvailable && _orderService.hasActiveWorkerOrder) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No puedes pausar tu disponibilidad mientras tienes un servicio en curso.',
-            ),
-          ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: _workerService.isAvailable,
+      builder: (context, isOnline, _) {
+        return ValueListenableBuilder<List<WashOrder>>(
+          valueListenable: _orderService.orders,
+          builder: (context, orders, _) {
+            final available = orders
+                .where((o) => o.status == OrderStatus.searching)
+                .toList();
+            final completed = orders
+                .where((o) => o.status == OrderStatus.completed)
+                .toList();
+            final todayEarnings =
+                completed.fold<int>(0, (s, o) => s + o.request.totalPrice);
+            final stats = (
+              today: '\$${(todayEarnings * 0.85).round()}',
+              washes: '${completed.length}',
+              rating: '4.9',
+            );
+
+            return Scaffold(
+              body: Stack(
+                children: [
+                  // Map background
+                  Positioned.fill(child: _WorkerMapBg(isOnline: isOnline)),
+
+                  // Stats pills — below status bar
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 12,
+                    left: 16,
+                    right: 16,
+                    child: Row(
+                      children: [
+                        _StatPill(
+                          label: 'HOY',
+                          value: stats.today,
+                          valueColor: LavifyColors.success,
+                        ),
+                        const SizedBox(width: 8),
+                        _StatPill(
+                          label: 'LAVADOS',
+                          value: stats.washes,
+                        ),
+                        const SizedBox(width: 8),
+                        _StatPill(
+                          label: 'RATING',
+                          value: '★ ${stats.rating}',
+                          valueColor: LavifyColors.warning,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Draggable bottom sheet
+                  DraggableScrollableSheet(
+                    initialChildSize: 0.54,
+                    minChildSize: 0.34,
+                    maxChildSize: 0.88,
+                    snap: true,
+                    snapSizes: const [0.54, 0.88],
+                    builder: (ctx, sc) => _WorkerSheet(
+                      scrollController: sc,
+                      isOnline: isOnline,
+                      availableJobs: available,
+                      onToggle: () {
+                        if (isOnline && _orderService.hasActiveWorkerOrder) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'No puedes pausar con un servicio en curso.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        _workerService.toggleAvailability();
+                      },
+                    ),
+                  ),
+
+                  // Verification banner (floating at top when needed)
+                  ValueListenableBuilder<UserProfile>(
+                    valueListenable: _profileService.profile,
+                    builder: (context, profile, _) {
+                      if (profile.verificationStatus ==
+                          WorkerVerificationStatus.approved) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        top: MediaQuery.of(context).padding.top + 72,
+                        left: 16,
+                        right: 16,
+                        child: _FloatingVerificationBanner(
+                          profile: profile,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
         );
-        return;
-      }
+      },
+    );
+  }
+}
 
-      _workerService.toggleAvailability();
-    }
+// ── Map background ──────────────────────────────────────────────────────────
 
-    return Scaffold(
-      body: Container(
-        decoration: LavifyTheme.pageDecoration(context),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Panel del trabajador',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Consulta tu disponibilidad, servicios activos y avance del dia.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 24),
-                ValueListenableBuilder<UserProfile>(
-                  valueListenable: _profileService.profile,
-                  builder: (context, profile, _) {
-                    return _VerificationBanner(profile: profile);
-                  },
-                ),
-                ValueListenableBuilder<bool>(
-                  valueListenable: _workerService.isAvailable,
-                  builder: (context, isAvailable, _) {
-                    return _HeroCard(
-                      isAvailable: isAvailable,
-                      onToggleAvailability: handleToggleAvailability,
-                      onOpenServices: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const WorkerServicesPage(),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                ValueListenableBuilder<List<WashOrder>>(
-                  valueListenable: _orderService.orders,
-                  builder: (context, _, _) {
-                    final activeOrder = _orderService.activeWorkerOrder;
-                    if (activeOrder == null) {
-                      return const SizedBox.shrink();
-                    }
+class _WorkerMapBg extends StatefulWidget {
+  const _WorkerMapBg({required this.isOnline});
+  final bool isOnline;
 
-                    return _AcceptedJobPanel(
-                      order: activeOrder,
-                      onOpenServices: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const WorkerServicesPage(),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                ValueListenableBuilder<List<WashOrder>>(
-                  valueListenable: _orderService.orders,
-                  builder: (context, _, _) {
-                    final orders = _orderService.workerVisibleOrders;
-                    return _StatsRow(orders: orders);
-                  },
-                ),
-                const SizedBox(height: 20),
-                ValueListenableBuilder<List<WashOrder>>(
-                  valueListenable: _orderService.orders,
-                  builder: (context, _, _) {
-                    final orders = _orderService.workerVisibleOrders;
-                    return _AgendaCard(orders: orders);
-                  },
-                ),
-                const SizedBox(height: 20),
-                _EarningsCard(workerService: _workerService),
-              ],
+  @override
+  State<_WorkerMapBg> createState() => _WorkerMapBgState();
+}
+
+class _WorkerMapBgState extends State<_WorkerMapBg>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = LavifyTheme.isLight(context);
+    final pinColor =
+        widget.isOnline ? LavifyColors.success : LavifyColors.primary;
+
+    return Container(
+      color: isLight ? const Color(0xFFEDF2F7) : const Color(0xFF080A0E),
+      child: Stack(
+        children: [
+          // Static grid + roads
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _MapStaticPainter(
+                isLight: isLight,
+                isOnline: widget.isOnline,
+              ),
             ),
           ),
-        ),
+
+          // Animated pulse rings + demand dots
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _ctrl,
+              builder: (context, _) => CustomPaint(
+                painter: _MapAnimPainter(
+                  progress: _ctrl.value,
+                  isLight: isLight,
+                  isOnline: widget.isOnline,
+                ),
+              ),
+            ),
+          ),
+
+          // Location pin — centered in the visible map area (top ~46%)
+          Positioned.fill(
+            child: Align(
+              alignment: const Alignment(0, -0.22),
+              child: Icon(
+                Icons.location_on_rounded,
+                size: 44,
+                color: pinColor,
+                shadows: [
+                  Shadow(
+                    color: pinColor.withAlpha(100),
+                    blurRadius: 14,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _VerificationBanner extends StatelessWidget {
-  const _VerificationBanner({required this.profile});
-  final UserProfile profile;
+// Static elements: grid + road paths
+class _MapStaticPainter extends CustomPainter {
+  const _MapStaticPainter({required this.isLight, required this.isOnline});
+  final bool isLight;
+  final bool isOnline;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final gridColor = isLight
+        ? const Color(0x15314664)
+        : isOnline
+        ? const Color(0x133B82F6)
+        : const Color(0x0EFFFFFF);
+
+    // Grid
+    final grid = Paint()..color = gridColor..strokeWidth = 1;
+    for (double y = 44; y < size.height; y += 44) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    }
+    for (double x = 52; x < size.width; x += 52) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
+    }
+
+    // Roads
+    final roadColor = isLight
+        ? const Color(0x28314664)
+        : isOnline
+        ? const Color(0x2A3B82F6)
+        : const Color(0x15FFFFFF);
+
+    final road = Paint()
+      ..color = roadColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+
+    // Horizontal curved road
+    final r1 = Path()
+      ..moveTo(0, size.height * 0.30)
+      ..cubicTo(
+        size.width * 0.28, size.height * 0.26,
+        size.width * 0.60, size.height * 0.33,
+        size.width, size.height * 0.28,
+      );
+    canvas.drawPath(r1, road);
+
+    // Diagonal road bottom-left to upper-right
+    final r2 = Path()
+      ..moveTo(size.width * 0.02, size.height * 0.58)
+      ..cubicTo(
+        size.width * 0.22, size.height * 0.46,
+        size.width * 0.48, size.height * 0.38,
+        size.width * 0.72, size.height * 0.22,
+      );
+    canvas.drawPath(r2, road);
+
+    // Short cross-road
+    final cross = Paint()
+      ..color = roadColor.withValues(alpha: roadColor.a * 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(size.width * 0.40, size.height * 0.05),
+      Offset(size.width * 0.44, size.height * 0.48),
+      cross,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MapStaticPainter old) =>
+      old.isOnline != isOnline || old.isLight != isLight;
+}
+
+// Animated elements: pulse rings + demand dots
+class _MapAnimPainter extends CustomPainter {
+  const _MapAnimPainter({
+    required this.progress,
+    required this.isLight,
+    required this.isOnline,
+  });
+  final double progress;
+  final bool isLight;
+  final bool isOnline;
+
+  static const _demands = [
+    (-0.28, -0.08, 0xFFF59E0B), // warning
+    (0.22, 0.06, 0xFF10B981),   // success
+    (-0.06, -0.16, 0xFF3B82F6), // primary
+    (0.34, -0.10, 0xFFF59E0B),  // warning
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Center of visible map (top 46% of screen)
+    final cx = size.width * 0.5;
+    final cy = size.height * 0.20;
+
+    if (isOnline) {
+      // Demand dots with glow
+      for (final (dx, dy, colorVal) in _demands) {
+        final pos = Offset(cx + size.width * dx, cy + size.height * dy);
+        final c = Color(0xFF000000 | colorVal);
+        canvas.drawCircle(
+          pos, 6,
+          Paint()
+            ..color = c.withValues(alpha: 50 / 255)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        );
+        canvas.drawCircle(pos, 5, Paint()..color = c.withValues(alpha: 210 / 255));
+        canvas.drawCircle(pos, 2, Paint()..color = Colors.white.withValues(alpha: 0.78));
+      }
+    }
+
+    // Pulse rings
+    final ringColor = isOnline ? LavifyColors.success : LavifyColors.primary;
+    for (final offset in [0.0, 0.5]) {
+      final p = (progress + offset) % 1.0;
+      final r = 36 + p * 90;
+      final ringAlpha = ((1 - p) * (isOnline ? 0.55 : 0.32)).clamp(0.0, 1.0);
+      canvas.drawCircle(
+        Offset(cx, cy),
+        r,
+        Paint()
+          ..color = ringColor.withValues(alpha: ringAlpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MapAnimPainter old) =>
+      old.progress != progress ||
+      old.isOnline != isOnline ||
+      old.isLight != isLight;
+}
+
+// ── Stats pill ───────────────────────────────────────────────────────────────
+
+class _StatPill extends StatelessWidget {
+  const _StatPill({required this.label, required this.value, this.valueColor});
+  final String label;
+  final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
-    final status = profile.verificationStatus;
-    if (status == WorkerVerificationStatus.approved) return const SizedBox.shrink();
-
-    final (icon, title, subtitle, accent, showButton) = switch (status) {
-      WorkerVerificationStatus.pending => (
-          Icons.hourglass_top_rounded,
-          'Verificación en revisión',
-          'Revisaremos tu solicitud en 2-3 días hábiles.',
-          LavifyColors.primary,
-          false,
-        ),
-      WorkerVerificationStatus.rejected => (
-          Icons.cancel_outlined,
-          'Verificación rechazada',
-          'Vuelve a enviar tu solicitud con los datos correctos.',
-          const Color(0xFFFF6B6B),
-          true,
-        ),
-      _ => (
-          Icons.verified_outlined,
-          'Completa tu verificación',
-          'Verificarte aumenta tu visibilidad con los clientes.',
-          LavifyColors.primary,
-          true,
-        ),
-    };
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+    return Expanded(
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: accent.withAlpha(18),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: accent.withAlpha(60)),
+          color: LavifyTheme.isLight(context)
+              ? Colors.white.withAlpha(220)
+              : LavifyColors.backgroundSoft,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: LavifyTheme.borderColor(context)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(40),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: accent, size: 28),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: LavifyTheme.textPrimaryColor(context),
-                        ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+            Text(
+              label,
+              style: TextStyle(
+                color: LavifyTheme.textSecondaryColor(context),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
               ),
             ),
-            if (showButton) ...[
-              const SizedBox(width: 10),
-              TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => WorkerVerificationPage(profile: profile),
-                  ),
-                ),
-                child: const Text('Verificar'),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? LavifyTheme.textPrimaryColor(context),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                height: 1,
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -210,656 +404,215 @@ class _VerificationBanner extends StatelessWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({
-    required this.isAvailable,
-    required this.onToggleAvailability,
-    required this.onOpenServices,
+// ── Bottom sheet ─────────────────────────────────────────────────────────────
+
+class _WorkerSheet extends StatelessWidget {
+  const _WorkerSheet({
+    required this.scrollController,
+    required this.isOnline,
+    required this.availableJobs,
+    required this.onToggle,
   });
 
-  final bool isAvailable;
-  final VoidCallback onToggleAvailability;
-  final VoidCallback onOpenServices;
+  final ScrollController scrollController;
+  final bool isOnline;
+  final List<WashOrder> availableJobs;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: LavifyTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: LinearGradient(
-                    colors: isAvailable
-                        ? const [LavifyColors.success, Color(0xFF3BE28F)]
-                        : const [
-                            LavifyColors.primaryStrong,
-                            LavifyColors.primary,
-                          ],
-                  ),
-                ),
-                child: const Icon(
-                  Icons.local_car_wash_rounded,
-                  color: LavifyColors.textPrimary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isAvailable
-                          ? 'Disponible para tomar servicios'
-                          : 'Disponibilidad pausada',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isAvailable
-                          ? 'Ya puedes aceptar nuevas solicitudes desde la seccion de servicios.'
-                          : 'Activa tu disponibilidad para empezar a recibir trabajo.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              PrimaryButton(
-                label: isAvailable
-                    ? 'Pausar disponibilidad'
-                    : 'Activar disponibilidad',
-                icon: isAvailable
-                    ? Icons.pause_circle_outline_rounded
-                    : Icons.play_circle_outline_rounded,
-                onPressed: onToggleAvailability,
-              ),
-              SecondaryButton(
-                label: 'Ver servicios',
-                icon: Icons.schedule_rounded,
-                onPressed: onOpenServices,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AcceptedJobPanel extends StatelessWidget {
-  const _AcceptedJobPanel({required this.order, required this.onOpenServices});
-
-  final WashOrder order;
-  final VoidCallback onOpenServices;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = _statusColor(order.status);
-    final progressLabel = _progressLabel(order);
-    final helperLabel = _helperLabel(order);
-    final etaLabel = order.etaMinutes > 0
-        ? '${order.etaMinutes} min'
-        : order.status == OrderStatus.arrived
-        ? 'En sitio'
-        : order.status == OrderStatus.inProgress
-        ? 'En proceso'
-        : 'Sin ETA';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: LavifyTheme.overlayPanelColor(context),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
+        color: LavifyTheme.isLight(context)
+            ? Colors.white
+            : LavifyColors.backgroundSoft,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x16000000),
-            blurRadius: 24,
-            offset: Offset(0, 14),
+            color: Color(0x55000000),
+            blurRadius: 40,
+            offset: Offset(0, -12),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
+        controller: scrollController,
+        padding: EdgeInsets.zero,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [LavifyColors.primaryStrong, LavifyColors.primary],
-                  ),
-                ),
-                child: const Icon(Icons.route_rounded, color: Colors.white),
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: LavifyTheme.borderColor(context),
+                borderRadius: BorderRadius.circular(999),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Trabajo aceptado',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      helperLabel,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              _StatusBadge(label: progressLabel, color: accent),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: LavifyTheme.surfaceAltColor(context),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: LavifyTheme.borderColor(context)),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 180,
-                  child: LiveTrackingMap(
-                    order: order,
-                    compact: true,
-                    borderRadius: 20,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  order.request.packageName,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  order.request.address,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyTheme.textPrimaryColor(context),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _InfoPill(
-                      icon: Icons.schedule_rounded,
-                      label: order.request.scheduleLabel,
-                    ),
-                    _InfoPill(
-                      icon: Icons.directions_car_filled_rounded,
-                      label: order.request.vehicleTypeName,
-                    ),
-                    _InfoPill(
-                      icon: Icons.timer_rounded,
-                      label: etaLabel,
-                      accent: accent,
-                    ),
-                  ],
-                ),
+                _SlideToGoOnline(isOnline: isOnline, onToggle: onToggle),
+                const SizedBox(height: 18),
+                if (!isOnline) _OfflineContent() else _OnlineContent(jobs: availableJobs),
               ],
             ),
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Total del servicio: \$${order.request.totalPrice} ${order.request.currency}',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: LavifyTheme.textPrimaryColor(context),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 220,
-                child: PrimaryButton(
-                  label: 'Abrir panel del servicio',
-                  icon: Icons.open_in_new_rounded,
-                  onPressed: onOpenServices,
-                  isExpanded: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (ChatService().canChat(order, ProfileService().profile.value))
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ChatScreen(order: order),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Slide to go online ───────────────────────────────────────────────────────
+
+class _SlideToGoOnline extends StatefulWidget {
+  const _SlideToGoOnline({required this.isOnline, required this.onToggle});
+  final bool isOnline;
+  final VoidCallback onToggle;
+
+  @override
+  State<_SlideToGoOnline> createState() => _SlideToGoOnlineState();
+}
+
+class _SlideToGoOnlineState extends State<_SlideToGoOnline> {
+  double _dragX = 0;
+  bool _dragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final trackWidth = constraints.maxWidth;
+        const thumbSize = 56.0;
+        final maxDx = trackWidth - thumbSize - 8;
+
+        return GestureDetector(
+          onHorizontalDragStart: (_) => setState(() {
+            _dragging = true;
+          }),
+          onHorizontalDragUpdate: (d) => setState(() {
+            _dragX = (_dragX + d.delta.dx).clamp(0, maxDx);
+          }),
+          onHorizontalDragEnd: (_) {
+            if (_dragX > maxDx * 0.7 && !widget.isOnline) {
+              widget.onToggle();
+            }
+            setState(() {
+              _dragX = 0;
+              _dragging = false;
+            });
+          },
+          child: Container(
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: widget.isOnline
+                  ? null
+                  : const LinearGradient(
+                      colors: [
+                        LavifyColors.primaryStrong,
+                        LavifyColors.primary,
+                      ],
+                    ),
+              color: widget.isOnline
+                  ? LavifyColors.success.withAlpha(34)
+                  : null,
+              borderRadius: BorderRadius.circular(999),
+              border: widget.isOnline
+                  ? Border.all(color: LavifyColors.success.withAlpha(80))
+                  : null,
+              boxShadow: widget.isOnline
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: LavifyColors.primaryGlow,
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Center(
+                    child: AnimatedOpacity(
+                      opacity: _dragging ? 0.4 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.isOnline) ...[
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: LavifyColors.success,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            widget.isOnline
+                                ? 'En línea · toca para terminar turno'
+                                : 'Desliza para empezar →',
+                            style: TextStyle(
+                              color: widget.isOnline
+                                  ? LavifyColors.success
+                                  : Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    icon: const Icon(Icons.chat_outlined, size: 18),
-                    label: const Text('Chat con cliente'),
                   ),
                 ),
-              if (ChatService().canChat(order, ProfileService().profile.value) &&
-                  order.status == OrderStatus.assigned)
-                const SizedBox(width: 12),
-              if (order.status == OrderStatus.assigned)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => _CancelWorkerOrderDialog(order: order),
-                    ),
-                    icon: const Icon(
-                      Icons.cancel_outlined,
-                      size: 18,
-                      color: Color(0xFFFF6B6B),
-                    ),
-                    label: const Text(
-                      'Cancelar',
-                      style: TextStyle(color: Color(0xFFFF6B6B)),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Color _statusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.searching:
-        return const Color(0xFFFFC857);
-      case OrderStatus.assigned:
-      case OrderStatus.onTheWay:
-        return LavifyColors.primary;
-      case OrderStatus.arrived:
-      case OrderStatus.inProgress:
-        return const Color(0xFF9B7BFF);
-      case OrderStatus.completed:
-        return LavifyColors.success;
-      case OrderStatus.cancelled:
-        return const Color(0xFFFF6B6B);
-    }
-  }
-
-  static String _progressLabel(WashOrder order) {
-    switch (order.status) {
-      case OrderStatus.assigned:
-        return 'Preparando salida';
-      case OrderStatus.onTheWay:
-        return 'En camino';
-      case OrderStatus.arrived:
-        return 'Ya llegaste';
-      case OrderStatus.inProgress:
-        return 'Lavando';
-      case OrderStatus.completed:
-        return 'Completado';
-      case OrderStatus.searching:
-        return 'Disponible';
-      case OrderStatus.cancelled:
-        return 'Cancelado';
-    }
-  }
-
-  static String _helperLabel(WashOrder order) {
-    switch (order.status) {
-      case OrderStatus.assigned:
-        return 'Confirma ruta y sal a tiempo al punto del servicio.';
-      case OrderStatus.onTheWay:
-        return 'Manten actualizado el avance mientras vas al cliente.';
-      case OrderStatus.arrived:
-        return 'Marca inicio cuando estes listo para comenzar el lavado.';
-      case OrderStatus.inProgress:
-        return 'Sigue el servicio y completa el trabajo al terminar.';
-      case OrderStatus.completed:
-        return 'Este servicio ya quedo terminado.';
-      case OrderStatus.searching:
-        return 'Aun no hay un trabajo tomado.';
-      case OrderStatus.cancelled:
-        return 'Este servicio fue cancelado.';
-    }
-  }
-}
-
-class _CancelWorkerOrderDialog extends StatefulWidget {
-  const _CancelWorkerOrderDialog({required this.order});
-  final WashOrder order;
-
-  @override
-  State<_CancelWorkerOrderDialog> createState() =>
-      _CancelWorkerOrderDialogState();
-}
-
-class _CancelWorkerOrderDialogState extends State<_CancelWorkerOrderDialog> {
-  static final _orderService = OrderService();
-  bool _loading = false;
-
-  Future<void> _cancel() async {
-    setState(() => _loading = true);
-    await _orderService.cancelOrder(widget.order.id);
-    if (mounted) Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Cancelar servicio'),
-      content: const Text(
-        '¿Seguro que quieres cancelar este servicio? El pedido volverá al estado de búsqueda.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.of(context).pop(),
-          child: const Text('No, continuar'),
-        ),
-        TextButton(
-          onPressed: _loading ? null : _cancel,
-          child: _loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text(
-                  'Sí, cancelar',
-                  style: TextStyle(color: Color(0xFFFF6B6B)),
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.orders});
-
-  final List<WashOrder> orders;
-
-  @override
-  Widget build(BuildContext context) {
-    final activeOrders = orders
-        .where((order) =>
-            order.status != OrderStatus.completed &&
-            order.status != OrderStatus.cancelled)
-        .length;
-    final pendingPickup = orders
-        .where((order) => order.status == OrderStatus.searching)
-        .length;
-    final completedOrders = orders
-        .where((order) => order.status == OrderStatus.completed)
-        .length;
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        _StatCard(
-          title: '$activeOrders',
-          subtitle: 'Servicios activos',
-          icon: Icons.local_shipping_rounded,
-        ),
-        _StatCard(
-          title: '$pendingPickup',
-          subtitle: 'Por aceptar',
-          icon: Icons.notifications_active_rounded,
-        ),
-        _StatCard(
-          title: '$completedOrders',
-          subtitle: 'Completados',
-          icon: Icons.task_alt_rounded,
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withAlpha(28),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.icon, required this.label, this.accent});
-
-  final IconData icon;
-  final String label;
-  final Color? accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final resolvedAccent = accent ?? LavifyColors.primary;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: LavifyTheme.softFillStrongColor(context),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: resolvedAccent),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: LavifyTheme.textPrimaryColor(context),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: LavifyTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: LavifyColors.primary),
-          const SizedBox(height: 16),
-          Text(title, style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 6),
-          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-        ],
-      ),
-    );
-  }
-}
-
-class _AgendaCard extends StatelessWidget {
-  const _AgendaCard({required this.orders});
-
-  final List<WashOrder> orders;
-
-  @override
-  Widget build(BuildContext context) {
-    final visibleOrders = orders.take(3).toList();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: LavifyTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Agenda visible', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 18),
-          if (visibleOrders.isEmpty)
-            Text(
-              'Cuando aceptes servicios, aqui veras tus proximos trabajos.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            )
-          else
-            ...visibleOrders.map(
-              (order) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _AgendaItem(order: order),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EarningsCard extends StatelessWidget {
-  const _EarningsCard({required this.workerService});
-
-  final WorkerService workerService;
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<Map<String, dynamic>>(
-      stream: workerService.watchEarnings(),
-      builder: (context, snapshot) {
-        final data = snapshot.data ?? const {};
-        final totalEarnings = (data['totalEarnings'] as num?)?.toDouble() ?? 0;
-        final completedCount =
-            (data['completedServicesCount'] as num?)?.toInt() ?? 0;
-        final avgTicket =
-            completedCount > 0 ? totalEarnings / completedCount : 0.0;
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: LavifyTheme.surfaceColor(context),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: LavifyTheme.borderColor(context)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0x1A28D17C),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.payments_rounded,
-                      color: LavifyColors.success,
+                AnimatedPositioned(
+                  duration: _dragging
+                      ? Duration.zero
+                      : const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  top: 4,
+                  left: 4 + _dragX,
+                  child: GestureDetector(
+                    onTap: widget.isOnline ? widget.onToggle : null,
+                    child: Container(
+                      width: thumbSize,
+                      height: thumbSize,
+                      decoration: BoxDecoration(
+                        color: widget.isOnline
+                            ? LavifyColors.success
+                            : Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x40000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        widget.isOnline
+                            ? Icons.check_rounded
+                            : Icons.arrow_forward_rounded,
+                        color: widget.isOnline
+                            ? Colors.white
+                            : LavifyColors.primary,
+                        size: 22,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Text(
-                    'Mis ganancias',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  _EarningsStat(
-                    label: 'Total acumulado',
-                    value: '\$${totalEarnings.toStringAsFixed(0)} MXN',
-                    icon: Icons.account_balance_wallet_rounded,
-                    accent: LavifyColors.success,
-                  ),
-                  _EarningsStat(
-                    label: 'Servicios completados',
-                    value: '$completedCount',
-                    icon: Icons.task_alt_rounded,
-                    accent: LavifyColors.primary,
-                  ),
-                  _EarningsStat(
-                    label: 'Ticket promedio',
-                    value: '\$${avgTicket.toStringAsFixed(0)} MXN',
-                    icon: Icons.trending_up_rounded,
-                    accent: const Color(0xFF9B7BFF),
-                  ),
-                ],
-              ),
-              if (completedCount == 0) ...[
-                const SizedBox(height: 14),
-                Text(
-                  'Completa servicios para ver tus ganancias acumuladas aquí.',
-                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
-            ],
+            ),
           ),
         );
       },
@@ -867,98 +620,107 @@ class _EarningsCard extends StatelessWidget {
   }
 }
 
-class _EarningsStat extends StatelessWidget {
-  const _EarningsStat({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.accent,
-  });
+// ── Offline content ──────────────────────────────────────────────────────────
 
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color accent;
-
+class _OfflineContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 190,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: LavifyTheme.softFillStrongColor(context),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: accent, size: 22),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: LavifyTheme.textPrimaryColor(context),
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
-        ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: LavifyColors.primarySoft,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.local_car_wash_rounded,
+                color: LavifyColors.primary,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Estás fuera de turno',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: LavifyTheme.textPrimaryColor(context),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Inicia tu turno para empezar a recibir solicitudes en tu zona.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: LavifyTheme.textSecondaryColor(context),
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _HotZoneCard(),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _AgendaItem extends StatelessWidget {
-  const _AgendaItem({required this.order});
-
-  final WashOrder order;
-
+class _HotZoneCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: LavifyTheme.softFillStrongColor(context),
-        borderRadius: BorderRadius.circular(20),
+        color: LavifyTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: LavifyTheme.borderColor(context)),
       ),
       child: Row(
         children: [
           Container(
-            width: 58,
-            height: 58,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: const Color(0x1A22C1FF),
-              borderRadius: BorderRadius.circular(18),
+              color: LavifyColors.warning.withValues(alpha: 0.13),
+              borderRadius: BorderRadius.circular(11),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              order.request.scheduleLabel.split(' - ').last,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: LavifyTheme.textPrimaryColor(context),
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
+            child: const Icon(
+              Icons.local_fire_department_rounded,
+              size: 16,
+              color: LavifyColors.warning,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${order.request.packageName} en ${order.request.address}',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  'Zona caliente en Roma Norte',
+                  style: TextStyle(
                     color: LavifyTheme.textPrimaryColor(context),
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  '${order.request.vehicleTypeName} · ${order.status.label}',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  '5 solicitudes en 30 min · +15% tarifa',
+                  style: TextStyle(
+                    color: LavifyTheme.textSecondaryColor(context),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -968,3 +730,280 @@ class _AgendaItem extends StatelessWidget {
     );
   }
 }
+
+// ── Online content (available jobs) ─────────────────────────────────────────
+
+class _OnlineContent extends StatelessWidget {
+  const _OnlineContent({required this.jobs});
+  final List<WashOrder> jobs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (jobs.isEmpty) {
+      return _NoJobsCard();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Jobs cerca de ti',
+              style: TextStyle(
+                color: LavifyTheme.textPrimaryColor(context),
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${jobs.length} disponibles',
+              style: TextStyle(
+                color: LavifyTheme.textSecondaryColor(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...jobs.map(
+          (j) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _JobCard(order: j),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NoJobsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: LavifyTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.search_rounded,
+            color: LavifyColors.primary,
+            size: 28,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Buscando solicitudes…',
+            style: TextStyle(
+              color: LavifyTheme.textPrimaryColor(context),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Te notificaremos en cuanto haya un job cerca.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: LavifyTheme.textSecondaryColor(context),
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JobCard extends StatelessWidget {
+  const _JobCard({required this.order});
+  final WashOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {},
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: LavifyTheme.surfaceColor(context),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: LavifyTheme.borderColor(context)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: LavifyColors.primarySoft,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.local_car_wash_rounded,
+                  size: 20,
+                  color: LavifyColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          order.request.packageName,
+                          style: TextStyle(
+                            color: LavifyTheme.textPrimaryColor(context),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: LavifyTheme.surfaceAltColor(context),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            order.request.vehicleTypeName,
+                            style: TextStyle(
+                              color: LavifyTheme.textSecondaryColor(context),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      order.request.address,
+                      style: TextStyle(
+                        color: LavifyTheme.textSecondaryColor(context),
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${order.etaMinutes} min · ${order.request.scheduleLabel}',
+                      style: TextStyle(
+                        color: LavifyTheme.textSecondaryColor(context)
+                            .withAlpha(150),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '\$${order.request.totalPrice}',
+                style: const TextStyle(
+                  color: LavifyColors.success,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Floating verification banner ─────────────────────────────────────────────
+
+class _FloatingVerificationBanner extends StatelessWidget {
+  const _FloatingVerificationBanner({required this.profile});
+  final UserProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = profile.verificationStatus;
+    final (accent, icon, title) = switch (status) {
+      WorkerVerificationStatus.pending => (
+          LavifyColors.primary,
+          Icons.hourglass_top_rounded,
+          'Verificación en revisión',
+        ),
+      WorkerVerificationStatus.rejected => (
+          LavifyColors.danger,
+          Icons.cancel_outlined,
+          'Verificación rechazada',
+        ),
+      _ => (
+          LavifyColors.primary,
+          Icons.verified_outlined,
+          'Completa tu verificación',
+        ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: BoxDecoration(
+        color: LavifyTheme.overlayPanelColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withAlpha(60)),
+        boxShadow: LavifyTheme.panelShadow(context),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: accent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: LavifyTheme.textPrimaryColor(context),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (status != WorkerVerificationStatus.pending)
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => WorkerVerificationPage(profile: profile),
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Verificar',
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+

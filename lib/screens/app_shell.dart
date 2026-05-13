@@ -5,7 +5,8 @@ import 'package:lavify_app/screens/home_page.dart';
 import 'package:lavify_app/screens/orders_page.dart';
 import 'package:lavify_app/screens/profile_hub_page.dart';
 import 'package:lavify_app/screens/worker_dashboard_page.dart';
-import 'package:lavify_app/screens/worker_services_page.dart';
+import 'package:lavify_app/screens/worker_earnings_page.dart';
+import 'package:lavify_app/screens/worker_history_page.dart';
 import 'package:lavify_app/theme/theme.dart';
 
 class AppShell extends StatefulWidget {
@@ -35,7 +36,8 @@ class _AppShellState extends State<AppShell> {
           ]
         : <Widget>[
             const WorkerDashboardPage(),
-            const WorkerServicesPage(),
+            const WorkerEarningsPage(),
+            const WorkerHistoryPage(),
             const ProfileHubPage(mode: AppRole.worker),
           ];
 
@@ -59,19 +61,24 @@ class _AppShellState extends State<AppShell> {
           ]
         : const [
             NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded),
-              label: 'Panel',
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Inicio',
             ),
             NavigationDestination(
-              icon: Icon(Icons.local_car_wash_outlined),
-              selectedIcon: Icon(Icons.local_car_wash_rounded),
-              label: 'Servicios',
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: Icon(Icons.account_balance_wallet_rounded),
+              label: 'Dinero',
             ),
             NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings_rounded),
-              label: 'Config',
+              icon: Icon(Icons.history_rounded),
+              selectedIcon: Icon(Icons.history_rounded),
+              label: 'Trabajos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Perfil',
             ),
           ];
 

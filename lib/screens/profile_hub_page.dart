@@ -27,7 +27,7 @@ class ProfileHubPage extends StatefulWidget {
 class _ProfileHubPageState extends State<ProfileHubPage> {
   static final _profileService = ProfileService();
   static final _sessionService = SessionService();
-  static final _themeService = ThemeService();
+
   static final _authService = AuthService();
   static final _workerService = WorkerService();
   static final _reviewService = ReviewService();
@@ -217,7 +217,6 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             profile: profile,
                             stats: stats,
                             mode: mode,
-                            isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
                             onUploadPhoto: () =>
@@ -257,7 +256,6 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             ),
                             onChangePassword: () =>
                                 _showChangePasswordDialog(context),
-                            onToggleTheme: _themeService.toggleBrightness,
                             onLogout: () => _handleLogout(context),
                             extraItems: _buildExtraItems(context, profile),
                           )
@@ -265,7 +263,6 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             profile: profile,
                             stats: stats,
                             mode: mode,
-                            isLightMode: _themeService.isLightMode,
                             onEditProfile: () =>
                                 _showEditProfileDialog(context, profile),
                             onUploadPhoto: () =>
@@ -305,7 +302,6 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             ),
                             onChangePassword: () =>
                                 _showChangePasswordDialog(context),
-                            onToggleTheme: _themeService.toggleBrightness,
                             onLogout: () => _handleLogout(context),
                             extraItems: _buildExtraItems(context, profile),
                           ),
@@ -539,14 +535,12 @@ class _MobileProfileLayout extends StatelessWidget {
     required this.profile,
     required this.stats,
     required this.mode,
-    required this.isLightMode,
     required this.onEditProfile,
     required this.onUploadPhoto,
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
     required this.onChangePassword,
-    required this.onToggleTheme,
     required this.onLogout,
     required this.extraItems,
   });
@@ -554,14 +548,12 @@ class _MobileProfileLayout extends StatelessWidget {
   final UserProfile profile;
   final List<_ProfileStat> stats;
   final AppRole mode;
-  final bool isLightMode;
   final VoidCallback onEditProfile;
   final VoidCallback onUploadPhoto;
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
   final VoidCallback onChangePassword;
-  final ValueChanged<bool> onToggleTheme;
   final VoidCallback onLogout;
   final List<_ProfileMenuItem> extraItems;
 
@@ -641,10 +633,7 @@ class _MobileProfileLayout extends StatelessWidget {
           _ProfileSection(title: 'Más', items: extraItems),
         ],
         const SizedBox(height: 22),
-        _ThemePreferenceTile(
-          isLightMode: isLightMode,
-          onChanged: onToggleTheme,
-        ),
+        const _ThemePreferenceTile(),
         const SizedBox(height: 22),
         _DangerButton(label: 'Cerrar sesion', onTap: onLogout),
       ],
@@ -657,14 +646,12 @@ class _DesktopProfileLayout extends StatelessWidget {
     required this.profile,
     required this.stats,
     required this.mode,
-    required this.isLightMode,
     required this.onEditProfile,
     required this.onUploadPhoto,
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
     required this.onChangePassword,
-    required this.onToggleTheme,
     required this.onLogout,
     required this.extraItems,
   });
@@ -672,14 +659,12 @@ class _DesktopProfileLayout extends StatelessWidget {
   final UserProfile profile;
   final List<_ProfileStat> stats;
   final AppRole mode;
-  final bool isLightMode;
   final VoidCallback onEditProfile;
   final VoidCallback onUploadPhoto;
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
   final VoidCallback onChangePassword;
-  final ValueChanged<bool> onToggleTheme;
   final VoidCallback onLogout;
   final List<_ProfileMenuItem> extraItems;
 
@@ -714,10 +699,7 @@ class _DesktopProfileLayout extends StatelessWidget {
                     .toList(),
               ),
               const SizedBox(height: 20),
-              _ThemePreferenceTile(
-                isLightMode: isLightMode,
-                onChanged: onToggleTheme,
-              ),
+              const _ThemePreferenceTile(),
             ],
           ),
         ),
@@ -1128,78 +1110,157 @@ class _ProfileRow extends StatelessWidget {
 }
 
 class _ThemePreferenceTile extends StatelessWidget {
-  const _ThemePreferenceTile({
-    required this.isLightMode,
-    required this.onChanged,
-  });
-
-  final bool isLightMode;
-  final ValueChanged<bool> onChanged;
+  const _ThemePreferenceTile();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'PREFERENCIAS',
-          style: TextStyle(
-            color: _profileTextSecondaryColor(context),
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.7,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: _profileSurfaceColor(context),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _profileBorderColor(context)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: const Color(0x146AA8FF),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(
-                    isLightMode
-                        ? Icons.light_mode_rounded
-                        : Icons.dark_mode_rounded,
-                    size: 16,
-                    color: LavifyColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Modo claro',
-                    style: TextStyle(
-                      color: _profileTextPrimaryColor(context),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Switch(
-                  value: isLightMode,
-                  onChanged: onChanged,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: _profileAccentColor(context),
-                  inactiveThumbColor: _profileTextSecondaryColor(context),
-                  inactiveTrackColor: _profileSurfaceAltColor(context),
-                ),
-              ],
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeService().themeMode,
+      builder: (context, mode, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'PREFERENCIAS',
+              style: TextStyle(
+                color: _profileTextSecondaryColor(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.7,
+              ),
             ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: _profileSurfaceColor(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _profileBorderColor(context)),
+              ),
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: LavifyColors.primarySoft,
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Icon(
+                          mode == ThemeMode.light
+                              ? Icons.light_mode_rounded
+                              : mode == ThemeMode.system
+                              ? Icons.brightness_auto_rounded
+                              : Icons.dark_mode_rounded,
+                          size: 16,
+                          color: LavifyColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Apariencia',
+                        style: TextStyle(
+                          color: _profileTextPrimaryColor(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _ThemeModeBtn(
+                        label: 'Auto',
+                        icon: Icons.brightness_auto_rounded,
+                        selected: mode == ThemeMode.system,
+                        onTap: () =>
+                            ThemeService().setThemeMode(ThemeMode.system),
+                      ),
+                      const SizedBox(width: 8),
+                      _ThemeModeBtn(
+                        label: 'Oscuro',
+                        icon: Icons.dark_mode_rounded,
+                        selected: mode == ThemeMode.dark,
+                        onTap: () =>
+                            ThemeService().setThemeMode(ThemeMode.dark),
+                      ),
+                      const SizedBox(width: 8),
+                      _ThemeModeBtn(
+                        label: 'Claro',
+                        icon: Icons.light_mode_rounded,
+                        selected: mode == ThemeMode.light,
+                        onTap: () =>
+                            ThemeService().setThemeMode(ThemeMode.light),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ThemeModeBtn extends StatelessWidget {
+  const _ThemeModeBtn({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? LavifyColors.primary : _profileSurfaceAltColor(context),
+            borderRadius: BorderRadius.circular(12),
+            border: selected
+                ? null
+                : Border.all(color: _profileBorderColor(context)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected
+                    ? Colors.white
+                    : _profileTextSecondaryColor(context),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected
+                      ? Colors.white
+                      : _profileTextSecondaryColor(context),
+                  fontSize: 11,
+                  fontWeight:
+                      selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -225,6 +225,33 @@ class AuthService {
     }
 
     final doc = _profilesCollection.doc(current.uid);
+
+    // Lee la cache offline de Firestore primero (disponible desde el 2do login).
+    // Retorna casi al instante y sincroniza el servidor en background.
+    try {
+      final cached = await doc.get(const GetOptions(source: Source.cache));
+      if (cached.exists) {
+        final data = cached.data()!;
+        final updates = _profileUpdatesForExisting(
+          existing: data,
+          user: current,
+          fallbackRole: fallbackRole,
+          displayName: displayName,
+        );
+        unawaited(_syncProfileFromServer(
+          doc: doc,
+          user: current,
+          fallbackRole: fallbackRole,
+          displayName: displayName,
+        ));
+        return UserProfile.fromMap(
+          updates.isEmpty ? data : {...data, ...updates},
+        );
+      }
+    } catch (_) {
+      // Sin cache local — cae al fetch de servidor abajo.
+    }
+
     final snapshot = await doc.get();
     final data = snapshot.data();
 
@@ -246,13 +273,37 @@ class AuthService {
       return UserProfile.fromMap(data);
     }
 
-    // Persiste los cambios en background: no bloquea el flujo de login.
     unawaited(doc.set({
       ...updates,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true)));
 
     return UserProfile.fromMap({...data, ...updates});
+  }
+
+  Future<void> _syncProfileFromServer({
+    required DocumentReference<Map<String, dynamic>> doc,
+    required User user,
+    required AppRole fallbackRole,
+    String? displayName,
+  }) async {
+    try {
+      final snapshot = await doc.get(const GetOptions(source: Source.server));
+      if (!snapshot.exists) return;
+      final data = snapshot.data()!;
+      final updates = _profileUpdatesForExisting(
+        existing: data,
+        user: user,
+        fallbackRole: fallbackRole,
+        displayName: displayName,
+      );
+      if (updates.isNotEmpty) {
+        unawaited(doc.set({
+          ...updates,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true)));
+      }
+    } catch (_) {}
   }
 
   Future<void> sendPasswordResetEmail(String email) {

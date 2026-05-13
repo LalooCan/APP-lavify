@@ -37,20 +37,9 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
     return Scaffold(
       backgroundColor: _flowBackgroundColor(context),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0.75, -0.95),
-            radius: 1.18,
-            colors: isLight
-                ? const [Color(0x24D6B47B), LavifyColors.lightBackground]
-                : const [Color(0x183D7BFF), LavifyColors.background],
-          ),
-        ),
-        child: SafeArea(
+      body: SafeArea(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
@@ -107,7 +96,6 @@ class _RequestWashFlowPageState extends State<RequestWashFlowPage> {
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -316,16 +304,9 @@ class _PackageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Ink(
           decoration: BoxDecoration(
-            color: selected ? null : _flowSurfaceColor(context),
-            gradient: selected
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: LavifyTheme.isLight(context)
-                        ? const [Color(0x22314664), Color(0x18D6B47B)]
-                        : const [Color(0x243D7BFF), Color(0x146AA8FF)],
-                  )
-                : null,
+            color: selected
+                ? _flowSelectedColor(context)
+                : _flowSurfaceColor(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: selected ? accent : _flowBorderColor(context),
@@ -534,8 +515,8 @@ class _LocationVehicleStepState extends State<_LocationVehicleStep> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _RequestSectionTitle(
-              title: 'Confirma ubicacion',
-              subtitle: 'Donde esta tu auto ahora mismo',
+              title: '¿Dónde está tu auto?',
+              subtitle: 'Selecciona ubicación y vehículo',
             ),
             const SizedBox(height: 14),
             _RadarLocationCard(
@@ -665,10 +646,9 @@ class _VehicleTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                vehicle.icon,
-                size: 26,
-                color: selected ? accent : textSecondary,
+              Text(
+                _vehicleEmoji(vehicle.id),
+                style: const TextStyle(fontSize: 28, height: 1),
               ),
               const SizedBox(height: 10),
               Text(
@@ -845,7 +825,7 @@ class _SummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Resumen del pedido',
+            'Resumen',
             style: TextStyle(
               color: textPrimary,
               fontSize: 14,
@@ -986,7 +966,7 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
       height: 210,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isLight ? const Color(0xFFFFFBF7) : const Color(0xFF0A1422),
+        color: isLight ? LavifyColors.lightSurface : LavifyColors.surface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: _flowBorderColor(context)),
       ),
@@ -998,13 +978,13 @@ class _RadarLocationCardState extends State<_RadarLocationCard>
               painter: _GridPainter(
                 gridColor: isLight
                     ? const Color(0x25314664)
-                    : const Color(0x126AA8FF),
+                    : const Color(0x1E3B82F6),
                 pathColor: isLight
                     ? const Color(0x44314664)
-                    : const Color(0x336AA8FF),
+                    : const Color(0x403B82F6),
                 dotColor: isLight
                     ? const Color(0x88314664)
-                    : const Color(0x886AA8FF),
+                    : const Color(0x993B82F6),
               ),
             ),
           ),
@@ -1068,13 +1048,13 @@ class _PulseRing extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = 70 + (progress * 90);
     return Opacity(
-      opacity: (1 - progress) * 0.45,
+      opacity: (1 - progress) * 0.6,
       child: Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0x446AA8FF)),
+          border: Border.all(color: LavifyColors.primary.withAlpha(68)),
         ),
       ),
     );
@@ -1182,17 +1162,15 @@ class _BottomContinueButton extends StatelessWidget {
           Expanded(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: _flowButtonGradientColors(context),
-                ),
+                color: _flowButtonColor(context),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x4D3D7BFF),
-                    blurRadius: 28,
-                    offset: Offset(0, 10),
+                    color: LavifyTheme.isLight(context)
+                        ? LavifyColors.primaryGlow
+                        : const Color(0x28000000),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -1207,17 +1185,17 @@ class _BottomContinueButton extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (isConfirm) ...[
-                          const Icon(
+                          Icon(
                             Icons.check_rounded,
                             size: 20,
-                            color: Colors.white,
+                            color: _flowButtonTextColor(context),
                           ),
                           const SizedBox(width: 8),
                         ],
                         Text(
                           label,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: _flowButtonTextColor(context),
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                             height: 1,
@@ -1225,10 +1203,10 @@ class _BottomContinueButton extends StatelessWidget {
                         ),
                         if (!isConfirm) ...[
                           const SizedBox(width: 8),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_rounded,
                             size: 20,
-                            color: Colors.white,
+                            color: _flowButtonTextColor(context),
                           ),
                         ],
                       ],
@@ -1340,6 +1318,16 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
+String _vehicleEmoji(String id) {
+  switch (id) {
+    case 'compact': return '🚗';
+    case 'sedan':   return '🚙';
+    case 'suv':     return '🚐';
+    case 'pickup':  return '🛻';
+    default:        return '🚗';
+  }
+}
+
 Color _flowBackgroundColor(BuildContext context) =>
     Theme.of(context).scaffoldBackgroundColor;
 
@@ -1361,21 +1349,24 @@ Color _flowAccentColor(BuildContext context) => LavifyTheme.isLight(context)
 
 Color _flowSelectedColor(BuildContext context) => LavifyTheme.isLight(context)
     ? const Color(0x18314664)
-    : const Color(0x1A6AA8FF);
+    : LavifyColors.primarySoft;
 
 Color _flowSelectedIconFillColor(BuildContext context) =>
     LavifyTheme.isLight(context)
     ? const Color(0x1F314664)
-    : const Color(0x266AA8FF);
+    : const Color(0x1F3B82F6);
 
 Color _flowSoftFillColor(BuildContext context) => LavifyTheme.isLight(context)
-    ? const Color(0xFFF4ECE1)
+    ? LavifyColors.lightSurface
     : Colors.white.withAlpha(10);
 
-List<Color> _flowButtonGradientColors(BuildContext context) =>
-    LavifyTheme.isLight(context)
-    ? const [LavifyColors.lightNavy, Color(0xFF4A6082)]
-    : const [LavifyColors.primaryStrong, LavifyColors.primary];
+Color _flowButtonColor(BuildContext context) => LavifyTheme.isLight(context)
+    ? LavifyColors.lightNavy
+    : Colors.white;
+
+Color _flowButtonTextColor(BuildContext context) => LavifyTheme.isLight(context)
+    ? Colors.white
+    : LavifyColors.background;
 
 InputDecoration _flowInputDecoration({
   required BuildContext context,

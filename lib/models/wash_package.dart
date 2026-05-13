@@ -144,6 +144,12 @@ const List<VehicleType> vehicleTypes = [
     icon: Icons.airport_shuttle_rounded,
     extraFee: 30,
   ),
+  VehicleType(
+    id: 'pickup',
+    name: 'Camioneta',
+    icon: Icons.local_shipping_rounded,
+    extraFee: 50,
+  ),
 ];
 
 int vehicleExtraFeeFor(String vehicleId) {

@@ -229,6 +229,15 @@ class OrderService {
         } else {
           _removeOptimisticOrder(order.id);
           _markOrderSyncError(order.id, _syncErrorMessage(error));
+          // Traduce excepciones del repositorio a nivel de servicio para que
+          // las pantallas no necesiten importar la capa de repositorio.
+          if (error is FirestoreOrderRepositoryException) {
+            throw OrderSubmissionException(
+              error.code == 'permission-denied'
+                  ? 'No tienes permisos para confirmar este pedido. Cierra sesion e inicia de nuevo.'
+                  : error.message,
+            );
+          }
           rethrow;
         }
       }
@@ -471,6 +480,19 @@ class OrderService {
     }
 
     _trackingService.setBackendRoute(order: order, routePoints: routePoints);
+  }
+
+  void setOrderPaymentMethod(String orderId, String paymentMethod) {
+    final current = orders.value;
+    final idx = current.indexWhere((o) => o.id == orderId);
+    if (idx == -1) return;
+    final updated = current[idx].copyWith(paymentMethod: paymentMethod);
+    final list = List<WashOrder>.from(current);
+    list[idx] = updated;
+    orders.value = list;
+    if (AppConfig.usesRemoteOrdersBackend) {
+      unawaited(_repository.updateOrder(updated).catchError((Object _) => updated));
+    }
   }
 
   Future<void> retryOrderSync(String orderId) async {

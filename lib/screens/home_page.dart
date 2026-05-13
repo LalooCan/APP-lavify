@@ -1906,7 +1906,7 @@ class _HomeBottomSheet extends StatelessWidget {
 
           // Package shortcuts
           SizedBox(
-            height: 132,
+            height: 152,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
