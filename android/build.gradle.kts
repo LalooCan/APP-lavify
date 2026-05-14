@@ -2,6 +2,22 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
+            authentication {
+                create<BasicAuthentication>("basic")
+            }
+            credentials {
+                // Token secreto de Mapbox (empieza con "sk.").
+                // Agrégalo a ~/.gradle/gradle.properties:
+                //   MAPBOX_DOWNLOADS_TOKEN=sk.xxxxx
+                username = "mapbox"
+                password = providers
+                    .gradleProperty("MAPBOX_DOWNLOADS_TOKEN")
+                    .orElse("")
+                    .get()
+            }
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/city.dart';
 import '../models/wash_models.dart';
 import '../services/auth_service.dart';
 import '../services/order_service.dart';
@@ -151,6 +152,20 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
     await _profileService.updateProfile(profile.copyWith(photoUrl: url));
   }
 
+  Future<void> _showCityPickerDialog(
+    BuildContext context,
+    UserProfile profile,
+  ) async {
+    final selected = await showDialog<MexicoCity>(
+      context: context,
+      builder: (ctx) => _CityPickerDialog(currentCityId: profile.cityId),
+    );
+    if (selected == null) return;
+    await _profileService.updateProfile(
+      profile.copyWith(cityId: selected.id),
+    );
+  }
+
   List<_ProfileMenuItem> _buildExtraItems(
     BuildContext context,
     UserProfile profile,
@@ -254,6 +269,8 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                                 );
                               },
                             ),
+                            onEditCity: () =>
+                                _showCityPickerDialog(context, profile),
                             onChangePassword: () =>
                                 _showChangePasswordDialog(context),
                             onLogout: () => _handleLogout(context),
@@ -300,6 +317,8 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                                 );
                               },
                             ),
+                            onEditCity: () =>
+                                _showCityPickerDialog(context, profile),
                             onChangePassword: () =>
                                 _showChangePasswordDialog(context),
                             onLogout: () => _handleLogout(context),
@@ -540,6 +559,7 @@ class _MobileProfileLayout extends StatelessWidget {
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
+    required this.onEditCity,
     required this.onChangePassword,
     required this.onLogout,
     required this.extraItems,
@@ -553,6 +573,7 @@ class _MobileProfileLayout extends StatelessWidget {
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
+  final VoidCallback onEditCity;
   final VoidCallback onChangePassword;
   final VoidCallback onLogout;
   final List<_ProfileMenuItem> extraItems;
@@ -579,7 +600,14 @@ class _MobileProfileLayout extends StatelessWidget {
         onTap: () {},
       ),
     ];
+    final cityName = cityById(profile.cityId)?.displayName ?? 'Ciudad de México, CDMX';
     final dataItems = [
+      _ProfileMenuItem(
+        icon: Icons.location_city_rounded,
+        title: 'Mi ciudad',
+        value: cityName,
+        onTap: onEditCity,
+      ),
       _ProfileMenuItem(
         icon: Icons.directions_car_outlined,
         title: 'Vehiculo principal',
@@ -651,6 +679,7 @@ class _DesktopProfileLayout extends StatelessWidget {
     required this.onEditVehicle,
     required this.onEditAddress,
     required this.onEditPayment,
+    required this.onEditCity,
     required this.onChangePassword,
     required this.onLogout,
     required this.extraItems,
@@ -664,6 +693,7 @@ class _DesktopProfileLayout extends StatelessWidget {
   final VoidCallback onEditVehicle;
   final VoidCallback onEditAddress;
   final VoidCallback onEditPayment;
+  final VoidCallback onEditCity;
   final VoidCallback onChangePassword;
   final VoidCallback onLogout;
   final List<_ProfileMenuItem> extraItems;
@@ -735,6 +765,13 @@ class _DesktopProfileLayout extends StatelessWidget {
               _ProfileSection(
                 title: 'Mis datos',
                 items: [
+                  _ProfileMenuItem(
+                    icon: Icons.location_city_rounded,
+                    title: 'Mi ciudad',
+                    value: cityById(profile.cityId)?.displayName ??
+                        'Ciudad de México, CDMX',
+                    onTap: onEditCity,
+                  ),
                   _ProfileMenuItem(
                     icon: Icons.directions_car_outlined,
                     title: 'Vehiculo principal',
@@ -973,6 +1010,49 @@ class _VerifiedBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CityPickerDialog extends StatelessWidget {
+  const _CityPickerDialog({required this.currentCityId});
+  final String currentCityId;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Elige tu ciudad'),
+      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      content: SizedBox(
+        width: 360,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: mexicoCities.length,
+          itemBuilder: (context, index) {
+            final city = mexicoCities[index];
+            final isSelected = city.id == currentCityId;
+            return ListTile(
+              leading: Icon(
+                isSelected
+                    ? Icons.location_city_rounded
+                    : Icons.location_city_outlined,
+                color: isSelected ? LavifyColors.primary : null,
+              ),
+              title: Text(city.name),
+              subtitle: Text(city.state),
+              selected: isSelected,
+              selectedColor: LavifyColors.primary,
+              onTap: () => Navigator.of(context).pop(city),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+      ],
     );
   }
 }

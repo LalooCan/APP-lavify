@@ -32,6 +32,7 @@ class UserProfile {
     this.verificationStatus = WorkerVerificationStatus.unverified,
     this.onboardingComplete = false,
     this.isAdmin = false,
+    this.cityId = 'cdmx',
   });
 
   final String uid;
@@ -45,6 +46,7 @@ class UserProfile {
   final WorkerVerificationStatus verificationStatus;
   final bool onboardingComplete;
   final bool isAdmin;
+  final String cityId;
 
   bool get isVerified => verificationStatus == WorkerVerificationStatus.approved;
 
@@ -71,6 +73,7 @@ class UserProfile {
       ),
       onboardingComplete: map['onboardingComplete'] as bool? ?? false,
       isAdmin: map['isAdmin'] as bool? ?? false,
+      cityId: map['cityId'] as String? ?? 'cdmx',
     );
   }
 
@@ -86,6 +89,7 @@ class UserProfile {
     WorkerVerificationStatus? verificationStatus,
     bool? onboardingComplete,
     bool? isAdmin,
+    String? cityId,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -99,6 +103,7 @@ class UserProfile {
       verificationStatus: verificationStatus ?? this.verificationStatus,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       isAdmin: isAdmin ?? this.isAdmin,
+      cityId: cityId ?? this.cityId,
     );
   }
 
@@ -117,6 +122,7 @@ class UserProfile {
       'verificationStatus': verificationStatus.apiValue,
       'onboardingComplete': onboardingComplete,
       'isAdmin': isAdmin,
+      'cityId': cityId,
     };
   }
 

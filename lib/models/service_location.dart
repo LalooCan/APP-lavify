@@ -1,4 +1,4 @@
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class ServiceLocation {
   const ServiceLocation({required this.latitude, required this.longitude});
@@ -6,7 +6,9 @@ class ServiceLocation {
   final double latitude;
   final double longitude;
 
-  LatLng toLatLng() => LatLng(latitude, longitude);
+  // GeoJSON: longitude primero, luego latitud (estándar Mapbox/GeoJSON).
+  Position toPosition() => Position(longitude, latitude);
+  Point toPoint() => Point(coordinates: Position(longitude, latitude));
 
   factory ServiceLocation.fromMap(Map<String, dynamic> map) {
     return ServiceLocation(

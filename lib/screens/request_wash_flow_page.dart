@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../controllers/wash_request_draft_controller.dart';
 import '../models/wash_models.dart';
+import '../services/geocoding_service.dart';
 import '../services/location_service.dart';
 import '../theme/theme.dart';
 import 'order_confirmation_page.dart';
@@ -466,6 +468,21 @@ class _LocationVehicleStepState extends State<_LocationVehicleStep> {
   static const _locationService = LocationService();
   bool _gpsLoading = false;
 
+  Future<void> _openAddressSearch() async {
+    final proximity = widget.controller.selectedLocationNotifier.value;
+    final result = await showModalBottomSheet<AddressSuggestion>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddressSearchSheet(proximity: proximity),
+    );
+    if (result != null) {
+      widget.controller.addressController.text = result.displayName;
+      widget.controller.updateAddress(result.displayName);
+      widget.controller.updateLocation(result.location);
+    }
+  }
+
   Future<void> _useCurrentLocation() async {
     setState(() => _gpsLoading = true);
     try {
@@ -529,17 +546,21 @@ class _LocationVehicleStepState extends State<_LocationVehicleStep> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: widget.controller.addressController,
-                    onChanged: widget.controller.updateAddress,
-                    style: TextStyle(
-                      color: _flowTextPrimaryColor(context),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: _flowInputDecoration(
-                      context: context,
-                      hintText: 'Dirección del servicio',
+                  child: GestureDetector(
+                    onTap: _openAddressSearch,
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: widget.controller.addressController,
+                        style: TextStyle(
+                          color: _flowTextPrimaryColor(context),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        decoration: _flowInputDecoration(
+                          context: context,
+                          hintText: 'Busca tu dirección...',
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -572,6 +593,152 @@ class _LocationVehicleStepState extends State<_LocationVehicleStep> {
           ],
         );
       },
+    );
+  }
+}
+
+class _AddressSearchSheet extends StatefulWidget {
+  const _AddressSearchSheet({required this.proximity});
+  final ServiceLocation proximity;
+
+  @override
+  State<_AddressSearchSheet> createState() => _AddressSearchSheetState();
+}
+
+class _AddressSearchSheetState extends State<_AddressSearchSheet> {
+  static const _geocodingService = GeocodingService();
+  final _ctrl = TextEditingController();
+  Timer? _debounce;
+  List<AddressSuggestion> _results = [];
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    if (value.trim().length < 3) {
+      setState(() => _results = []);
+      return;
+    }
+    setState(() => _loading = true);
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      final results = await _geocodingService.searchAddress(
+        value,
+        proximity: widget.proximity,
+      );
+      if (mounted) setState(() { _results = results; _loading = false; });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: _flowSurfaceColor(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: _flowBorderColor(context),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_rounded,
+                        color: _flowTextPrimaryColor(context)),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      autofocus: true,
+                      onChanged: _onChanged,
+                      style: TextStyle(
+                        color: _flowTextPrimaryColor(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: _flowInputDecoration(
+                        context: context,
+                        hintText: 'Busca calle, colonia, lugar...',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_loading)
+              const LinearProgressIndicator(
+                minHeight: 2,
+                color: LavifyColors.primary,
+                backgroundColor: Colors.transparent,
+              ),
+            Expanded(
+              child: _results.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_rounded,
+                              size: 48,
+                              color: _flowTextSecondaryColor(context)),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Escribe al menos 3 letras\npara buscar tu dirección',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _flowTextSecondaryColor(context),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: _results.length,
+                      separatorBuilder: (_, _) =>
+                          Divider(height: 1, color: _flowBorderColor(context)),
+                      itemBuilder: (context, i) {
+                        final s = _results[i];
+                        return ListTile(
+                          leading: Icon(Icons.location_on_outlined,
+                              color: _flowAccentColor(context)),
+                          title: Text(
+                            s.displayName,
+                            style: TextStyle(
+                              color: _flowTextPrimaryColor(context),
+                              fontSize: 14,
+                            ),
+                            maxLines: 2,
+                          ),
+                          onTap: () => Navigator.of(context).pop(s),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

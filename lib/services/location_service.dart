@@ -1,5 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 
+import '../models/city.dart';
 import '../models/wash_models.dart';
 import 'geocoding_service.dart';
 
@@ -17,8 +18,10 @@ class LocationService {
 
   final GeocodingService _geocodingService;
 
-  ServiceLocation getDefaultLocation() {
-    return const ServiceLocation(latitude: 19.432608, longitude: -99.133209);
+  ServiceLocation getDefaultLocation({String cityId = 'cdmx'}) {
+    final city = cityById(cityId);
+    return city?.location ??
+        const ServiceLocation(latitude: 19.432608, longitude: -99.133209);
   }
 
   bool hasResolvedAddress(String address) => address.trim().isNotEmpty;

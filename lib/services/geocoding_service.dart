@@ -2,20 +2,70 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../app_config.dart';
 import '../models/wash_models.dart';
+
+class AddressSuggestion {
+  const AddressSuggestion({
+    required this.displayName,
+    required this.location,
+  });
+
+  final String displayName;
+  final ServiceLocation location;
+}
 
 class GeocodingService {
   const GeocodingService();
 
-  static const String _mapsApiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: '',
-  );
-  static const String _geocodingApiKey = String.fromEnvironment(
-    'GOOGLE_GEOCODING_API_KEY',
-    defaultValue: _mapsApiKey,
-  );
+  static const String _base = 'api.mapbox.com';
 
+  // Búsqueda de dirección por texto → lista de sugerencias con coordenadas.
+  Future<List<AddressSuggestion>> searchAddress(
+    String query, {
+    ServiceLocation? proximity,
+  }) async {
+    final q = query.trim();
+    if (q.length < 3) return [];
+
+    final params = <String, String>{
+      'access_token': AppConfig.mapboxPublicToken,
+      'country': 'MX',
+      'language': 'es',
+      'limit': '6',
+      'types': 'address,place,neighborhood,locality,poi',
+      if (proximity != null)
+        'proximity': '${proximity.longitude},${proximity.latitude}',
+    };
+
+    final uri = Uri.https(
+      _base,
+      '/geocoding/v5/mapbox.places/${Uri.encodeComponent(q)}.json',
+      params,
+    );
+
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (response.statusCode != 200) return [];
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final features = body['features'] as List<dynamic>? ?? [];
+      return features.map((f) {
+        final feat = f as Map<String, dynamic>;
+        final name = feat['place_name'] as String? ?? '';
+        final center = feat['center'] as List<dynamic>? ?? [];
+        final lng = center.isNotEmpty ? (center[0] as num).toDouble() : 0.0;
+        final lat = center.length > 1 ? (center[1] as num).toDouble() : 0.0;
+        return AddressSuggestion(
+          displayName: name,
+          location: ServiceLocation(latitude: lat, longitude: lng),
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Geocodificación inversa: coordenadas → dirección legible (usa Mapbox).
   Future<LocationResolution> reverseGeocode(ServiceLocation location) async {
     final fallback = LocationResolution(
       location: location,
@@ -24,48 +74,28 @@ class GeocodingService {
       isPrecise: false,
     );
 
-    if (_geocodingApiKey.isEmpty) {
-      return fallback.copyWith(
-        errorMessage:
-            'Configura GOOGLE_MAPS_API_KEY o GOOGLE_GEOCODING_API_KEY para obtener direcciones reales.',
-      );
-    }
-
-    final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
-      'latlng': '${location.latitude},${location.longitude}',
-      'language': 'es',
-      'region': 'mx',
-      'key': _geocodingApiKey,
-    });
+    final uri = Uri.https(
+      _base,
+      '/geocoding/v5/mapbox.places/'
+      '${location.longitude},${location.latitude}.json',
+      {
+        'access_token': AppConfig.mapboxPublicToken,
+        'language': 'es',
+        'country': 'MX',
+        'types': 'address,place,neighborhood',
+        'limit': '1',
+      },
+    );
 
     try {
-      final response = await http.get(uri);
-      if (response.statusCode != 200) {
-        return fallback.copyWith(
-          errorMessage:
-              'No fue posible consultar la direccion en este momento.',
-        );
-      }
-
+      final response = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (response.statusCode != 200) return fallback;
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final status = body['status'] as String? ?? 'UNKNOWN_ERROR';
-      if (status != 'OK') {
-        return fallback.copyWith(
-          errorMessage: 'Geocoding no disponible: $status.',
-        );
-      }
-
-      final results = body['results'] as List<dynamic>;
-      if (results.isEmpty) {
-        return fallback.copyWith(
-          errorMessage: 'No se encontro una direccion para este punto.',
-        );
-      }
-
-      final firstResult = results.first as Map<String, dynamic>;
+      final features = body['features'] as List<dynamic>? ?? [];
+      if (features.isEmpty) return fallback;
       final address =
-          firstResult['formatted_address'] as String? ?? fallback.address;
-
+          (features.first as Map<String, dynamic>)['place_name'] as String? ??
+          fallback.address;
       return LocationResolution(
         location: location,
         address: address,
@@ -73,9 +103,7 @@ class GeocodingService {
         isPrecise: true,
       );
     } catch (_) {
-      return fallback.copyWith(
-        errorMessage: 'Ocurrio un error al resolver la direccion.',
-      );
+      return fallback;
     }
   }
 }

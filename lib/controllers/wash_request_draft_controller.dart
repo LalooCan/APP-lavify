@@ -11,14 +11,17 @@ class WashRequestDraftController {
     WashPackage? initialPackage,
   }) : _locationService = locationService,
        _profileService = profileService ?? ProfileService() {
-    final initialLocation = _locationService.getDefaultLocation();
+    final cityId = _profileService.profile.value.cityId;
+    final initialLocation = _locationService.getDefaultLocation(cityId: cityId);
     selectedPackageNotifier = ValueNotifier<WashPackage>(
       initialPackage ?? washPackages.last,
     );
     selectedScheduleNotifier = ValueNotifier<ScheduleSlot>(scheduleSlots[1]);
     selectedVehicleNotifier = ValueNotifier<VehicleType>(vehicleTypes[1]);
     selectedLocationNotifier = ValueNotifier<ServiceLocation>(initialLocation);
-    addressNotifier = ValueNotifier<String>('Av. Reforma 245, CDMX');
+    addressNotifier = ValueNotifier<String>(_profileService.profile.value.favoriteAddress.isNotEmpty
+        ? _profileService.profile.value.favoriteAddress
+        : 'Selecciona tu dirección');
     notesNotifier = ValueNotifier<String>('');
     isLocationConfirmedNotifier = ValueNotifier<bool>(false);
     isResolvingLocationNotifier = ValueNotifier<bool>(false);

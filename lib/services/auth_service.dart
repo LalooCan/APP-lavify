@@ -360,6 +360,7 @@ class AuthService {
       'verificationStatus': WorkerVerificationStatus.unverified.apiValue,
       'onboardingComplete': false,
       'isAdmin': false,
+      'cityId': 'cdmx',
     };
   }
 

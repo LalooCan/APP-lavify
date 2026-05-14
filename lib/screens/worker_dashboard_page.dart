@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
+import '../services/location_service.dart';
 import '../services/order_service.dart';
 import '../services/profile_service.dart';
 import '../services/worker_service.dart';
 import '../theme/theme.dart';
+import '../widgets/city_map_view.dart';
 import 'worker_verification_page.dart';
 
 class WorkerDashboardPage extends StatelessWidget {
@@ -137,6 +139,7 @@ class _WorkerMapBg extends StatefulWidget {
 class _WorkerMapBgState extends State<_WorkerMapBg>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  static final _profileService = ProfileService();
 
   @override
   void initState() {
@@ -158,129 +161,48 @@ class _WorkerMapBgState extends State<_WorkerMapBg>
     final isLight = LavifyTheme.isLight(context);
     final pinColor =
         widget.isOnline ? LavifyColors.success : LavifyColors.primary;
+    final cityId = _profileService.profile.value.cityId;
+    final location =
+        const LocationService().getDefaultLocation(cityId: cityId);
 
-    return Container(
-      color: isLight ? const Color(0xFFEDF2F7) : const Color(0xFF080A0E),
-      child: Stack(
-        children: [
-          // Static grid + roads
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _MapStaticPainter(
+    return Stack(
+      children: [
+        // Mapa real de Mapbox centrado en la ciudad del lavador
+        Positioned.fill(
+          child: CityMapView(location: location, zoom: 13.0, borderRadius: 0),
+        ),
+
+        // Anillos pulsantes animados encima del mapa
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (context, _) => CustomPaint(
+              painter: _MapAnimPainter(
+                progress: _ctrl.value,
                 isLight: isLight,
                 isOnline: widget.isOnline,
               ),
             ),
           ),
+        ),
 
-          // Animated pulse rings + demand dots
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _ctrl,
-              builder: (context, _) => CustomPaint(
-                painter: _MapAnimPainter(
-                  progress: _ctrl.value,
-                  isLight: isLight,
-                  isOnline: widget.isOnline,
-                ),
-              ),
+        // Pin de ubicación centrado
+        Positioned.fill(
+          child: Align(
+            alignment: const Alignment(0, -0.22),
+            child: Icon(
+              Icons.location_on_rounded,
+              size: 44,
+              color: pinColor,
+              shadows: [
+                Shadow(color: pinColor.withAlpha(100), blurRadius: 14),
+              ],
             ),
           ),
-
-          // Location pin — centered in the visible map area (top ~46%)
-          Positioned.fill(
-            child: Align(
-              alignment: const Alignment(0, -0.22),
-              child: Icon(
-                Icons.location_on_rounded,
-                size: 44,
-                color: pinColor,
-                shadows: [
-                  Shadow(
-                    color: pinColor.withAlpha(100),
-                    blurRadius: 14,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
-
-// Static elements: grid + road paths
-class _MapStaticPainter extends CustomPainter {
-  const _MapStaticPainter({required this.isLight, required this.isOnline});
-  final bool isLight;
-  final bool isOnline;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridColor = isLight
-        ? const Color(0x15314664)
-        : isOnline
-        ? const Color(0x133B82F6)
-        : const Color(0x0EFFFFFF);
-
-    // Grid
-    final grid = Paint()..color = gridColor..strokeWidth = 1;
-    for (double y = 44; y < size.height; y += 44) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    for (double x = 52; x < size.width; x += 52) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-    }
-
-    // Roads
-    final roadColor = isLight
-        ? const Color(0x28314664)
-        : isOnline
-        ? const Color(0x2A3B82F6)
-        : const Color(0x15FFFFFF);
-
-    final road = Paint()
-      ..color = roadColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-
-    // Horizontal curved road
-    final r1 = Path()
-      ..moveTo(0, size.height * 0.30)
-      ..cubicTo(
-        size.width * 0.28, size.height * 0.26,
-        size.width * 0.60, size.height * 0.33,
-        size.width, size.height * 0.28,
-      );
-    canvas.drawPath(r1, road);
-
-    // Diagonal road bottom-left to upper-right
-    final r2 = Path()
-      ..moveTo(size.width * 0.02, size.height * 0.58)
-      ..cubicTo(
-        size.width * 0.22, size.height * 0.46,
-        size.width * 0.48, size.height * 0.38,
-        size.width * 0.72, size.height * 0.22,
-      );
-    canvas.drawPath(r2, road);
-
-    // Short cross-road
-    final cross = Paint()
-      ..color = roadColor.withValues(alpha: roadColor.a * 0.5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(size.width * 0.40, size.height * 0.05),
-      Offset(size.width * 0.44, size.height * 0.48),
-      cross,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapStaticPainter old) =>
-      old.isOnline != isOnline || old.isLight != isLight;
 }
 
 // Animated elements: pulse rings + demand dots

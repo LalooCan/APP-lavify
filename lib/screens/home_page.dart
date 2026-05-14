@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
 import '../services/home_service.dart';
@@ -6,6 +6,9 @@ import '../services/order_service.dart';
 import '../services/profile_service.dart';
 import '../services/session_service.dart';
 import '../theme/theme.dart';
+import '../models/city.dart';
+import '../services/location_service.dart';
+import '../widgets/city_map_view.dart';
 import '../widgets/how_it_works_section.dart';
 import '../widgets/live_tracking_map.dart';
 import '../widgets/package_card.dart';
@@ -393,78 +396,7 @@ class _PreviewCard extends StatelessWidget {
                 SizedBox(
                   height: 210,
                   child: order == null
-                      ? Container(
-                          decoration: BoxDecoration(
-                            color: LavifyTheme.surfaceAltColor(context),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: _MapGridPainter(
-                                    gridColor: LavifyTheme.textSecondaryColor(
-                                      context,
-                                    ).withAlpha(30),
-                                  ),
-                                ),
-                              ),
-                              const Positioned(
-                                top: 30,
-                                left: 0,
-                                right: 0,
-                                child: Center(
-                                  child: Icon(
-                                    Icons.radar_rounded,
-                                    color: LavifyColors.primary,
-                                    size: 76,
-                                  ),
-                                ),
-                              ),
-                              const Positioned(
-                                top: 74,
-                                left: 0,
-                                right: 0,
-                                child: Center(
-                                  child: Icon(
-                                    Icons.location_on_rounded,
-                                    color: Colors.pinkAccent,
-                                    size: 34,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 18,
-                                right: 18,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: LavifyTheme.surfaceColor(context),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: LavifyTheme.borderColor(context),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    mapLabel,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: LavifyTheme.textPrimaryColor(
-                                            context,
-                                          ),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
+                      ? _CityPreviewMap(mapLabel: mapLabel)
                       : Stack(
                           children: [
                             Positioned.fill(
@@ -1198,29 +1130,86 @@ class _OptionTile extends StatelessWidget {
   }
 }
 
-class _MapGridPainter extends CustomPainter {
-  _MapGridPainter({required this.gridColor});
+class _CityPreviewMap extends StatelessWidget {
+  const _CityPreviewMap({required this.mapLabel});
 
-  final Color gridColor;
+  final String mapLabel;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = gridColor
-      ..strokeWidth = 1;
-
-    const gap = 28.0;
-    for (double x = 0; x < size.width; x += gap) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += gap) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
+  Widget build(BuildContext context) {
+    // ValueListenableBuilder para reaccionar cuando el usuario cambia su ciudad.
+    return ValueListenableBuilder<UserProfile>(
+      valueListenable: ProfileService().profile,
+      builder: (context, profile, _) => _buildMap(context, profile),
+    );
   }
 
-  @override
-  bool shouldRepaint(covariant _MapGridPainter oldDelegate) =>
-      oldDelegate.gridColor != gridColor;
+  Widget _buildMap(BuildContext context, UserProfile profile) {
+    final location =
+        const LocationService().getDefaultLocation(cityId: profile.cityId);
+    final cityName =
+        cityById(profile.cityId)?.name ?? 'Tu ciudad';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CityMapView(location: location, zoom: 12.5, borderRadius: 0),
+          ),
+          Positioned(
+            bottom: 14,
+            left: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: LavifyColors.primary.withAlpha(220),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    cityName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 14,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: LavifyTheme.surfaceColor(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: LavifyTheme.borderColor(context)),
+              ),
+              child: Text(
+                mapLabel,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: LavifyTheme.textPrimaryColor(context),
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Mobile map-first home (Uber-style) ────────────────────────────────────────
@@ -1248,14 +1237,22 @@ class _HomeMobileViewState extends State<_HomeMobileView> {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = LavifyTheme.isLight(context);
-
     return Scaffold(
       body: Stack(
         children: [
+          // Mapa real de Mapbox como fondo, centrado en la ciudad del usuario.
           Positioned.fill(
-            child: RepaintBoundary(
-              child: _MapBackground(isLight: isLight),
+            child: ValueListenableBuilder<UserProfile>(
+              valueListenable: _profileService.profile,
+              builder: (context, profile, _) {
+                final location = const LocationService()
+                    .getDefaultLocation(cityId: profile.cityId);
+                return CityMapView(
+                  location: location,
+                  zoom: 13.0,
+                  borderRadius: 0,
+                );
+              },
             ),
           ),
 
@@ -1273,14 +1270,16 @@ class _HomeMobileViewState extends State<_HomeMobileView> {
                     Expanded(
                       child: ValueListenableBuilder<UserProfile>(
                         valueListenable: _profileService.profile,
-                        builder: (context, _, child) {
+                        builder: (context, profile, child) {
                           final addr =
                               _homeService.getSessionData().savedAddress;
                           return GestureDetector(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const RequestWashFlowPage(),
-                              ),
+                            onTap: () => showModalBottomSheet<void>(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (_) =>
+                                  _CityPickerSheet(currentCityId: profile.cityId),
                             ),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -1519,237 +1518,90 @@ class _HomeMobileViewState extends State<_HomeMobileView> {
   }
 }
 
-class _MapBackground extends StatelessWidget {
-  const _MapBackground({required this.isLight});
-  final bool isLight;
+
+class _CityPickerSheet extends StatelessWidget {
+  const _CityPickerSheet({required this.currentCityId});
+  final String currentCityId;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _MapBackgroundPainter(isLight: isLight),
-      isComplex: true,
-      willChange: false,
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _MapBackgroundPainter extends CustomPainter {
-  _MapBackgroundPainter({required this.isLight});
-  final bool isLight;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Background
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()
-        ..color =
-            isLight ? const Color(0xFFE8ECEF) : const Color(0xFF0E1117),
-    );
-
-    // Fine grid
-    final gridPaint = Paint()
-      ..color = (isLight
-              ? const Color(0xFF50648C)
-              : const Color(0xFF7890B4))
-          .withAlpha(isLight ? 25 : 15)
-      ..strokeWidth = 0.5;
-    for (var x = 0.0; x < size.width; x += 22) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (var y = 0.0; y < size.height; y += 22) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    // Horizontal roads
-    final roadH = Paint()
-      ..color =
-          isLight ? const Color(0x733C5078) : const Color(0x2EB4C8FF)
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 14; i++) {
-      final y = (i * 60.0 + 24) % (size.height + 20);
-      final slant = (i % 4 == 0) ? 8.0 : 0.0;
-      canvas.drawLine(
-        Offset(-20 + slant, y),
-        Offset(size.width + 20, y + 5),
-        roadH,
-      );
-    }
-
-    // Vertical avenues
-    final ave = Paint()
-      ..color =
-          isLight ? const Color(0x733C5078) : const Color(0x38B4C8FF)
-      ..strokeCap = StrokeCap.round;
-    ave.strokeWidth = 1.8;
-    canvas.drawLine(
-      Offset(size.width * 0.22, 0),
-      Offset(size.width * 0.24, size.height),
-      ave,
-    );
-    ave.strokeWidth = 2.4;
-    canvas.drawLine(
-      Offset(size.width * 0.55, 0),
-      Offset(size.width * 0.57, size.height),
-      ave,
-    );
-    ave.strokeWidth = 1.8;
-    canvas.drawLine(
-      Offset(size.width * 0.82, 0),
-      Offset(size.width * 0.80, size.height),
-      ave,
-    );
-
-    // Building blocks
-    final blockFill = Paint()
-      ..color = (isLight
-              ? Colors.black
-              : Colors.white)
-          .withAlpha(isLight ? 7 : 4)
-      ..style = PaintingStyle.fill;
-    final blockStroke = Paint()
-      ..color =
-          isLight ? const Color(0x1A50648C) : const Color(0x147890B4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.4;
-    const blocks = [
-      [38.0, 110.0, 76.0, 66.0],
-      [148.0, 92.0, 58.0, 72.0],
-      [238.0, 124.0, 68.0, 78.0],
-      [48.0, 250.0, 88.0, 62.0],
-      [168.0, 268.0, 72.0, 82.0],
-      [276.0, 240.0, 62.0, 72.0],
-      [38.0, 410.0, 78.0, 68.0],
-      [152.0, 428.0, 82.0, 72.0],
-      [268.0, 400.0, 68.0, 78.0],
-    ];
-    for (final b in blocks) {
-      final rr = RRect.fromRectAndRadius(
-        Rect.fromLTWH(b[0], b[1], b[2], b[3]),
-        const Radius.circular(3),
-      );
-      canvas.drawRRect(rr, blockFill);
-      canvas.drawRRect(rr, blockStroke);
-    }
-
-    final parkRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.56, size.height * 0.2, 78, 96),
-      const Radius.circular(8),
-    );
-    canvas.drawRRect(
-      parkRect,
-      Paint()
-        ..color = (isLight ? const Color(0xFF10B981) : const Color(0xFF10B981))
-            .withAlpha(isLight ? 30 : 18),
-    );
-
-    // Water body
-    final waterPath = Path()
-      ..moveTo(-20, size.height * 0.74)
-      ..quadraticBezierTo(
-        size.width * 0.25,
-        size.height * 0.71,
-        size.width * 0.5,
-        size.height * 0.73,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.75,
-        size.height * 0.75,
-        size.width + 20,
-        size.height * 0.72,
-      )
-      ..lineTo(size.width + 20, size.height + 10)
-      ..lineTo(-20, size.height + 10)
-      ..close();
-    canvas.drawPath(
-      waterPath,
-      Paint()
-        ..color = (isLight
-                ? const Color(0xFFC5D4E0)
-                : const Color(0xFF0A1628))
-            .withAlpha(isLight ? 180 : 150),
-    );
-
-    // Destination pin (center-ish)
-    const px = 196.0;
-    const py = 310.0;
-
-    canvas.drawCircle(
-      const Offset(px, py),
-      26,
-      Paint()..color = LavifyColors.primary.withAlpha(38),
-    );
-    canvas.drawCircle(
-      const Offset(px, py),
-      18,
-      Paint()..color = LavifyColors.primary.withAlpha(55),
-    );
-
-    final pinPath = Path()
-      ..moveTo(px, py - 22)
-      ..cubicTo(px - 10, py - 22, px - 16, py - 14, px - 16, py - 6)
-      ..cubicTo(px - 16, py + 4, px, py + 14, px, py + 14)
-      ..cubicTo(px, py + 14, px + 16, py + 4, px + 16, py - 6)
-      ..cubicTo(px + 16, py - 14, px + 10, py - 22, px, py - 22)
-      ..close();
-    canvas.drawPath(
-      pinPath,
-      Paint()
-        ..color = LavifyColors.primary
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      pinPath,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-    canvas.drawCircle(
-      const Offset(px, py - 7),
-      4,
-      Paint()..color = Colors.white,
-    );
-
-    _paintMapLabel(
-      canvas,
-      'AV. REFORMA',
-      Offset(size.width * 0.58, size.height * 0.19),
-    );
-    _paintMapLabel(
-      canvas,
-      'POLANCO',
-      Offset(size.width * 0.08, size.height * 0.56),
-    );
-    _paintMapLabel(
-      canvas,
-      'ROMA NORTE',
-      Offset(size.width * 0.62, size.height * 0.68),
-    );
-  }
-
-  void _paintMapLabel(Canvas canvas, String text, Offset offset) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          color: (isLight ? const Color(0xFF455064) : Colors.white)
-              .withAlpha(isLight ? 72 : 48),
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: LavifyTheme.surfaceColor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, offset);
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: LavifyTheme.borderColor(context),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+            child: Row(
+              children: [
+                const Icon(Icons.location_city_rounded,
+                    color: LavifyColors.primary),
+                const SizedBox(width: 10),
+                Text(
+                  'Elige tu ciudad',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: mexicoCities.length,
+              itemBuilder: (context, i) {
+                final city = mexicoCities[i];
+                final selected = city.id == currentCityId;
+                return ListTile(
+                  leading: Icon(
+                    selected
+                        ? Icons.location_on_rounded
+                        : Icons.location_on_outlined,
+                    color: selected
+                        ? LavifyColors.primary
+                        : LavifyTheme.textSecondaryColor(context),
+                  ),
+                  title: Text(city.name,
+                      style: TextStyle(
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: selected
+                            ? LavifyColors.primary
+                            : LavifyTheme.textPrimaryColor(context),
+                      )),
+                  subtitle: Text(city.state),
+                  onTap: () {
+                    ProfileService().updateProfile(
+                      ProfileService().profile.value.copyWith(
+                            cityId: city.id,
+                          ),
+                    );
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant _MapBackgroundPainter old) =>
-      old.isLight != isLight;
 }
 
 class _HomeBottomSheet extends StatelessWidget {

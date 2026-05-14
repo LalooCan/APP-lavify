@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'app_config.dart';
 import 'firebase_options.dart';
@@ -19,6 +21,9 @@ import 'theme/theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    MapboxOptions.setAccessToken(AppConfig.mapboxPublicToken);
+  }
 
   // Inicia Firebase sin bloquear — runApp muestra el splash de inmediato
   // mientras el SDK se inicializa en paralelo.
@@ -177,11 +182,24 @@ class _AuthGateState extends State<_AuthGate> {
                     );
                   }
 
-                  final profile = profileSnapshot.data;
-                  if (profile != null && !profile.onboardingComplete) {
-                    return OnboardingPage(profile: profile);
-                  }
-                  return AppShell(mode: profile?.role ?? AppRole.client);
+                  // Reaccionar a cambios del perfil (ej. onboardingComplete)
+                  // sin sacar _AuthGate del árbol con pushReplacement.
+                  return ValueListenableBuilder<UserProfile>(
+                    valueListenable: LavifyApp._profileService.profile,
+                    builder: (context, liveProfile, _) {
+                      final profile =
+                          liveProfile.uid.isNotEmpty &&
+                                  liveProfile.uid == user.uid
+                              ? liveProfile
+                              : profileSnapshot.data;
+                      if (profile != null && !profile.onboardingComplete) {
+                        return OnboardingPage(profile: profile);
+                      }
+                      return AppShell(
+                        mode: profile?.role ?? AppRole.client,
+                      );
+                    },
+                  );
                 },
               );
             }

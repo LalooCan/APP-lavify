@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../models/wash_models.dart';
-import '../screens/app_shell.dart';
 import '../screens/privacy_page.dart';
 import '../screens/terms_page.dart';
 import '../services/auth_service.dart';
@@ -73,18 +72,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (_completing) return;
     _completing = true;
 
-    // Actualiza el perfil en memoria y navega de inmediato.
-    // La escritura a Firestore se hace en background para no bloquear al usuario.
+    // Actualiza el perfil en memoria — _AuthGate reacciona vía
+    // ValueListenableBuilder y transiciona a AppShell automáticamente.
+    // No se necesita pushReplacement: _AuthGate permanece en el árbol
+    // para que el logout y los futuros auth state changes funcionen.
     final updated = widget.profile.copyWith(onboardingComplete: true);
     ProfileService().setProfile(updated);
     AuthService().completeOnboarding(widget.profile).ignore();
-
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => AppShell(mode: updated.role),
-      ),
-    );
   }
 
   void _next() {
