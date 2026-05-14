@@ -2109,46 +2109,6 @@ class _PackageShortcutCard extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
-  const _StatTile({required this.value, required this.label});
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-      decoration: BoxDecoration(
-        color: LavifyTheme.surfaceColor(context),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LavifyTheme.borderColor(context)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: LavifyTheme.textPrimaryColor(context),
-              fontSize: 16,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: LavifyTheme.textSecondaryColor(context),
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Notification sheet ─────────────────────────────────────────────────────
 
 enum _NotifFilter { all, orders, promos }
