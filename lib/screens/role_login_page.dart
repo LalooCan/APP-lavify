@@ -1452,6 +1452,106 @@ class _SplashActionButton extends StatelessWidget {
   }
 }
 
+class _EntryHighlights extends StatelessWidget {
+  const _EntryHighlights({this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = const [
+      _EntryHighlightData(
+        icon: Icons.schedule_rounded,
+        title: 'Reservas simples',
+        subtitle:
+            'Elige paquete, confirma ubicacion y agenda sin complicaciones.',
+      ),
+      _EntryHighlightData(
+        icon: Icons.route_rounded,
+        title: 'Seguimiento en vivo',
+        subtitle: 'Visualiza cuando va el lavador y como avanza tu servicio.',
+      ),
+      _EntryHighlightData(
+        icon: Icons.verified_user_rounded,
+        title: 'Lavadores verificados',
+        subtitle: 'Perfiles cuidados para una experiencia mas confiable.',
+      ),
+    ];
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 18 : 24),
+      decoration: BoxDecoration(
+        color: LavifyTheme.overlayPanelColor(context),
+        borderRadius: BorderRadius.circular(compact ? 26 : 32),
+        border: Border.all(color: LavifyTheme.borderColor(context)),
+        boxShadow: LavifyTheme.panelShadow(context, floating: false),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Todo listo para empezar',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0x1A22C1FF),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(item.icon, color: LavifyColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: LavifyTheme.textPrimaryColor(context),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.subtitle,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EntryHighlightData {
+  const _EntryHighlightData({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+}
+
 class _RoleSelector extends StatelessWidget {
   const _RoleSelector({
     required this.selectedMode,
