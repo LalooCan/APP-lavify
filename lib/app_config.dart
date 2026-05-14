@@ -7,10 +7,10 @@ class AppConfig {
   // Antes de activar produccion, despliega firestore.rules con Firebase CLI.
   static const BackendMode backendMode = BackendMode.firestore;
 
-  // Token público de Mapbox. Obtén el tuyo en https://account.mapbox.com
-  // Empieza con "pk." — NO uses el secret token (sk.) aquí.
-  static const String mapboxPublicToken =
-      'MAPBOX_TOKEN_REMOVED';
+  // Token público de Mapbox. Pásalo con --dart-define=MAPBOX_PUBLIC_TOKEN=pk.xxx
+  static const String mapboxPublicToken = String.fromEnvironment(
+    'MAPBOX_PUBLIC_TOKEN',
+  );
 
   static BackendMode get ordersBackendMode => backendMode;
 
